@@ -1,0 +1,74 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+      icon: 'bi-chat-dots',
+      heading: 'Messages',
+      sub: 'Every conversation is about something — an application, or a specific role.'
+    }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (conversations.length === 0) { %>
+    <div class="empty-state glass-card">
+      <i class="bi bi-chat-dots"></i>
+      <p class="mb-1">No conversations yet.</p>
+      <p class="small text-muted-2 mb-2">
+        Threads start from a job or an application, so there is nothing to start here.
+      </p>
+      <a href="/jobs">Browse roles</a>
+    </div>
+  <% } else { %>
+    <div class="glass-card">
+      <div class="list-group list-group-flush">
+        <% conversations.forEach(function (c) { %>
+          <a class="list-group-item list-group-item-action d-flex gap-3 align-items-start"
+             href="/messages/<%= c.id %>">
+            <img class="avatar flex-shrink-0" style="width:42px;height:42px"
+                 src="<%= c.other_photo || c.other_logo || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <strong>
+                  <%= c.other_name %><% if (c.other_count > 1) { %>
+                    <span class="text-muted-2">and <%= c.other_count - 1 %> other<%= c.other_count > 2 ? 's' : '' %></span>
+                  <% } %>
+                </strong>
+                <% if (c.unread_count > 0) { %>
+                  <span class="badge-hub accent"><%= c.unread_count %></span>
+                <% } %>
+              </div>
+
+              <%# The subject, which is true by construction — every thread is anchored. %>
+              <div class="small text-muted-2">
+                <% if (c.kind === 'application') { %>
+                  <i class="bi bi-send"></i> Application
+                <% } else { %>
+                  <i class="bi bi-briefcase"></i> Enquiry
+                <% } %>
+                <% if (c.job_title) { %> · <%= c.job_title %><% } %>
+              </div>
+
+              <% if (c.last_body) { %>
+                <div class="small text-truncate">
+                  <% if (c.last_sender_id === currentUser.id) { %><span class="text-muted-2">You:</span> <% } %>
+                  <%= toPlainText(c.last_body, 140) %>
+                </div>
+              <% } else { %>
+                <div class="small text-muted-2">No messages yet.</div>
+              <% } %>
+            </div>
+            <div class="small text-muted-2 flex-shrink-0">
+              <% if (c.last_message_at) { %><%= new Date(c.last_message_at).toLocaleDateString('en-GB') %><% } %>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+
+    <%- include('../partials/pagination', { pagination: pagination, pageUrl: pageUrl }) %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

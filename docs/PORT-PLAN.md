@@ -68,7 +68,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Directories, dashboards, notifications | 10 | 10 | **done** |
 | Scope estimator & quotes | 10 | 6 | **done** |
 | Documents: SOW, WBS, deck | 17 | 1 | **done** — one handler, four kinds |
-| Messaging | 5 | 5 | after the core |
+| Messaging | 5 | 5 | **done** |
 | Community, feed, points | 9 | ~9 | after the core |
 | Payments: featured placements, deposits, invoices | 7 | ~7 | after the core |
 | In-site assistant | 1 | 1 | after the core |
@@ -192,6 +192,36 @@ The workbook's Scope sheet says plainly that its column does not add up to the h
 figure, and where to find the multipliers that make up the difference — because a reader who
 adds up a column and gets a different number will email about it, and they should not have
 to.
+
+## Messaging
+
+Ported close to unchanged, because the design is the good part: every thread is anchored to
+a subject, membership is a row that every query joins on, and read state is per participant.
+DynamicsHub keyed one conversation per PAIR of users, which merges every topic between two
+people into one thread — an employer discussing two roles with the same consultant ends up
+with a single confusing conversation. Salesforce Hub fixed that and this inherits the fix.
+
+Two things did change, and both are the same shape: a rule stated in a comment that only one
+caller actually enforces.
+
+**"There is no unanchored inbox" was true of the route, not of the code.** The reference's
+`dedupeKeyFor` builds `enquiry:${jobId || 0}:…`, and `enquiry:0:12:34` is a direct message
+between two accounts with no subject at all. Its route always passes a job, so the hole is
+unreachable there today. Here the model throws, and migration 008 carries a CHECK that
+refuses the row, so the promise survives the next caller.
+
+**The inbox duplicated a thread with more than two people in it.** The reference joins
+`conversation_participants` a second time for "the other party", which produces one row per
+other participant. The same table's read state is per participant *because* "a single
+is_read would be wrong the moment a thread has more than two people in it" — so the schema
+anticipates the case the inbox breaks on. Fetching the threads and then their participants
+in one batched second query is shorter than any GROUP BY that would satisfy
+`only_full_group_by`, and it cannot silently duplicate a row.
+
+Also closed here: the three forms the core commit left as comments — asking the advertiser
+about a role, approaching a listed consultant about one, and opening the thread for an
+application. They were deliberately not stubbed, because a button posting to a route that
+does not exist fails in the one place somebody is trying to reach a person.
 
 ## What the core build actually found
 

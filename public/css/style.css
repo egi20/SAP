@@ -1269,3 +1269,32 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   overflow-y: auto;
   padding-right: 0.25rem;
 }
+
+/* ============================================================================
+   MESSAGES
+   --------------------------------------------------------------------------
+   A bubble is capped at 75% so a long paragraph still reads as one side of a
+   conversation rather than as the whole column. `overflow-wrap` matters more
+   than it looks: a pasted URL or a 200-character token with no spaces would
+   otherwise push the card wider than the page on a phone.
+   ========================================================================== */
+
+.message-bubble {
+  max-width: 75%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 14px;
+  background: var(--bs-gray-100, #f3f5f7);
+  border: 1px solid var(--border-hairline, #e4e8ed);
+}
+
+.message-bubble.mine {
+  background: rgba(0, 100, 217, 0.08);
+  border-color: rgba(0, 100, 217, 0.22);
+}
+
+.message-body {
+  /* The body is stored and rendered as plain text, so the newlines the author
+     typed are the only formatting there is — and they have to survive. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

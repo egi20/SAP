@@ -70,8 +70,22 @@
     </div>
 
     <aside class="col-lg-4">
-      <%# Messaging is a later area. A form posting to a route that does not exist is a %>
-      <%# button that fails in the one place somebody is trying to reach a person. %>
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Message</h2>
+          <p class="form-text mb-2">
+            Opens the thread for this application. Both sides see the same conversation.
+          </p>
+          <form method="post" action="/messages/start">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="kind" value="application">
+            <input type="hidden" name="application_id" value="<%= application.id %>">
+            <button class="btn btn-outline-primary w-100" type="submit">
+              <i class="bi bi-chat-dots"></i> Open conversation
+            </button>
+          </form>
+        </div>
+      </div>
       </div>
 
       <div class="glass-card">

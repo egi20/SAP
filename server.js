@@ -229,6 +229,7 @@ app.use('/companies', require('./routes/companies'));
 app.use('/jobs', require('./routes/jobs'));
 app.use('/applications', require('./routes/applications'));
 app.use('/quotes', require('./routes/quotes'));
+app.use('/messages', require('./routes/messages'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));
 

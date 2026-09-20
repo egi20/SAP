@@ -121,8 +121,30 @@
         </div>
       </div>
 
-      <%# Messaging is a later area. A form posting to a route that does not exist is a %>
-      <%# button that fails in the one place somebody is trying to reach a person. %>
+      <% if (hiringJobs && hiringJobs.length && !isSelf) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Approach about a role</h2>
+            <form method="post" action="/messages/start">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="kind" value="enquiry">
+              <input type="hidden" name="recipient_user_id" value="<%= profile.user_id %>">
+              <div class="mb-2">
+                <label class="form-label" for="enquiry-job">Role</label>
+                <select class="form-select" id="enquiry-job" name="job_id" required>
+                  <% hiringJobs.forEach(function (j) { %>
+                    <option value="<%= j.id %>"><%= j.title %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <textarea class="form-control mb-2" name="body" rows="3" required maxlength="5000"
+                        placeholder="Say which role and why you are getting in touch"></textarea>
+              <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Send</button>
+            </form>
+            <p class="form-text mb-0">The thread is anchored to the role you pick.</p>
+          </div>
+        </div>
+      <% } %>
 
       <% if (certifications.length) { %>
         <div class="glass-card mb-3">

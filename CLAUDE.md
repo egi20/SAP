@@ -143,6 +143,41 @@ Hub's own when they fail. Only the two accents are brandable: a company choosing
 heading colour is branding, a company choosing its own body-text colour is a company
 shipping an unreadable document to a client under its own name.
 
+## Messaging
+
+**Every conversation is anchored to a subject** — an application, or an enquiry about a
+specific job. There is no open direct-message inbox, because an unanchored DM channel on a
+marketplace is a recruiting-spam vector and because anchoring gives every thread a subject
+line that is true by construction.
+
+That rule is held in three places on purpose, and the reference holds it in one. The route
+requires a job, `Conversation.dedupeKeyFor` throws without one — the reference defaults it
+to `0` and builds `enquiry:0:12:34`, which IS an unanchored DM — and the CHECK in migration
+008 refuses the row. A rule enforced only by the handler that happens to be correct today is
+the shape this file warns about everywhere else.
+
+**Membership is a row, and it is a JOIN condition on every query.** There is no method on
+`Conversation` that returns a thread without also proving the caller is in it, and
+`postMessage` takes the membership lock inside the same transaction as the insert, so there
+is no window between "are you a member?" and the write.
+
+**The inbox is two queries, not one.** Joining `conversation_participants` a second time to
+find "the other party" yields one row PER other participant, so a three-person thread
+appears in the inbox twice with a different name each time — which contradicts the same
+table's per-participant read state, and that read state exists precisely because a thread
+can have more than two people in it. Fetch the threads, then their participants in one
+batched query.
+
+**A message body is plain text.** It is rendered with `<%= %>` and stored verbatim; the
+model never strips markup, because then two places would decide what a message says. The
+CSS keeps the author's newlines with `white-space: pre-wrap` and breaks long tokens with
+`overflow-wrap: anywhere`, or a pasted URL widens the page on a phone.
+
+`isNavigation` from `middleware/auth.js` decides JSON-versus-redirect here too. The
+reference declares a private `wantsJson` in `routes/messages.js` that disagrees with the
+auth guard about a request carrying no `Sec-Fetch-Dest`, so a plain Node client is
+redirected by the guard and answered in JSON by the handler behind it.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

@@ -1,0 +1,102 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+      icon: 'bi-chat-dots',
+      heading: other ? other.display_name : 'Conversation',
+      sub: conversation.job_title
+        ? (conversation.kind === 'application' ? 'Application · ' : 'Enquiry · ') + conversation.job_title
+        : 'Conversation'
+    }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <% if (messages.length === 0) { %>
+            <p class="text-muted-2 mb-0">No messages yet. Write the first one below.</p>
+          <% } %>
+
+          <% messages.forEach(function (m) { %>
+            <% var mine = m.sender_user_id === currentUser.id; %>
+            <div class="d-flex mb-3 <%= mine ? 'justify-content-end' : '' %>">
+              <div class="<%= mine ? 'message-bubble mine' : 'message-bubble' %>">
+                <div class="small text-muted-2 mb-1">
+                  <%= mine ? 'You' : m.sender_name %>
+                  · <%= new Date(m.created_at).toLocaleString('en-GB') %>
+                </div>
+                <%# Escaped, always. A message body is plain text, and this is the one %>
+                <%# place where accepting markup buys nothing and costs an XSS surface. %>
+                <%# The unescaped output tag must never appear on the line below. %>
+                <div class="message-body"><%= m.body %></div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <form method="post" action="/messages/<%= conversation.id %>/reply">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="form-label" for="reply-body">Reply</label>
+            <textarea class="form-control mb-2" id="reply-body" name="body" rows="4" required
+                      maxlength="<%= maxLength %>" placeholder="Write a reply"></textarea>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">What this is about</h2>
+          <% if (conversation.job_slug) { %>
+            <p class="mb-1">
+              <a href="/jobs/<%= conversation.job_slug %>"><%= conversation.job_title %></a>
+            </p>
+            <% if (conversation.job_role) { %>
+              <p class="small text-muted-2 mb-2"><%= roleLabel(conversation.job_role) %></p>
+            <% } %>
+          <% } %>
+
+          <% if (conversation.kind === 'application') { %>
+            <p class="small mb-0">
+              An application thread.
+              <% if (conversation.application_status) { %>
+                Current state: <span class="badge-hub text-capitalize"><%= conversation.application_status %></span>
+              <% } %>
+            </p>
+            <p class="small text-muted-2 mb-0 mt-2">
+              <a href="/applications/<%= conversation.application_id %>">Open the application</a>
+            </p>
+          <% } else { %>
+            <p class="small mb-0">An enquiry about this role.</p>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">In this conversation</h2>
+          <ul class="list-unstyled small mb-0">
+            <% participants.forEach(function (p) { %>
+              <li class="d-flex align-items-center gap-2 mb-2">
+                <img class="avatar" style="width:28px;height:28px"
+                     src="<%= p.profile_picture || p.logo || '/images/avatar-placeholder.svg' %>" alt="">
+                <span><%= p.display_name %><%= p.user_id === currentUser.id ? ' (you)' : '' %></span>
+              </li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

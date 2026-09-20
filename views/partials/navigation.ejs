@@ -83,6 +83,14 @@
       <ul class="navbar-nav align-items-lg-center">
         <% if (currentUser) { %>
           <li class="nav-item">
+            <a class="nav-link" href="/messages" aria-label="Messages">
+              <i class="bi bi-chat-dots"></i>
+              <%# Filled by public/js/main.js, which makes no request when the element %>
+              <%# is absent — so the badge and the endpoint arrive together or not at all. %>
+              <span class="notif-dot d-none" id="messageCount" aria-live="polite"></span>
+            </a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" href="/notifications" aria-label="Notifications">
               <i class="bi bi-bell"></i>
               <span class="notif-dot d-none" id="notifCount" aria-live="polite"></span>
@@ -97,6 +105,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+              <li><a class="dropdown-item" href="/messages"><i class="bi bi-chat-dots"></i> Messages</a></li>
               <li><a class="dropdown-item" href="/profile/settings"><i class="bi bi-gear"></i> Settings</a></li>
               <li><hr class="dropdown-divider"></li>
               <li>
