@@ -26,6 +26,20 @@ function csrfFrom(html) {
   return match[1];
 }
 
+/**
+ * Read a response body as raw bytes.
+ *
+ * supertest parses a body it recognises and hands back `{}` for one it does not, so
+ * `res.body.slice` is not a function on a .pptx or a .zip. These are binary files and the
+ * whole point of the assertion is the first two bytes, so the parser is replaced rather
+ * than the assertion weakened.
+ */
+function binaryParser(res, callback) {
+  const chunks = [];
+  res.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+  res.on('end', () => callback(null, Buffer.concat(chunks)));
+}
+
 async function signUp({ email, name, roles }) {
   const agent = request.agent(app);
   const page = await agent.get('/auth/register');
@@ -53,7 +67,7 @@ async function signUp({ email, name, roles }) {
   return agent;
 }
 
-const OWN_ACCOUNTS = ['partner@example.test', 'other@example.test'];
+const OWN_ACCOUNTS = ['partner@example.test', 'other@example.test', 'docs@example.test', 'nosy@example.test'];
 
 /**
  * Each suite owns its own accounts and removes only those.
@@ -247,5 +261,106 @@ maybe()('producing and keeping an estimate', () => {
       catalogueVersion(),
       reference
     ]);
+  });
+});
+
+maybe()('producing the deliverables', () => {
+  let author;
+  let stranger;
+  let reference;
+
+  beforeAll(async () => {
+    author = await signUp({ email: 'docs@example.test', name: 'Docs Person', roles: 'company' });
+    stranger = await signUp({ email: 'nosy@example.test', name: 'Nosy Person', roles: 'company' });
+
+    const form = await author.get('/quotes/new');
+    await author
+      .post('/quotes')
+      .type('form')
+      .send({
+        _csrf: csrfFrom(form.text),
+        // An ampersand, because pptxgenjs writes document properties into XML unescaped and
+        // an ordinary company name is what breaks it.
+        client_company: 'Smith & Jones Ltd',
+        client_name: 'A Buyer',
+        project_name: 'Ariba and MM rollout',
+        transition_approach: 'greenfield',
+        modules: ['mm-purchasing', 'ariba-buying'],
+        number_of_users: 300,
+        number_of_company_codes: 2,
+        number_of_countries: 1,
+        number_of_integrations: 3,
+        contingency_percentage: 15,
+        include_training: 'on',
+        include_run: 'on'
+      });
+
+    const [[row]] = await promisePool.query(
+      "SELECT reference FROM quotes WHERE client_company = 'Smith & Jones Ltd'"
+    );
+    reference = row.reference;
+  });
+
+  test.each([
+    ['sow', 'wordprocessingml.document', '.docx'],
+    ['wbs', 'spreadsheetml.sheet', '.xlsx'],
+    ['deck', 'presentationml.presentation', '.pptx'],
+    ['package', 'application/zip', '.zip']
+  ])('%s downloads as a real file', async (kind, contentType, extension) => {
+    const res = await author.get(`/quotes/${reference}/download/${kind}`).buffer(true).parse(binaryParser);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain(contentType);
+    expect(res.headers['content-disposition']).toContain(extension);
+    // Every one of these is a zip container, and every zip starts "PK".
+    expect(res.body.slice(0, 2).toString('latin1')).toBe('PK');
+    expect(Number(res.headers['content-length'])).toBe(res.body.length);
+  });
+
+  test('a document is never cached, because the estimate behind it can be superseded', async () => {
+    const res = await author.get(`/quotes/${reference}/download/sow`);
+    expect(res.headers['cache-control']).toContain('no-store');
+  });
+
+  test('the filename cannot carry a quote or a slash into the header', async () => {
+    const res = await author.get(`/quotes/${reference}/download/package`);
+    const disposition = res.headers['content-disposition'];
+    const filename = disposition.match(/filename="([^"]+)"/)[1];
+    expect(filename).not.toMatch(/["/\\\r\n]/);
+  });
+
+  test('every download is logged with the catalogue it was priced under', async () => {
+    const [rows] = await promisePool.query(
+      `SELECT qd.kind, qd.catalogue_version, qd.byte_size
+         FROM quote_downloads qd JOIN quotes q ON q.id = qd.quote_id
+        WHERE q.reference = ? ORDER BY qd.id`,
+      [reference]
+    );
+
+    expect(rows.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(rows.map((r) => r.kind))).toEqual(new Set(['sow', 'wbs', 'deck', 'package']));
+    for (const row of rows) {
+      expect(row.catalogue_version).toBe(catalogueVersion());
+      expect(row.byte_size).toBeGreaterThan(0);
+    }
+  });
+
+  test('the quote page lists what has been produced', async () => {
+    const page = await author.get(`/quotes/${reference}`);
+    expect(page.text).toContain('Produced so far');
+    expect(page.text).toContain(catalogueVersion());
+  });
+
+  test('somebody else cannot download another account\'s documents', async () => {
+    for (const kind of ['sow', 'wbs', 'deck', 'package']) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await stranger.get(`/quotes/${reference}/download/${kind}`);
+      expect({ kind, status: res.status }).toEqual({ kind, status: 404 });
+    }
+  });
+
+  test('an unknown kind is a 404, not an attempt to build it', async () => {
+    const res = await author.get(`/quotes/${reference}/download/exe`);
+    expect(res.status).toBe(404);
   });
 });

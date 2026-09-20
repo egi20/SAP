@@ -23,11 +23,12 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | Notifications, saved jobs, dashboards | built |
 | Scope estimator: transition approach, clean core, cross-module boundaries, SAP Activate phases | built |
 | Quotes: stored breakdown, lifecycle with an audit trail, stale-catalogue flagging | built |
+| Deliverables: SOW (.docx), work breakdown with a Gantt (.xlsx), summary deck (.pptx), zipped | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: generated documents (SOW, work
-breakdown, deck), messaging, community, payments, the in-site assistant, admin, referrals,
-LinkedIn confirmation, search, recruiters, the sales CRM and finance. See
+Not built yet, and listed so nobody mistakes the scope: messaging, community, payments, the
+in-site assistant, admin, referrals, LinkedIn confirmation, search, recruiters, the sales CRM
+and finance. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 
@@ -75,6 +76,7 @@ moves the number more than anything else on the form.
 | Auth | First-party email + password, `bcryptjs`, server-side sessions. No OAuth, no JWT |
 | Validation | `express-validator` on the server is authoritative; HTML5 attributes are hints only |
 | Uploads | `multer` in memory, re-encoded by `sharp`, stored as `MEDIUMBLOB` in MySQL |
+| Documents | `docx`, `exceljs`, `pptxgenjs`, zipped with `archiver`. Generated on demand, never stored, and every one is opened and parsed before it is served |
 | Tests | Jest + supertest. The integration suite needs a real database and skips itself without one |
 
 No CDN. Bootstrap, Bootstrap Icons and Inter are served from this origin, and the
@@ -103,6 +105,7 @@ one command.
 npm run validate-boot   # loads every module, compiles every template, measures the palette
 npm run lint
 npm test                # unit always; integration only with a database
+                        # use the script, not `npx jest` — it sets the flag pptxgenjs needs
 ```
 
 `validate-boot` needs no database and is the one to run before pushing.

@@ -205,6 +205,43 @@
 
       <div class="glass-card mb-3">
         <div class="card-body">
+          <h2 class="h6 mb-2">Documents</h2>
+          <p class="form-text mt-0 mb-2">
+            Generated from this estimate when you ask for them, never stored — so there is only
+            ever one source for these figures.
+          </p>
+          <a class="btn btn-primary w-100 mb-2" href="/quotes/<%= quote.reference %>/download/package">
+            <i class="bi bi-download"></i> All three, zipped
+          </a>
+          <div class="d-flex gap-2">
+            <% Object.entries(documentKinds).forEach(function (entry) { %>
+              <a class="btn btn-outline-primary btn-sm flex-grow-1"
+                 href="/quotes/<%= quote.reference %>/download/<%= entry[0] %>">
+                <%= entry[1].extension.toUpperCase() %>
+              </a>
+            <% }); %>
+          </div>
+
+          <% if (downloads.length) { %>
+            <hr>
+            <h3 class="h6">Produced so far</h3>
+            <ul class="list-unstyled small mb-0">
+              <% downloads.forEach(function (d) { %>
+                <li class="d-flex justify-content-between">
+                  <span class="text-uppercase"><%= d.kind %></span>
+                  <span class="text-muted-2">
+                    <%= new Date(d.created_at).toLocaleDateString('en-GB') %>
+                    · catalogue <%= d.catalogue_version %>
+                  </span>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
           <h2 class="h6 mb-2">Assumptions</h2>
           <ul class="list-unstyled small mb-0">
             <li class="d-flex justify-content-between">

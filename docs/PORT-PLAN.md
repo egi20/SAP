@@ -67,7 +67,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Day-rate index, n≥3 privacy floor | 4 | 3 | **done** — the calculator is later |
 | Directories, dashboards, notifications | 10 | 10 | **done** |
 | Scope estimator & quotes | 10 | 6 | **done** |
-| Documents: SOW, WBS, deck | — | — | after the core |
+| Documents: SOW, WBS, deck | 17 | 1 | **done** — one handler, four kinds |
 | Messaging | 5 | 5 | after the core |
 | Community, feed, points | 9 | ~9 | after the core |
 | Payments: featured placements, deposits, invoices | 7 | ~7 | after the core |
@@ -155,6 +155,43 @@ a figure added to the total. Nothing reconciles it, because the two live on diff
 of the addition. Here `run` is a phase like any other, `totalBudget` is the budget, and
 `reconciliationProblems()` fails an estimate whose total differs from the sum of its
 resource lines — so the bug cannot come back quietly.
+
+## The documents
+
+Three generators and a zip, rendered from a stored quote. The rule they all share: they
+FORMAT `quote.estimate` and derive nothing, because a document that rounds differently from
+the web page is the version a client quotes back at you in a meeting. Where a total is
+printed it sums the rows above it, and in the workbook it is a real Excel `SUM` so a reader
+who edits a cell sees the total move.
+
+`utils/documents/validate.js` is ported unchanged and is the most valuable file of the
+three areas: it opens every generated package and parses every XML part inside it before the
+buffer is returned. A presence check for the expected parts does not catch a malformed one,
+and a file that downloads fine and then will not open is the worst failure available for
+something you are about to put in front of a client.
+
+It earned its place immediately. `pptxgenjs` escapes slide text but writes `author`,
+`company`, `title` and `subject` straight into `docProps/`, so a client company called
+"Smith & Jones Ltd" — about as ordinary as a name gets — produces a raw ampersand in XML and
+a deck that will not open. Confirmed against the installed version, in both directions: the
+unescaped name is refused by the validator, the escaped one opens. The reference found the
+same thing; here it is pinned by a test rather than only by a comment.
+
+Two things the SAP versions say that the reference's cannot:
+
+- **The boundaries get their own section in the SOW and their own slide in the deck.** They
+  are the part of an SAP estimate a client most often challenges, and the answer is easier
+  to give in writing than on a call: the work exists because the module on the other side is
+  not in scope, and bringing it in would absorb it. Folded into a line called "integration",
+  it becomes an argument later.
+- **Hypercare is quoted as "of which", never as a line beneath the total.** The wording is
+  the guard against the reference's double count returning through a formatter rather than
+  through the engine, and there is a test on the phrase.
+
+The workbook's Scope sheet says plainly that its column does not add up to the headline
+figure, and where to find the multipliers that make up the difference — because a reader who
+adds up a column and gets a different number will email about it, and they should not have
+to.
 
 ## What the core build actually found
 

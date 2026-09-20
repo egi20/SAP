@@ -21,6 +21,13 @@ const {
 const { PRODUCT_LINES, isModule, lineByValue } = require('../config/sapProducts');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { returnTo } = require('../utils/returnTo');
+const {
+  DOCUMENT_KINDS,
+  PACKAGE_KIND,
+  isDocumentKind,
+  generateDocument,
+  generatePackage
+} = require('../services/quotePackage');
 
 const router = express.Router();
 
@@ -223,7 +230,11 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const [events, modules] = await Promise.all([Quote.events(quote.id), Quote.modulesFor(quote.id)]);
+    const [events, modules, downloads] = await Promise.all([
+      Quote.events(quote.id),
+      Quote.modulesFor(quote.id),
+      Quote.downloads(quote.id, { limit: 10 })
+    ]);
 
     /*
      * A quote priced under an older catalogue is FLAGGED, not silently re-priced.
@@ -241,10 +252,60 @@ router.get(
       modules,
       events,
       stale,
+      downloads,
+      documentKinds: DOCUMENT_KINDS,
       currentCatalogue: catalogueVersion(),
       transitionApproaches: TRANSITION_APPROACHES,
       allowedTransitions: Quote.TRANSITIONS[quote.status] || []
     });
+  })
+);
+
+/**
+ * Produce a deliverable from a stored quote.
+ *
+ * Documents are generated on demand rather than stored, because storing them would mean two
+ * sources of truth for the same figures. Each generator opens and parses its own output
+ * before returning it, so a file that cannot be opened never reaches the response.
+ *
+ * Declared before `/:reference/status` only for readability; Express matches on the path, so
+ * the order of these two does not matter — unlike `/new`, which genuinely must precede
+ * `/:reference`.
+ */
+router.get(
+  '/:reference/download/:kind',
+  isEmailVerified,
+  asyncHandler(async (req, res) => {
+    const kind = String(req.params.kind);
+    if (kind !== PACKAGE_KIND && !isDocumentKind(kind)) {
+      return res.status(404).render('errors/404', { title: 'Not found' });
+    }
+
+    const quote = await Quote.findByReference(String(req.params.reference).toUpperCase());
+    if (!quote || quote.owner_user_id !== req.session.user.id) {
+      return res.status(404).render('errors/404', { title: 'Not found' });
+    }
+
+    /*
+     * Company branding is a later area, so nothing is passed. When it lands it is READ from
+     * the owner's stored template here — never taken from the request, which would let the
+     * colour of a client-facing document be set by whoever crafted the URL.
+     */
+    const branding = null;
+
+    const document =
+      kind === PACKAGE_KIND ? await generatePackage(quote, branding) : await generateDocument(quote, kind, branding);
+
+    // Fire and forget: the audit row must not stand between somebody and their document.
+    Quote.recordDownload(quote.id, req.session.user.id, kind, quote.catalogue_version, document.buffer.length);
+
+    res.setHeader('Content-Type', document.contentType);
+    // The filename is slugified, so it can carry no quote, slash or newline into the header.
+    res.setHeader('Content-Disposition', `attachment; filename="${document.filename}"`);
+    res.setHeader('Content-Length', document.buffer.length);
+    // A document is built from a stored estimate that can be superseded; never cache it.
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(document.buffer);
   })
 );
 

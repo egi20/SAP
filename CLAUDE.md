@@ -110,6 +110,39 @@ was never a block of calendar of its own.
 `crossModule` partner is not costs a share of the partner's own baseline — the boundary has
 to be built either way. Counting it from both sides doubles it invisibly.
 
+## Documents
+
+`utils/documents/` renders `quote.estimate` and computes NOTHING. Every figure was produced
+by the estimator and has already passed `reconciliationProblems()`. A formatter that
+re-derives a percentage or re-rounds a cost is how a document ends up contradicting the web
+page it came from. Where a total is printed it is a summation of the very rows above it —
+and in the workbook it is a real Excel `SUM`, not the stored figure typed in again.
+
+**Never serve a document nobody has opened.** DOCX, XLSX and PPTX are zip containers of XML
+parts, and a generator that produces one subtly broken part yields a file that downloads
+fine and then fails to open — which the recipient experiences as "you sent me a corrupt
+file". `utils/documents/validate.js` opens the package and parses every part; a presence
+check does not catch this. Each generator calls it before returning.
+
+**pptxgenjs does not escape document properties.** It escapes slide text, then writes
+`author`, `company`, `title` and `subject` straight into `docProps/`. A client called
+"Smith & Jones Ltd" produces a raw `&` and a deck that will not open. `summaryPptx.js`
+escapes all four; there is a test that pins both the escaping and the validator that would
+otherwise have refused the file.
+
+**Documents are generated on demand and never stored.** Storing them would mean two sources
+of truth for the same figures. `quote_downloads` records that one was produced, with the
+catalogue it was priced under, because a document only means anything alongside its basis.
+
+**Filenames go through `slugify`.** They land in a `Content-Disposition` header, so a
+project called `Müller & Co / "phase" 2` must not be able to put a quote, a slash or a
+newline there.
+
+Branding colours are contrast-checked in `utils/documents/brand.js` and fall back to the
+Hub's own when they fail. Only the two accents are brandable: a company choosing its own
+heading colour is branding, a company choosing its own body-text colour is a company
+shipping an unreadable document to a client under its own name.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:
@@ -202,12 +235,20 @@ where a change has an author, a diff and a review.
 
 ## Tests
 
+**Run `npm test`, not `npx jest`.** The script sets `NODE_OPTIONS=--experimental-vm-modules`,
+and pptxgenjs lazily `import()`s node built-ins from inside a CJS bundle — without the flag
+every deck test fails inside Jest while the same code works perfectly from the command line.
+
 `npm test` runs both suites. The integration suite needs a real MySQL 8 and SKIPS itself
 without one — the decision is made in `tests/globalSetup.js`, in the parent process, and
 **not** in a `beforeAll`: Jest registers every `describe` while the file is being evaluated,
 so a flag set in a hook is still false when the suite decides whether to skip. The first
 version of that suite reported seven skipped tests against a database that was running,
 which is the worst outcome available — a green run that tested nothing.
+
+supertest parses a body whose type it recognises and hands back `{}` for one it does not,
+so `res.body` is not a Buffer for a .pptx or a .zip. Download tests pass a binary parser
+rather than weakening the assertion.
 
 Run against a real database before believing anything about SQL. Salesforce Hub's port plan
 ends with three bugs that were green under mocks: an alias colliding with a real column

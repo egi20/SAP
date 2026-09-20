@@ -247,6 +247,38 @@ class Quote {
     return result.affectedRows === 1;
   }
 
+  /**
+   * Record that a deliverable was produced.
+   *
+   * Fire and forget, for the same reason notifications are: a failure to write the audit
+   * row must not deny somebody the document they asked for. The row records the catalogue
+   * the quote was priced under, because a document is only meaningful alongside its basis.
+   */
+  static async recordDownload(quoteId, actorUserId, kind, catalogueVersion, byteSize) {
+    try {
+      await promisePool.query(
+        `INSERT INTO quote_downloads (quote_id, actor_user_id, kind, catalogue_version, byte_size)
+         VALUES (?, ?, ?, ?, ?)`,
+        [quoteId, actorUserId, kind, catalogueVersion, byteSize]
+      );
+    } catch (err) {
+      console.error(`Could not record a ${kind} download for quote ${quoteId}: ${err.message}`);
+    }
+  }
+
+  static async downloads(quoteId, { limit = 20 } = {}) {
+    const [rows] = await promisePool.query(
+      `SELECT qd.*, u.name AS actor_name
+         FROM quote_downloads qd
+         LEFT JOIN users u ON u.id = qd.actor_user_id
+        WHERE qd.quote_id = ?
+        ORDER BY qd.created_at DESC, qd.id DESC
+        LIMIT ?`,
+      [quoteId, limit]
+    );
+    return rows;
+  }
+
   /** Headline counts for the owner's quote list. */
   static async statsForOwner(ownerUserId) {
     const [[row]] = await promisePool.query(
