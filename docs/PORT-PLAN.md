@@ -66,7 +66,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Match scoring, with the module term and the aliases | — | — | **done** |
 | Day-rate index, n≥3 privacy floor | 4 | 3 | **done** — the calculator is later |
 | Directories, dashboards, notifications | 10 | 10 | **done** |
-| Scope estimator & quotes | 10 | ~8 | after the core |
+| Scope estimator & quotes | 10 | 6 | **done** |
 | Documents: SOW, WBS, deck | — | — | after the core |
 | Messaging | 5 | 5 | after the core |
 | Community, feed, points | 9 | ~9 | after the core |
@@ -111,6 +111,50 @@ Everything built here satisfies the rules in `CLAUDE.md`. The ones most often at
 - The catalogues in `config/` are asserted at boot. A silently-degrading default — a role
   with no base rate, a module depending on one that does not exist — fails loudly at the
   one moment somebody is watching.
+
+## The estimator, and what it does differently
+
+Three inputs have no counterpart in either reference, and one output is a bug fix.
+
+**`TRANSITION_APPROACHES` — greenfield, brownfield or selective.** The first question on
+any real S/4HANA programme, and the biggest single lever on the number. A CRM estimator has
+no equivalent because a CRM implementation has no existing ECC landscape to convert.
+Brownfield reads as the cheap option and is not: the work moves from designing processes to
+reconciling twenty years of configuration, custom code and data. The form states that next
+to the radio button rather than hiding it in a tooltip.
+
+**`CLEAN_CORE_LEVELS` replaces "customisation level".** The reference asks how much custom
+code there is. This asks WHERE it lives, because that is what decides whether the next
+upgrade is a weekend or a project — and it is the thing an estimate is most often quietly
+optimistic about.
+
+**Cross-module boundaries are charged.** `config/sapProducts.js` declared `crossModule` in
+the first commit; `utils/sapEstimation.js` is where it finally costs something. SD without
+MM is not a smaller project, it is an integration problem, and each boundary to a module
+that is NOT in scope is charged at 20% of that module's own baseline — once per unordered
+pair, because the boundary between MM and SD is one boundary and counting it from both
+sides is the kind of doubling nobody notices in a total. The estimate lists them separately
+instead of folding them into a subtotal.
+
+**The phases are SAP Activate's, shared with the rest of the application.**
+`config/activatePhases.js` is now the one list, read by the job board, the delivery history
+and the estimator. It was declared inside `models/Job.js` while only the job board needed
+it; a second copy would have been a list that drifts, and drift here means a quote and a CV
+using the same word for different things. `assertEstimationIntegrity()` fails the boot if
+the phase table stops matching it, in order.
+
+One structural change follows: **training is a workstream, not a phase.** SAP Activate has
+no training phase — enablement runs across explore, realize and deploy — so it lives in the
+resource allocation. Excluding it removes a role and redistributes its days; the timeline
+does not move, because enablement never was a block of calendar.
+
+**And one thing the reference gets wrong.** It carries a `support` phase at 2% of the total
+AND adds a separately computed hypercare budget on top of the implementation budget.
+Hypercare is therefore in the number twice: once as days inside `totalManDays`, and again as
+a figure added to the total. Nothing reconciles it, because the two live on different sides
+of the addition. Here `run` is a phase like any other, `totalBudget` is the budget, and
+`reconciliationProblems()` fails an estimate whose total differs from the sum of its
+resource lines — so the bug cannot come back quietly.
 
 ## What the core build actually found
 

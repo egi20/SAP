@@ -21,11 +21,13 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | Match scoring between a consultant and a role, with a visible breakdown | built |
 | Day-rate index with an n≥3 privacy floor, percentiles and a trend | built |
 | Notifications, saved jobs, dashboards | built |
+| Scope estimator: transition approach, clean core, cross-module boundaries, SAP Activate phases | built |
+| Quotes: stored breakdown, lifecycle with an audit trail, stale-catalogue flagging | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: the scope estimator and quotes,
-generated documents, messaging, community, payments, the in-site assistant, admin,
-referrals, LinkedIn confirmation, search, recruiters, the sales CRM and finance. See
+Not built yet, and listed so nobody mistakes the scope: generated documents (SOW, work
+breakdown, deck), messaging, community, payments, the in-site assistant, admin, referrals,
+LinkedIn confirmation, search, recruiters, the sales CRM and finance. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 
@@ -53,9 +55,11 @@ adapted:
    accent, not the button. `#0064D9` at 5.49:1 carries the interactions. Measured, and
    pinned by a test.
 
-And one thing the ecosystem has that neither reference does: **delivered modules are not
-claimed skills.** The module filter and the module term in the match score both read the
-delivery history. Anybody can tick EWM on a skills list.
+And two things the ecosystem has that neither reference does: **delivered modules are not
+claimed skills** — the module filter and the module term in the match score both read the
+delivery history, because anybody can tick EWM on a skills list — and **the transition
+approach**, greenfield or brownfield or selective, which the estimator asks first because it
+moves the number more than anything else on the form.
 
 ---
 

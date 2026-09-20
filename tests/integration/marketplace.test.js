@@ -64,12 +64,25 @@ async function signUp({ email, name, roles }) {
   return agent;
 }
 
+const OWN_ACCOUNTS = ['hiring@example.test', 'ewm@example.test'];
+
+/**
+ * Each suite owns its own accounts and removes only those.
+ *
+ * `DELETE FROM users` was the first version, and it is a trap: Jest runs test FILES in
+ * parallel workers by default, so two suites truncating the same table race each other and
+ * fail in whichever order the scheduler picked that day. Everything in this schema cascades
+ * from `users`, so deleting this suite's own e-mail addresses is both sufficient and
+ * parallel-safe.
+ */
+async function removeOwnAccounts() {
+  await promisePool.query('DELETE FROM users WHERE email IN (?)', [OWN_ACCOUNTS]);
+}
+
 beforeAll(async () => {
   if (!reachable) return;
   app = require('../../server');
-
-  // A clean slate. Everything else cascades from users.
-  await promisePool.query('DELETE FROM users');
+  await removeOwnAccounts();
 });
 
 // No afterAll cleanup here: tests/setup.js closes the pool, and it runs first, so a query

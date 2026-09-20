@@ -5,6 +5,7 @@ const { containsPattern } = require('../utils/likePattern');
 const { uniqueSlug } = require('../utils/slug');
 const { isRole } = require('../config/roleTaxonomy');
 const { isModule } = require('../config/sapProducts');
+const { ACTIVATE_PHASES } = require('../config/activatePhases');
 
 const SORTS = {
   newest: 'j.published_at DESC, j.id DESC',
@@ -12,8 +13,6 @@ const SORTS = {
   rate_asc: 'j.rate_min IS NULL, j.rate_min ASC',
   relevance: 'j.published_at DESC, j.id DESC'
 };
-
-const ACTIVATE_PHASES = Object.freeze(['discover', 'prepare', 'explore', 'realize', 'deploy', 'run']);
 
 /*
  * NO FEATURED PLACEMENT YET, and its absence is deliberate rather than forgotten.
@@ -136,6 +135,11 @@ function buildFilter(filters = {}) {
 class Job {
   static buildFilter = buildFilter;
 
+  /**
+   * Re-exported from `config/activatePhases.js` so existing call sites keep working.
+   * The list itself lives there because the estimator and the delivery history need it
+   * too, and a second copy is a list that drifts.
+   */
   static get ACTIVATE_PHASES() {
     return ACTIVATE_PHASES;
   }

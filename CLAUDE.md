@@ -66,6 +66,50 @@ is watching the log. **A new catalogue gets an assertion before it gets a consum
 5. **Effort baselines are SAP-sized.** An S/4HANA finance core is 60 consultant-days of
    foundation, not the reference's 12. A test pins the floor.
 
+## The estimator
+
+`utils/sapEstimation.js` is pure — no database, no clock beyond one timestamp — so its
+invariants are testable, and they are the whole point:
+
+1. Phase days sum EXACTLY to the total. Resource days sum EXACTLY to the same total. Both
+   come from `apportionDays` (largest remainder). Never replace it with
+   `Math.round(total * pct / 100)`: each call rounds in isolation and the parts drift away
+   from the headline figure.
+2. Every cost is `days × rate` on integers, so the budget reconciles line by line.
+3. Calendar duration is the SUM of sequential phase durations. Do not "simplify" it to
+   `totalDays / teamSize / 5` — that treats the whole programme as one parallel bucket.
+4. **Nothing is counted twice.** The reference carries a hypercare phase inside the total
+   AND adds a separate hypercare budget on top of it. Here `run` is a phase, its cost is
+   inside `implementationBudget`, and `totalBudget` equals it. `reconciliationProblems()`
+   asserts that equality, so the bug cannot return quietly.
+
+`reconciliationProblems(estimate)` re-checks all of it. `routes/quotes.js` calls it before
+an estimate is shown or stored and throws a 500 on failure, because that combination can
+only mean a bug in the engine.
+
+The module catalogue lives in `config/sapProducts.js` and nowhere else. Multipliers,
+phases, resources and add-ons live in `config/estimation.js`. Both are asserted at boot.
+
+`catalogueVersion()` is a hash of every number that can move an estimate. It is stored with
+each quote, and a quote priced under an older catalogue is FLAGGED, never re-priced: the
+stored breakdown is what was said to a client on a date, and recomputing it would change
+history the moment somebody edits a base effort.
+
+**Phases are SAP Activate's, from `config/activatePhases.js`, and that is the only copy.**
+The job board stores one on every advert, the delivery history stores one on every
+engagement, and the estimator distributes effort across all six. A second list would drift,
+and drift here means a quote and a CV using the same word for different things. The boot
+assertion checks the estimator's phase table matches it exactly, in order. Changing a name
+is a migration (ENUMs in 002 and 003), not an edit.
+
+**Training is a workstream, not a phase.** Excluding it removes a role from the resource
+allocation and redistributes its days; it must not shorten the timeline, because enablement
+was never a block of calendar of its own.
+
+**Cross-module boundaries are charged once per unordered pair.** A module in scope whose
+`crossModule` partner is not costs a share of the partner's own baseline — the boundary has
+to be built either way. Counting it from both sides doubles it invisibly.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

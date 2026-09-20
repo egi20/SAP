@@ -1,0 +1,256 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+      icon: 'bi-file-earmark-text',
+      heading: quote.project_name,
+      sub: quote.client_company + ' · ' + quote.reference,
+      label: 'ESTIMATE'
+    }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (stale) { %>
+    <%#
+      Flagged, not re-priced. The stored breakdown is what was said to the client on a
+      date; recomputing it now would quietly change history the moment somebody edits a
+      base effort or a day rate.
+    %>
+    <div class="alert alert-warning">
+      <strong>The basis has moved.</strong>
+      This estimate was priced under catalogue <code><%= quote.catalogue_version %></code>;
+      today's is <code><%= currentCatalogue %></code>. The figures below are exactly what was
+      produced at the time and have not been recalculated. Produce a new estimate to price it
+      against the current catalogue.
+    </div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="stat-tile"><div class="value"><%= estimate.totalManDays.toLocaleString('en-GB') %></div><div class="label">Consultant-days</div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-tile"><div class="value"><%= Math.round(estimate.totalBudget).toLocaleString('en-GB') %></div><div class="label">Budget (<%= estimate.currency %>)</div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-tile"><div class="value"><%= estimate.projectDurationWeeks %></div><div class="label">Weeks</div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-tile"><div class="value"><%= estimate.averageDailyRate.toLocaleString('en-GB') %></div><div class="label">Average day rate</div></div>
+        </div>
+      </div>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-3">How the effort was built</h2>
+          <table class="table table-sm align-middle mb-0">
+            <tbody>
+              <% estimate.lineBreakdown.forEach(function (l) { %>
+                <tr>
+                  <td><%= l.name %></td>
+                  <td class="text-muted-2 small">
+                    foundation <%= l.foundationDays %>d, modules <%= l.moduleDays %>d — the greater applies
+                  </td>
+                  <td class="text-end"><%= l.effectiveDays %>d</td>
+                </tr>
+              <% }); %>
+
+              <% if (estimate.crossModuleBreakdown && estimate.crossModuleBreakdown.length) { %>
+                <tr class="border-top">
+                  <td colspan="3" class="pt-3">
+                    <strong>Boundaries to modules not in scope</strong>
+                    <div class="form-text mt-0">
+                      Each of these is an integration to a system boundary rather than configuration.
+                      Selecting the other side instead would absorb the work into that module.
+                    </div>
+                  </td>
+                </tr>
+                <% estimate.crossModuleBreakdown.forEach(function (b) { %>
+                  <tr>
+                    <td><%= moduleLabel(b.from) %> → <%= moduleLabel(b.to) %></td>
+                    <td class="text-muted-2 small">not in scope</td>
+                    <td class="text-end"><%= b.days %>d</td>
+                  </tr>
+                <% }); %>
+              <% } %>
+
+              <% estimate.addonBreakdown.forEach(function (a) { %>
+                <tr><td><%= a.name %></td><td class="text-muted-2 small"><%= a.category %></td><td class="text-end"><%= a.days %>d</td></tr>
+              <% }); %>
+
+              <% if (estimate.unmapped && estimate.unmapped.days > 0) { %>
+                <tr>
+                  <td>Unmapped scope</td>
+                  <td class="text-muted-2 small">
+                    <%= estimate.unmapped.modules %> module(s), <%= estimate.unmapped.addons %> add-on(s),
+                    <%= estimate.unmapped.integrations %> integration(s) — costed, not ignored
+                  </td>
+                  <td class="text-end"><%= estimate.unmapped.days %>d</td>
+                </tr>
+              <% } %>
+
+              <tr class="border-top">
+                <td><strong>Base effort</strong></td><td></td>
+                <td class="text-end"><strong><%= estimate.baseEffort.toLocaleString('en-GB') %>d</strong></td>
+              </tr>
+              <tr>
+                <td>Contingency</td><td class="text-muted-2 small"><%= estimate.contingencyPercentage %>%</td>
+                <td class="text-end"><%= estimate.contingencyDays.toLocaleString('en-GB') %>d</td>
+              </tr>
+              <tr class="border-top">
+                <td><strong>Total</strong></td><td></td>
+                <td class="text-end"><strong><%= estimate.totalManDays.toLocaleString('en-GB') %>d</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-1">Phases</h2>
+          <p class="form-text mt-0 mb-3">
+            SAP Activate's phases, run sequentially. The weeks are the sum of the per-phase
+            durations, not the total divided by one fully parallel team.
+          </p>
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Phase</th><th>Milestone</th><th class="text-end">Days</th><th class="text-end">Weeks</th></tr></thead>
+            <tbody>
+              <% estimate.timeline.forEach(function (t) { %>
+                <tr>
+                  <td><strong><%= t.phase %></strong></td>
+                  <td class="text-muted-2 small"><%= t.milestone %></td>
+                  <td class="text-end"><%= t.days %></td>
+                  <td class="text-end"><%= t.startWeek %>–<%= t.endWeek %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-1">Team and budget</h2>
+          <p class="form-text mt-0 mb-3">
+            Every line is days × rate on whole numbers, so the lines add up to the budget exactly.
+          </p>
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Role</th><th class="text-end">Share</th><th class="text-end">Days</th><th class="text-end">Rate</th><th class="text-end">Cost</th></tr></thead>
+            <tbody>
+              <% estimate.resourceAllocation.forEach(function (r) { %>
+                <tr>
+                  <td><%= r.name %></td>
+                  <td class="text-end"><%= r.share %>%</td>
+                  <td class="text-end"><%= r.days %></td>
+                  <td class="text-end"><%= r.dailyRate.toLocaleString('en-GB') %></td>
+                  <td class="text-end"><%= r.totalCost.toLocaleString('en-GB') %></td>
+                </tr>
+              <% }); %>
+              <tr class="border-top">
+                <td><strong>Total</strong></td><td></td>
+                <td class="text-end"><strong><%= estimate.totalManDays.toLocaleString('en-GB') %></strong></td>
+                <td></td>
+                <td class="text-end"><strong><%= estimate.implementationBudget.toLocaleString('en-GB') %> <%= estimate.currency %></strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <% if (estimate.runPhase && estimate.runPhase.included) { %>
+            <p class="form-text mb-0 mt-3">
+              Hypercare is <strong><%= estimate.runPhase.days %> days</strong>
+              (about <%= estimate.runPhase.cost.toLocaleString('en-GB') %> <%= estimate.currency %>)
+              <strong>within</strong> the total above, not added to it.
+            </p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Status</h2>
+          <p class="mb-2"><span class="badge-hub accent text-capitalize"><%= quote.status %></span></p>
+
+          <% if (allowedTransitions.length) { %>
+            <form method="post" action="/quotes/<%= quote.reference %>/status">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="form-label" for="status">Move to</label>
+              <select class="form-select form-select-sm mb-2" id="status" name="status">
+                <% allowedTransitions.forEach(function (s) { %>
+                  <option value="<%= s %>" class="text-capitalize"><%= s %></option>
+                <% }); %>
+              </select>
+              <input class="form-control form-control-sm mb-2" name="note" maxlength="500" placeholder="Note (optional)">
+              <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Update</button>
+            </form>
+          <% } else { %>
+            <p class="form-text mb-0">This estimate has reached a final state.</p>
+          <% } %>
+
+          <% if (quote.status === 'draft') { %>
+            <hr>
+            <form method="post" action="/quotes/<%= quote.reference %>/delete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-link btn-sm text-danger p-0" type="submit">Delete this draft</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Assumptions</h2>
+          <ul class="list-unstyled small mb-0">
+            <li class="d-flex justify-content-between">
+              <span>Transition</span><strong><%= estimate.multipliers.transition.name %></strong>
+            </li>
+            <li class="d-flex justify-content-between"><span>Clean core</span><strong><%= estimate.multipliers.cleanCore.name %></strong></li>
+            <li class="d-flex justify-content-between"><span>Users</span><strong><%= estimate.multipliers.users.count %> (×<%= estimate.multipliers.users.value %>)</strong></li>
+            <li class="d-flex justify-content-between"><span>Company codes</span><strong><%= estimate.multipliers.companyCodes.count %> (×<%= estimate.multipliers.companyCodes.value %>)</strong></li>
+            <li class="d-flex justify-content-between"><span>Countries</span><strong><%= estimate.multipliers.countries.count %> (×<%= estimate.multipliers.countries.value %>)</strong></li>
+            <li class="d-flex justify-content-between"><span>Industry</span><strong><%= estimate.multipliers.industry.name %></strong></li>
+            <li class="d-flex justify-content-between"><span>Integrations</span><strong><%= estimate.multipliers.integrations.count %> × <%= estimate.multipliers.integrations.daysEach %>d</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <% if (modules.length) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Modules in scope</h2>
+            <div class="d-flex flex-wrap gap-1">
+              <% modules.forEach(function (m) { %><span class="badge-hub"><%= moduleLabel(m) %></span><% }); %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">History</h2>
+          <ul class="list-unstyled small mb-0">
+            <% events.forEach(function (e) { %>
+              <li class="mb-1">
+                <span class="text-capitalize"><%= e.from_status ? e.from_status + ' → ' : '' %><%= e.to_status %></span>
+                <span class="text-muted-2">
+                  · <%= new Date(e.created_at).toLocaleDateString('en-GB') %><%= e.actor_name ? ' · ' + e.actor_name : '' %>
+                </span>
+                <% if (e.note) { %><div class="text-muted-2"><%= e.note %></div><% } %>
+              </li>
+            <% }); %>
+          </ul>
+          <p class="form-text mb-0 mt-2">Priced under catalogue <code><%= quote.catalogue_version %></code>.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

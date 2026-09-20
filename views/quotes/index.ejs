@@ -1,0 +1,85 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+      icon: 'bi-calculator',
+      heading: 'Estimates',
+      sub: 'Scope estimates you have produced.',
+      label: 'DELIVERY'
+    }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="stat-tile"><div class="value"><%= stats.total %></div><div class="label">Total</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-tile"><div class="value"><%= stats.drafts %></div><div class="label">Draft</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-tile"><div class="value"><%= stats.sent %></div><div class="label">Sent</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-tile"><div class="value"><%= stats.accepted %></div><div class="label">Accepted</div></div></div>
+  </div>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <ul class="nav nav-pills">
+      <li class="nav-item"><a class="nav-link <%= status === '' ? 'active' : '' %>" href="/quotes">All</a></li>
+      <% statuses.forEach(function (s) { %>
+        <li class="nav-item">
+          <a class="nav-link text-capitalize <%= status === s ? 'active' : '' %>" href="/quotes?status=<%= s %>"><%= s %></a>
+        </li>
+      <% }); %>
+    </ul>
+    <a class="btn btn-primary" href="/quotes/new"><i class="bi bi-plus-lg"></i> New estimate</a>
+  </div>
+
+  <%#
+    Filtering by transition approach, because it is the first question anybody asks of a
+    list of SAP estimates. It is a column rather than a JSON lookup for exactly this.
+  %>
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="badge-hub text-decoration-none <%= approach === '' ? 'accent' : '' %>"
+       href="/quotes<%= status ? '?status=' + status : '' %>">Any approach</a>
+    <% Object.entries(transitionApproaches).forEach(function (entry) { %>
+      <a class="badge-hub text-decoration-none <%= approach === entry[0] ? 'accent' : '' %>"
+         href="/quotes?approach=<%= entry[0] %><%= status ? '&status=' + status : '' %>"><%= entry[1].name %></a>
+    <% }); %>
+  </div>
+
+  <% if (quotes.length === 0) { %>
+    <div class="empty-state glass-card">
+      <i class="bi bi-calculator"></i>
+      <p class="mb-1">No estimates<%= status || approach ? ' matching that' : ' yet' %>.</p>
+      <a href="/quotes/new">Produce your first one</a>
+    </div>
+  <% } else { %>
+    <div class="table-responsive glass-card">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Reference</th><th>Client</th><th>Project</th><th>Approach</th>
+            <th class="text-end">Days</th><th class="text-end">Budget</th><th class="text-end">Weeks</th>
+            <th>Status</th><th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% quotes.forEach(function (q) { %>
+            <tr>
+              <td><a href="/quotes/<%= q.reference %>"><%= q.reference %></a></td>
+              <td><%= q.client_company %></td>
+              <td><%= q.project_name %></td>
+              <td><span class="badge-hub text-capitalize"><%= q.transition_approach %></span></td>
+              <td class="text-end"><%= q.total_man_days.toLocaleString('en-GB') %></td>
+              <td class="text-end"><%= Math.round(Number(q.total_budget)).toLocaleString('en-GB') %> <%= q.currency %></td>
+              <td class="text-end"><%= q.duration_weeks %></td>
+              <td><span class="badge-hub text-capitalize"><%= q.status %></span></td>
+              <td><%= new Date(q.created_at).toLocaleDateString('en-GB') %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <%- include('../partials/pagination', { pagination: pagination, pageUrl: pageUrl }) %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

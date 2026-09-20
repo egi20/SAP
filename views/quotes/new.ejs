@@ -1,0 +1,255 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+      icon: 'bi-calculator',
+      heading: 'New estimate',
+      sub: 'Scope, effort, team shape and budget for an SAP programme.',
+      label: 'DELIVERY'
+    }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (errors.length) { %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %>
+      </ul>
+    </div>
+  <% } %>
+
+  <form method="post" action="/quotes">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Who it is for</h2>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="client_company">Client company</label>
+                <input class="form-control" id="client_company" name="client_company" maxlength="200" required
+                       value="<%= values.client_company || '' %>">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="client_name">Contact name</label>
+                <input class="form-control" id="client_name" name="client_name" maxlength="200" required
+                       value="<%= values.client_name || '' %>">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="client_email">Contact email</label>
+                <input class="form-control" id="client_email" name="client_email" type="email" maxlength="255"
+                       value="<%= values.client_email || '' %>">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="client_industry">Industry</label>
+                <select class="form-select" id="client_industry" name="client_industry">
+                  <option value="">Not specified</option>
+                  <% industries.forEach(function (i) { %>
+                    <option value="<%= i %>" <%= values.client_industry === i ? 'selected' : '' %>><%= i %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="company_size">Company size</label>
+                <select class="form-select" id="company_size" name="company_size">
+                  <option value="">Not specified</option>
+                  <% companySizes.forEach(function (s) { %>
+                    <option value="<%= s %>" <%= values.company_size === s ? 'selected' : '' %>><%= s %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="project_name">Project name</label>
+                <input class="form-control" id="project_name" name="project_name" maxlength="200" required
+                       value="<%= values.project_name || '' %>">
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="project_summary">Summary</label>
+                <textarea class="form-control" id="project_summary" name="project_summary" rows="3"><%= values.project_summary || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%#
+          The transition approach comes FIRST and on its own, because it is the first
+          question asked on any real S/4HANA programme and it moves the number more than
+          anything else on this form. Radios rather than a dropdown: each one needs its
+          description read, and a collapsed select hides exactly the sentence that stops
+          somebody choosing brownfield because it sounds cheaper.
+        %>
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-3">How they get to S/4HANA</h2>
+            <% Object.entries(transitionApproaches).forEach(function (entry) { %>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="transition_approach" id="ta-<%= entry[0] %>"
+                       value="<%= entry[0] %>"
+                       <%= (values.transition_approach || 'greenfield') === entry[0] ? 'checked' : '' %>>
+                <label class="form-check-label" for="ta-<%= entry[0] %>">
+                  <strong><%= entry[1].name %></strong>
+                  <span class="badge-hub">×<%= entry[1].multiplier %></span>
+                  <div class="form-text mt-0"><%= entry[1].description %></div>
+                </label>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-1">Scope</h2>
+            <p class="form-text mt-0 mb-3">
+              Tick the modules in scope. A module whose partner is <em>not</em> ticked still
+              costs something — the boundary to it has to be built either way — and the
+              estimate shows each of those separately rather than burying it.
+            </p>
+
+            <% productLines.forEach(function (line) { %>
+              <details class="filter-group mb-2">
+                <summary class="form-label mb-2"><%= line.label %></summary>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" name="lines" value="<%= line.value %>"
+                         id="line-<%= line.value %>">
+                  <label class="form-check-label small" for="line-<%= line.value %>">
+                    Platform foundation only (<%= line.foundationEffortDays %> days)
+                  </label>
+                </div>
+                <div class="d-flex flex-wrap gap-3">
+                  <% line.modules.forEach(function (m) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="modules" value="<%= m.value %>"
+                             id="qm-<%= m.value %>">
+                      <label class="form-check-label small" for="qm-<%= m.value %>">
+                        <%= m.label %> <span class="text-muted-2">(<%= m.baseEffortDays %>d)</span>
+                      </label>
+                    </div>
+                  <% }); %>
+                </div>
+              </details>
+            <% }); %>
+
+            <div class="mt-3">
+              <label class="form-label" for="other_modules">Anything else in scope</label>
+              <textarea class="form-control" id="other_modules" name="other_modules" rows="2"
+                        placeholder="Comma-separated. Each item is costed as unmapped scope rather than ignored."><%= values.other_modules || '' %></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Add-ons</h2>
+            <div class="d-flex flex-wrap gap-3">
+              <% Object.entries(addons).forEach(function (entry) { %>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="addons" value="<%= entry[0] %>"
+                         id="ad-<%= entry[0] %>">
+                  <label class="form-check-label small" for="ad-<%= entry[0] %>">
+                    <%= entry[1].name %> <span class="text-muted-2">(<%= entry[1].days %>d)</span>
+                  </label>
+                </div>
+              <% }); %>
+            </div>
+            <div class="mt-3">
+              <label class="form-label" for="other_addons">Other add-ons</label>
+              <textarea class="form-control" id="other_addons" name="other_addons" rows="2"><%= values.other_addons || '' %></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Shape of the programme</h2>
+
+            <div class="mb-3">
+              <label class="form-label" for="clean_core_level">Clean core</label>
+              <select class="form-select" id="clean_core_level" name="clean_core_level">
+                <% Object.entries(cleanCoreLevels).forEach(function (entry) { %>
+                  <option value="<%= entry[0] %>" <%= (values.clean_core_level || 'moderate') === entry[0] ? 'selected' : '' %>>
+                    <%= entry[1].name %> (×<%= entry[1].multiplier %>)
+                  </option>
+                <% }); %>
+              </select>
+              <div class="form-text">Where the customisation lives, not how much of it there is.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="complexity">Complexity</label>
+              <select class="form-select" id="complexity" name="complexity">
+                <% Object.entries(complexityLevels).forEach(function (entry) { %>
+                  <option value="<%= entry[0] %>" <%= (values.complexity || 'moderate') === entry[0] ? 'selected' : '' %>>
+                    <%= entry[0] %> — <%= entry[1].description %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label" for="number_of_users">Users</label>
+                <input class="form-control" id="number_of_users" name="number_of_users" type="number" min="1"
+                       value="<%= values.number_of_users || 50 %>">
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="number_of_company_codes">Company codes</label>
+                <input class="form-control" id="number_of_company_codes" name="number_of_company_codes" type="number"
+                       min="1" value="<%= values.number_of_company_codes || 1 %>">
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="number_of_countries">Countries</label>
+                <input class="form-control" id="number_of_countries" name="number_of_countries" type="number" min="1"
+                       value="<%= values.number_of_countries || 1 %>">
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="number_of_integrations">Integrations</label>
+                <input class="form-control" id="number_of_integrations" name="number_of_integrations" type="number"
+                       min="0" value="<%= values.number_of_integrations || 0 %>">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="integration_complexity">Integration complexity</label>
+              <select class="form-select" id="integration_complexity" name="integration_complexity">
+                <% ['simple','medium','complex'].forEach(function (c) { %>
+                  <option value="<%= c %>" <%= (values.integration_complexity || 'medium') === c ? 'selected' : '' %>><%= c %></option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="contingency_percentage">Contingency %</label>
+              <input class="form-control" id="contingency_percentage" name="contingency_percentage" type="number"
+                     min="0" max="50" value="<%= values.contingency_percentage || 15 %>">
+            </div>
+
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" name="include_training" id="include_training"
+                     <%= values.include_training === 'on' ? 'checked' : '' %>>
+              <label class="form-check-label" for="include_training">Include enablement</label>
+              <div class="form-text">A role on the team, not a phase — excluding it shortens no timeline.</div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="include_run" id="include_run"
+                     <%= values.include_run === 'on' ? 'checked' : '' %>>
+              <label class="form-check-label" for="include_run">Include hypercare (Run)</label>
+              <div class="form-text">Inside the total, never added on top of it.</div>
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit">Calculate and save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

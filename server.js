@@ -15,6 +15,7 @@ const { assertTaxonomyIntegrity, roleLabel } = require('./config/roleTaxonomy');
 const { assertCatalogueIntegrity, moduleLabel, lineLabel } = require('./config/sapProducts');
 const { assertCertificationIntegrity } = require('./config/certifications');
 const { assertSettingsIntegrity } = require('./config/settings');
+const { assertEstimationIntegrity } = require('./config/estimation');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -37,6 +38,13 @@ assertTaxonomyIntegrity();
 assertCatalogueIntegrity();
 assertCertificationIntegrity();
 assertSettingsIntegrity();
+/*
+ * And the estimator: phase or resource percentages that do not sum to 100 shift every
+ * estimate by a silent few per cent instead of failing visibly, and a phase table that has
+ * drifted from SAP Activate's phases means a quote and a job advert use the same word for
+ * different things.
+ */
+assertEstimationIntegrity();
 
 const app = express();
 
@@ -220,6 +228,7 @@ app.use('/consultants', require('./routes/consultants'));
 app.use('/companies', require('./routes/companies'));
 app.use('/jobs', require('./routes/jobs'));
 app.use('/applications', require('./routes/applications'));
+app.use('/quotes', require('./routes/quotes'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));
 
