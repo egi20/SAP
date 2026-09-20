@@ -1,0 +1,13 @@
+<%- include('../partials/layout-start') %>
+<section class="glass-section pb-5">
+<div class="container py-5">
+  <div class="text-center mb-4">
+    <h1 class="display-6 mb-2">Something went wrong</h1>
+    <p class="text-muted-2"><%= message %></p>
+    <a class="btn btn-primary" href="/">Back to the Hub</a>
+  </div>
+  <% if (stack) { %>
+    <pre class="bg-light p-3 rounded small" style="white-space:pre-wrap"><%= stack %></pre>
+  <% } %>
+</div>
+<%- include('../partials/layout-end') %>

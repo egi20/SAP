@@ -1,0 +1,34 @@
+<%
+  /*
+   * The in-app page header band.
+   *
+   *   heading  required
+   *   sub      optional, escaped
+   *   icon     optional bootstrap-icon class, e.g. 'bi-briefcase'
+   *   label    optional uppercase eyebrow shown in a .section-badge
+   *
+   * Anything else belongs in the page, not here. A header that grows optional slots
+   * for arbitrary markup stops being a shared component.
+   */
+  const phIcon = typeof icon !== 'undefined' ? icon : null;
+  const phLabel = typeof label !== 'undefined' ? label : null;
+  const phSub = typeof sub !== 'undefined' ? sub : null;
+%>
+<header class="page-header">
+  <div class="container">
+    <% if (phLabel) { %>
+      <span class="section-badge mb-3">
+        <% if (phIcon) { %><i class="bi <%= phIcon %>"></i><% } %><%= phLabel %>
+      </span>
+    <% } %>
+    <div class="d-flex align-items-center gap-3">
+      <% if (phIcon && !phLabel) { %>
+        <span class="icon-tile icon-navyblue d-none d-md-inline-flex"><i class="bi <%= phIcon %>"></i></span>
+      <% } %>
+      <div>
+        <h1><%= heading %></h1>
+        <% if (phSub) { %><p><%= phSub %></p><% } %>
+      </div>
+    </div>
+  </div>
+</header>

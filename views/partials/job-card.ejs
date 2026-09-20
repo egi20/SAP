@@ -1,0 +1,36 @@
+<a class="glass-card d-block mb-3 text-reset" href="/jobs/<%= job.slug %>">
+  <div class="card-body d-flex gap-3">
+    <img class="logo-tile flex-shrink-0" src="<%= job.company_logo || '/images/logo-placeholder.svg' %>" alt="" loading="lazy">
+    <div class="flex-grow-1 min-w-0">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <h3 class="mb-1 h6"><%= job.title %></h3>
+        <% if (job.status && job.status !== 'open') { %>
+          <span class="badge-hub muted"><%= job.status %></span>
+        <% } %>
+      </div>
+      <p class="small text-muted-2 mb-2">
+        <%= job.company_name || 'Confidential' %>
+        <% if (job.city || job.country) { %> · <%= [job.city, job.country].filter(Boolean).join(', ') %><% } %>
+      </p>
+      <div class="d-flex flex-wrap gap-1">
+        <%
+          /*
+           * A paid position in a list is LABELLED as one. The warm left edge alone would
+           * be decoration a colour-blind reader cannot act on, and an unlabelled paid
+           * placement is not an honest list.
+           */
+        %>
+        <span class="badge-hub accent"><%= roleLabel(job.role) %></span>
+        <span class="badge-hub"><%= job.seniority %></span>
+        <span class="badge-hub"><%= job.work_mode %></span>
+        <span class="badge-hub"><%= job.engagement_type %></span>
+        <% if (job.rate_visible && job.rate_min && job.rate_max) { %>
+          <span class="badge-hub ok">
+            <%= Math.round(job.rate_min) %>–<%= Math.round(job.rate_max) %> <%= job.currency %><%= job.engagement_type === 'contract' ? '/day' : '/yr' %>
+          </span>
+        <% } %>
+        <% if (job.duration_months) { %><span class="badge-hub"><%= job.duration_months %> months</span><% } %>
+      </div>
+    </div>
+  </div>
+</a>

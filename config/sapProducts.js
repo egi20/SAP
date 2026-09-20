@@ -208,6 +208,18 @@ function lineByValue(value) {
   return LINE_BY_VALUE.get(value) || null;
 }
 
+/** Display label for a module slug, or the slug itself if the catalogue has dropped it. */
+function moduleLabel(value) {
+  const found = MODULE_BY_VALUE.get(value);
+  return found ? found.label : value;
+}
+
+/** Display label for a product line. */
+function lineLabel(value) {
+  const found = LINE_BY_VALUE.get(value);
+  return found ? found.label : value;
+}
+
 function isModule(value) {
   return MODULE_BY_VALUE.has(value);
 }
@@ -226,6 +238,8 @@ module.exports = {
   assertCatalogueIntegrity,
   moduleByValue,
   lineByValue,
+  moduleLabel,
+  lineLabel,
   isModule,
   linesForModules
 };

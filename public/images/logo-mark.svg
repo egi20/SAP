@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="SAP Hub">
+  <!--
+    THE HUB MARK. Original, and deliberately nothing of SAP's.
+
+    This site's own footer says "Not affiliated with SAP SE" — so the one thing the mark
+    must not borrow is SAP's. Their wordmark is three letters in a blue-to-gold gradient,
+    and anything resembling it on a site called SAP Hub states affiliation more loudly
+    than any footer denies it. No gold appears anywhere in this palette for the same
+    reason.
+
+    So the mark says what the site IS: a hub. A centre with people connected to it — the
+    marketplace, not the platform it serves.
+  -->
+  <defs>
+    <linearGradient id="hubGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0064d9"/>
+      <stop offset="1" stop-color="#00265b"/>
+    </linearGradient>
+  </defs>
+
+  <!--
+    The spokes, drawn under the nodes so the joins are covered.
+
+    Solid and 5.5 wide, not a hairline at 55% opacity: rendered at the navbar's real 28px
+    and magnified, the thin version disappeared into haze and left six dots floating
+    round a circle. "Connected" is the whole idea of the mark, so the connections have to
+    survive the size it is actually used at.
+  -->
+  <g stroke="#7ab0e8" stroke-width="5.5" stroke-linecap="round">
+    <line x1="32" y1="32" x2="32" y2="12"/>
+    <line x1="32" y1="32" x2="49" y2="22"/>
+    <line x1="32" y1="32" x2="49" y2="42"/>
+    <line x1="32" y1="32" x2="32" y2="52"/>
+    <line x1="32" y1="32" x2="15" y2="42"/>
+    <line x1="32" y1="32" x2="15" y2="22"/>
+  </g>
+
+  <g fill="url(#hubGrad)">
+    <circle cx="32" cy="12" r="6"/>
+    <circle cx="49" cy="22" r="6"/>
+    <circle cx="49" cy="42" r="6"/>
+    <circle cx="32" cy="52" r="6"/>
+    <circle cx="15" cy="42" r="6"/>
+    <circle cx="15" cy="22" r="6"/>
+  </g>
+
+  <circle cx="32" cy="32" r="9.5" fill="#00265b"/>
+  <circle cx="32" cy="32" r="4" fill="#0070f2"/>
+</svg>

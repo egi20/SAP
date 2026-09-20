@@ -1,0 +1,35 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= title ? title + ' — ' + appName : appName %></title>
+<meta name="description" content="<%= seo.description %>">
+
+<%
+/*
+ * There was no favicon at all, so every tab showed the browser's blank page glyph.
+ *
+ * The SVG is the modern icon and scales to any density; the 180px PNG is the iOS
+ * home-screen icon, which ignores SVG. Both are the hub mark and nothing of SAP's — this
+ * site's footer says it is not affiliated with SAP SE, and SAP's own mark in the tab would
+ * contradict that on every page at once.
+ */
+%>
+<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<meta name="theme-color" content="#00265b">
+<link rel="canonical" href="<%= seo.canonical %>">
+<% if (!seo.indexable) { %><meta name="robots" content="noindex,follow"><% } %>
+<meta property="og:title" content="<%= title || appName %>">
+<meta property="og:description" content="<%= seo.description %>">
+<meta property="og:url" content="<%= seo.canonical %>">
+<meta property="og:type" content="website">
+<meta property="og:image" content="<%= seo.ogImage %>">
+<meta name="csrf-token" content="<%= csrfToken %>">
+<link rel="stylesheet" href="/css/inter.css">
+<link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="/css/style.css">
+<script>
+  /* Before first paint: tells the stylesheet that scroll reveals are safe to hide.
+     Without JavaScript this never runs and .animate-on-scroll content stays visible. */
+  document.documentElement.classList.add('js-reveal');
+</script>

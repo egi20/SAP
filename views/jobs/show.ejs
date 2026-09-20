@@ -1,0 +1,187 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section pb-5">
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <div class="d-flex gap-3 mb-3">
+            <img class="logo-tile" src="<%= job.company_logo || '/images/logo-placeholder.svg' %>" alt="">
+            <div class="flex-grow-1">
+              <h1 class="h3 mb-1"><%= job.title %></h1>
+              <p class="text-muted-2 mb-0">
+                <% if (job.company_slug) { %>
+                  <a href="/companies/<%= job.company_slug %>"><%= job.company_name %></a>
+                <% } else { %><%= job.company_name || 'Confidential' %><% } %>
+                <% if (job.city || job.country) { %> · <%= [job.city, job.country].filter(Boolean).join(', ') %><% } %>
+                <% if (job.published_at) { %> · posted <%= new Date(job.published_at).toISOString().slice(0, 10) %><% } %>
+              </p>
+            </div>
+            <% if (match) { %>
+              <div class="text-center">
+                <div class="match-ring" style="--pct: <%= match.score %>" title="How well your profile matches this role">
+                  <span><%= match.score %></span>
+                </div>
+                <div class="small text-muted-2 mt-1">match</div>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            <span class="badge-hub accent"><%= roleLabel(job.role) %></span>
+            <span class="badge-hub"><%= job.seniority %></span>
+            <span class="badge-hub"><%= job.work_mode %></span>
+            <span class="badge-hub"><%= job.engagement_type %></span>
+            <% if (job.duration_months) { %><span class="badge-hub"><%= job.duration_months %> months</span><% } %>
+            <% if (job.rate_visible && job.rate_min && job.rate_max) { %>
+              <span class="badge-hub ok"><%= Math.round(job.rate_min) %>–<%= Math.round(job.rate_max) %> <%= job.currency %><%= job.engagement_type === 'contract' ? '/day' : '/yr' %></span>
+            <% } %>
+            <% if (job.status !== 'open') { %><span class="badge-hub warn"><%= job.status %></span><% } %>
+          </div>
+
+          <% if (job.activate_phase) { %>
+            <p class="small text-muted-2 mb-1">Delivery phase</p>
+            <div class="mb-3">
+              <span class="badge-hub accent text-capitalize"><%= job.activate_phase %></span>
+              <span class="small text-muted-2">SAP Activate</span>
+            </div>
+          <% } %>
+
+          <% if (jobModules.length) { %>
+            <p class="small text-muted-2 mb-1">Modules in scope</p>
+            <div class="d-flex flex-wrap gap-1 mb-3">
+              <% jobModules.forEach(function (m) { %><span class="badge-hub"><%= moduleLabel(m) %></span><% }); %>
+            </div>
+          <% } %>
+
+          <% if (jobSkills.length) { %>
+            <p class="small text-muted-2 mb-1">Skills</p>
+            <div class="d-flex flex-wrap gap-1 mb-3">
+              <% jobSkills.forEach(function (s) { %><span class="badge-hub"><%= s.name %></span><% }); %>
+            </div>
+          <% } %>
+
+          <hr>
+          <div class="job-description"><%- sanitizeRichText(job.description) %></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <% if (isOwner) { %>
+            <h2 class="h6">Manage this job</h2>
+            <a class="btn btn-primary w-100 mb-2" href="/jobs/<%= job.slug %>/edit">Edit</a>
+            <a class="btn btn-outline-primary w-100 mb-3" href="/applications/job/<%= job.slug %>">
+              Applicants (<%= job.application_count %>)
+            </a>
+            <form method="post" action="/jobs/<%= job.slug %>/status">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="form-label" for="status">Status</label>
+              <div class="d-flex gap-2">
+                <select class="form-select" id="status" name="status">
+                  <% ['draft','open','paused','filled','closed'].forEach(function (s) { %>
+                    <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= s %></option>
+                  <% }); %>
+                </select>
+                <button class="btn btn-outline-primary" type="submit">Set</button>
+              </div>
+            </form>
+            <p class="small text-muted-2 mt-3 mb-0"><%= job.view_count %> views</p>
+
+            <%# Featured placement is a paid product and arrives with payments. Nothing is %>
+            <%# offered here until there is something to sell and a way to charge for it. %>
+
+          <% } else if (currentUser && currentUser.isConsultant) { %>
+            <% if (application && application.status !== 'withdrawn') { %>
+              <h2 class="h6">Your application</h2>
+              <p class="mb-2">
+                <span class="badge-hub status-<%= application.status %>"><%= application.status %></span>
+              </p>
+              <a class="btn btn-outline-primary w-100" href="/applications/<%= application.id %>">View application</a>
+            <% } else if (job.status === 'open') { %>
+              <h2 class="h6">Apply</h2>
+              <form method="post" action="/jobs/<%= job.slug %>/apply">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="mb-2">
+                  <label class="form-label" for="cover_letter">Message to the employer</label>
+                  <textarea class="form-control" id="cover_letter" name="cover_letter" rows="5"
+                            placeholder="Why you fit this engagement" maxlength="5000"></textarea>
+                </div>
+                <div class="row g-2 mb-2">
+                  <div class="col-7">
+                    <label class="form-label" for="day_rate">Your rate</label>
+                    <input class="form-control" id="day_rate" name="day_rate" type="number" min="0" step="10">
+                  </div>
+                  <div class="col-5">
+                    <label class="form-label" for="currency">Currency</label>
+                    <select class="form-select" id="currency" name="currency">
+                      <% ['EUR','USD','GBP','CHF'].forEach(function (c) { %><option value="<%= c %>"><%= c %></option><% }); %>
+                    </select>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="available_from">Available from</label>
+                  <input class="form-control" id="available_from" name="available_from" type="date">
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Send application</button>
+              </form>
+            <% } else { %>
+              <p class="mb-0 text-muted-2">This role is no longer accepting applications.</p>
+            <% } %>
+
+          <% } else if (!currentUser) { %>
+            <h2 class="h6">Interested?</h2>
+            <p class="text-muted-2 small">Create a free consultant profile to apply.</p>
+            <a class="btn btn-primary w-100 mb-2" href="/auth/register?redirect=<%= encodeURIComponent('/jobs/' + job.slug) %>">Create an account</a>
+            <a class="btn btn-outline-primary w-100" href="/auth/login?redirect=<%= encodeURIComponent('/jobs/' + job.slug) %>">Sign in</a>
+          <% } %>
+        </div>
+      </div>
+
+      <%# Messaging is a later area. A form posting to a route that does not exist is a %>
+      <%# button that fails in the one place somebody is trying to reach a person. %>
+
+      <% if (currentUser && !isOwner) { %>
+        <form method="post" action="/jobs/<%= job.slug %>/save" class="mb-3">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="saved" value="<%= saved ? 'true' : 'false' %>">
+          <button class="btn btn-outline-primary w-100" type="submit">
+            <i class="bi bi-bookmark<%= saved ? '-fill' : '' %>"></i>
+            <%= saved ? 'Saved' : 'Save this job' %>
+          </button>
+        </form>
+      <% } %>
+
+      <% if (match) { %>
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6">Why this score</h2>
+            <ul class="list-unstyled small mb-0">
+              <% Object.entries(match.breakdown).forEach(function (e) { %>
+                <li class="d-flex justify-content-between">
+                  <span class="text-capitalize"><%= e[0] %></span>
+                  <strong><%= e[1] %></strong>
+                </li>
+              <% }); %>
+            </ul>
+            <p class="form-text mb-0 mt-2">
+              <strong>Modules</strong> counts the ones you have entered in your delivery history,
+              not the ones you have listed as skills. Adding an engagement moves it.
+            </p>
+          </div>
+        </div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+
+<% if (jsonLd) { %>
+<script type="application/ld+json"><%- jsonForScript(jsonLd) %></script>
+<% } %>
+
+<%- include('../partials/layout-end') %>

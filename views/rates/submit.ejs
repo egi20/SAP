@@ -1,0 +1,106 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section pb-5">
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <%- include('../partials/flash') %>
+
+      <div class="glass-card">
+        <div class="card-body p-4">
+          <h1 class="h4 mb-2">Contribute your rate</h1>
+          <p class="text-muted-2">
+            Your figure is never shown on its own. It joins a bucket that is only published once at
+            least <%= minSample %> different people have contributed to it. You can update it once a
+            month, and updating replaces your previous figure rather than adding a second one.
+          </p>
+
+          <% if (errors.length) { %>
+            <div class="alert alert-danger">
+              <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %></ul>
+            </div>
+          <% } %>
+
+          <% if (own) { %>
+            <div class="alert alert-info small">
+              Your last contribution: <strong><%= Math.round(own.amount) %> <%= own.currency %></strong>
+              for <%= roleLabel(own.role) %> (<%= own.seniority %>), <%= own.period %>.
+            </div>
+          <% } %>
+
+          <form method="post" action="/rates/submit">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <div class="mb-3">
+              <label class="form-label" for="role">Your role</label>
+              <select class="form-select" id="role" name="role" required>
+                <option value="">Choose</option>
+                <% roleCategories.forEach(function (cat) { %>
+                  <optgroup label="<%= cat.category %>">
+                    <% cat.roles.forEach(function (r) { %>
+                      <option value="<%= r.value %>" <%= own && own.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                    <% }); %>
+                  </optgroup>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-md-4">
+                <label class="form-label" for="seniority">Seniority</label>
+                <select class="form-select" id="seniority" name="seniority" required>
+                  <% ['junior','mid','senior','lead'].forEach(function (s) { %>
+                    <option value="<%= s %>" <%= own && own.seniority === s ? 'selected' : '' %>><%= s %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="engagement_type">Type</label>
+                <select class="form-select" id="engagement_type" name="engagement_type" required>
+                  <option value="contract">Contract (day rate)</option>
+                  <option value="permanent">Permanent (annual)</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="work_mode">Work mode</label>
+                <select class="form-select" id="work_mode" name="work_mode" required>
+                  <% ['remote','hybrid','onsite'].forEach(function (m) { %><option value="<%= m %>"><%= m %></option><% }); %>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-md-5">
+                <label class="form-label" for="amount">Amount</label>
+                <input class="form-control" id="amount" name="amount" type="number" min="1" step="10" required
+                       value="<%= own ? Math.round(own.amount) : '' %>">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label" for="currency">Currency</label>
+                <select class="form-select" id="currency" name="currency" required>
+                  <% currencies.forEach(function (c) { %>
+                    <option value="<%= c %>" <%= own && own.currency === c ? 'selected' : '' %>><%= c %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="country">Country</label>
+                <select class="form-select" id="country" name="country" required>
+                  <option value="">Choose</option>
+                  <% countries.forEach(function (c) { %>
+                    <option value="<%= c.code %>" <%= own && own.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-100" type="submit">Contribute</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

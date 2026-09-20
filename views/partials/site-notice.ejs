@@ -1,0 +1,19 @@
+<%
+  /*
+   * The operational banner from /admin/settings.
+   *
+   * Interpolated with the ESCAPING output tag, never the raw one. It is deliberately
+   * PLAIN TEXT rather than rich text: this is the one string an administrator can put on
+   * every page at once, and a field like that accepting markup would be the
+   * highest-value XSS target in the application for exactly zero gain — a notice needs a
+   * sentence, not formatting.
+   */
+%>
+<% if (typeof siteNotice !== 'undefined' && siteNotice) { %>
+  <div class="site-notice" role="status">
+    <div class="container d-flex align-items-center gap-2">
+      <i class="bi bi-megaphone" aria-hidden="true"></i>
+      <span><%= siteNotice %></span>
+    </div>
+  </div>
+<% } %>

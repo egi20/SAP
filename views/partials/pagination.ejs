@@ -1,0 +1,26 @@
+<% if (pagination.totalPages > 1) { %>
+  <nav aria-label="Pagination" class="mt-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <p class="small text-muted-2 mb-0">
+        Showing <%= pagination.from %>–<%= pagination.to %> of <%= pagination.total %>
+      </p>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item <%= pagination.hasPrev ? '' : 'disabled' %>">
+          <a class="page-link" href="<%= pageUrl(pagination.page - 1) %>" rel="prev">Previous</a>
+        </li>
+        <%
+          const start = Math.max(1, pagination.page - 2);
+          const end = Math.min(pagination.totalPages, start + 4);
+          for (let p = start; p <= end; p++) {
+        %>
+          <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+            <a class="page-link" href="<%= pageUrl(p) %>"><%= p %></a>
+          </li>
+        <% } %>
+        <li class="page-item <%= pagination.hasNext ? '' : 'disabled' %>">
+          <a class="page-link" href="<%= pageUrl(pagination.page + 1) %>" rel="next">Next</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+<% } %>

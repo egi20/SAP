@@ -1,0 +1,181 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-briefcase', heading: 'SAP jobs and contracts', sub: 'Filter by cloud, role, seniority, work mode and country.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <aside class="col-lg-3">
+      <form class="glass-panel filter-panel" method="get" action="/jobs">
+        <h2 class="mb-3">Filters</h2>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-q">Keyword</label>
+          <input class="form-control" id="f-q" name="q" value="<%= filters.q %>" placeholder="CPQ, Apex, Data Cloud">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-role">Role</label>
+          <select class="form-select" id="f-role" name="role">
+            <option value="">Any role</option>
+            <% roleCategories.forEach(function (cat) { %>
+              <optgroup label="<%= cat.category %>">
+                <% cat.roles.forEach(function (r) { %>
+                  <option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                <% }); %>
+              </optgroup>
+            <% }); %>
+          </select>
+        </div>
+
+        <%
+          /*
+           * Modules are CHECKBOXES, not a single select, because the filter is any-of.
+           *
+           * A dropdown can express "jobs touching EWM"; this board is browsed as "anything
+           * involving MM or EWM", and an SAP advert routinely names four modules at once.
+           * The counts beside each are from `Job.facetByModule`, over the same filter minus
+           * this clause — so they answer "what would I get if I ticked this as well",
+           * which is the only question a facet count is useful for.
+           *
+           * Collapsed by default, because 57 checkboxes above the results would bury them.
+           * Open when a module is already chosen, so a filter in force is never hidden.
+           */
+          const moduleCounts = new Map((moduleFacets || []).map((f) => [f.module_slug, f.count]));
+          const chosenModules = filters.modules || [];
+        %>
+        <div class="mb-3">
+          <details class="filter-group" <%= chosenModules.length ? 'open' : '' %>>
+            <summary class="form-label mb-2">
+              Modules
+              <% if (chosenModules.length) { %><span class="badge-hub accent"><%= chosenModules.length %></span><% } %>
+            </summary>
+            <% productLines.forEach(function (line) { %>
+              <p class="small text-muted-2 mb-1 mt-2"><%= line.label %></p>
+              <% line.modules.forEach(function (m) { %>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="modules" value="<%= m.value %>"
+                         id="f-m-<%= m.value %>" <%= chosenModules.includes(m.value) ? 'checked' : '' %>>
+                  <label class="form-check-label small" for="f-m-<%= m.value %>">
+                    <%= m.label %>
+                    <% if (moduleCounts.has(m.value)) { %>
+                      <span class="text-muted-2">(<%= moduleCounts.get(m.value) %>)</span>
+                    <% } %>
+                  </label>
+                </div>
+              <% }); %>
+            <% }); %>
+          </details>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-phase">SAP Activate phase</label>
+          <select class="form-select" id="f-phase" name="activate_phase">
+            <option value="">Any phase</option>
+            <% activatePhases.forEach(function (phase) { %>
+              <option value="<%= phase %>" <%= filters.activate_phase === phase ? 'selected' : '' %>>
+                <%= phase.charAt(0).toUpperCase() + phase.slice(1) %>
+              </option>
+            <% }); %>
+          </select>
+          <div class="form-text">A role scoped to one phase says so. Permanent hires usually span all of them.</div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label" for="f-seniority">Seniority</label>
+            <select class="form-select" id="f-seniority" name="seniority">
+              <option value="">Any</option>
+              <% ['junior','mid','senior','lead'].forEach(function (s) { %>
+                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= s %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="f-mode">Work mode</label>
+            <select class="form-select" id="f-mode" name="work_mode">
+              <option value="">Any</option>
+              <% ['remote','hybrid','onsite'].forEach(function (m) { %>
+                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= m %></option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-engagement">Engagement</label>
+          <select class="form-select" id="f-engagement" name="engagement_type">
+            <option value="">Any</option>
+            <option value="contract" <%= filters.engagement_type === 'contract' ? 'selected' : '' %>>Contract</option>
+            <option value="permanent" <%= filters.engagement_type === 'permanent' ? 'selected' : '' %>>Permanent</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-country">Country</label>
+          <select class="form-select" id="f-country" name="country">
+            <option value="">Any country</option>
+            <% countries.forEach(function (c) { %>
+              <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-rate">Minimum day rate</label>
+          <input class="form-control" id="f-rate" name="rate_min" type="number" min="0" step="50"
+                 value="<%= filters.rate_min %>" placeholder="Any">
+        </div>
+
+        <button class="btn btn-primary w-100 mb-2" type="submit">Apply filters</button>
+        <a class="btn btn-outline-primary w-100" href="/jobs">Clear</a>
+      </form>
+    </aside>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="mb-0 text-muted-2"><strong><%= pagination.total %></strong> role<%= pagination.total === 1 ? '' : 's' %> match</p>
+        <form method="get" class="d-flex align-items-center gap-2">
+          <% Object.entries(filters).forEach(function (e) { if (e[1]) { %>
+            <input type="hidden" name="<%= e[0] %>" value="<%= e[1] %>">
+          <% } }); %>
+          <label class="form-label mb-0 small" for="sort">Sort</label>
+          <select class="form-select form-select-sm" id="sort" name="sort" onchange="this.form.submit()">
+            <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest</option>
+            <option value="rate_desc" <%= sort === 'rate_desc' ? 'selected' : '' %>>Highest rate</option>
+            <option value="rate_asc" <%= sort === 'rate_asc' ? 'selected' : '' %>>Lowest rate</option>
+          </select>
+        </form>
+      </div>
+
+      <% if (jobs.length === 0) { %>
+        <div class="empty-state glass-card">
+          <i class="bi bi-search"></i>
+          <p class="mb-1">No roles match these filters.</p>
+          <a href="/jobs">Clear the filters</a>
+        </div>
+      <% } else { %>
+        <% jobs.forEach(function (job) { %><%- include('../partials/job-card', { job: job }) %><% }); %>
+        <%- include('../partials/pagination') %>
+      <% } %>
+
+      <% if (facets.length > 1) { %>
+        <section class="mt-4">
+          <h2 class="h6 text-muted-2 text-uppercase">Roles hiring now</h2>
+          <div class="d-flex flex-wrap gap-2">
+            <% facets.slice(0, 15).forEach(function (f) { %>
+              <a class="badge-hub accent text-decoration-none" href="/jobs?role=<%= f.role %>">
+                <%= roleLabel(f.role) %> (<%= f.count %>)
+              </a>
+            <% }); %>
+          </div>
+        </section>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

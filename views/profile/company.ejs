@@ -1,0 +1,110 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-building-gear', heading: 'Your company profile', sub: 'Shown on every job you post.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="d-flex flex-wrap justify-content-end mb-3">
+    <a class="btn btn-sm btn-outline-primary" href="/profile/company/template">
+      <i class="bi bi-palette"></i> Document branding and clauses
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <form method="post" action="/profile/company" class="glass-card">
+        <div class="card-body">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="mb-3">
+            <label class="form-label" for="company_name">Company name</label>
+            <input class="form-control" id="company_name" name="company_name" required maxlength="200"
+                   value="<%= company.company_name %>">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="tagline">Tagline</label>
+            <input class="form-control" id="tagline" name="tagline" maxlength="255" value="<%= company.tagline || '' %>">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="about">About</label>
+            <textarea class="form-control" id="about" name="about" rows="8"><%= company.about || '' %></textarea>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label" for="company_type">Type</label>
+              <select class="form-select" id="company_type" name="company_type">
+                <option value="end_customer" <%= company.company_type === 'end_customer' ? 'selected' : '' %>>End customer</option>
+                <option value="consulting_partner" <%= company.company_type === 'consulting_partner' ? 'selected' : '' %>>Consulting partner</option>
+                <option value="isv" <%= company.company_type === 'isv' ? 'selected' : '' %>>ISV</option>
+                <option value="staffing" <%= company.company_type === 'staffing' ? 'selected' : '' %>>Staffing</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="industry">Industry</label>
+              <input class="form-control" id="industry" name="industry" value="<%= company.industry || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="company_size">Size</label>
+              <select class="form-select" id="company_size" name="company_size">
+                <option value="">Choose</option>
+                <% ['1-10','11-50','51-200','201-1000','1000+'].forEach(function (s) { %>
+                  <option value="<%= s %>" <%= company.company_size === s ? 'selected' : '' %>><%= s %></option>
+                <% }); %>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label" for="country">Country</label>
+              <select class="form-select" id="country" name="country">
+                <option value="">Choose</option>
+                <% countries.forEach(function (c) { %>
+                  <option value="<%= c.code %>" <%= company.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="city">City</label>
+              <input class="form-control" id="city" name="city" value="<%= company.city || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="website">Website</label>
+              <input class="form-control" id="website" name="website" type="url" value="<%= company.website || '' %>">
+            </div>
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="is_public" name="is_public" <%= company.is_public ? 'checked' : '' %>>
+            <label class="form-check-label" for="is_public">List us in the company directory</label>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save</button>
+          <a class="btn btn-outline-primary" href="/companies/<%= company.slug %>">Preview</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card">
+        <div class="card-body text-center">
+          <img class="logo-tile mb-3" style="width:96px;height:96px" src="<%= company.logo || '/images/logo-placeholder.svg' %>" alt="">
+          <form method="post" action="/profile/company/logo" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="form-label" for="logo">Company logo</label>
+            <input class="form-control mb-2" id="logo" name="logo" type="file" accept="image/*" required>
+            <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Upload</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

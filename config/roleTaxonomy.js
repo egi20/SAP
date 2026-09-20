@@ -285,6 +285,24 @@ const ROLE_ALIASES = {
  * collisions are intended, so the integrity check can flag any OTHER duplicate as the
  * copy-paste slip it almost certainly is.
  */
+/**
+ * Seniority bands and the multiplier applied to a base day rate.
+ *
+ * The bands are wider than the reference's, and the reason is the ecosystem: an SAP
+ * practice does not call somebody senior at six years, because a single S/4HANA
+ * programme runs two to four. The multipliers are flatter for the same reason — the
+ * spread between a competent mid-level FI consultant and a senior one is narrower in a
+ * market where the scarce thing is module depth rather than raw years.
+ */
+const SENIORITY_LEVELS = [
+  { value: 'junior', label: 'Junior (0-3 yrs)', multiplier: 0.7 },
+  { value: 'mid', label: 'Mid (4-7 yrs)', multiplier: 0.88 },
+  { value: 'senior', label: 'Senior (8-14 yrs)', multiplier: 1.0 },
+  { value: 'lead', label: 'Lead / Principal (15+ yrs)', multiplier: 1.2 }
+];
+
+const SENIORITY_MULTIPLIERS = new Map(SENIORITY_LEVELS.map((s) => [s.value, s.multiplier]));
+
 const INTENDED_ALIAS_COLLISIONS = new Set(['fico', 'pm', 'sourcing', 'billing', 'cdp', 'etl', 'sales']);
 
 /**
@@ -313,6 +331,13 @@ function assertTaxonomyIntegrity() {
     if (!Number.isInteger(rate) || rate <= 0) {
       problems.push(`base day rate for ${slug} is not a positive integer: ${rate}`);
     }
+  }
+
+  for (const level of SENIORITY_LEVELS) {
+    if (!(level.multiplier > 0)) problems.push(`seniority ${level.value} has a bad multiplier`);
+  }
+  if (!SENIORITY_LEVELS.some((l) => l.multiplier === 1)) {
+    problems.push('no seniority band has a multiplier of 1 — the base day rates then describe nobody');
   }
 
   const aliasOwners = new Map();
@@ -359,6 +384,8 @@ module.exports = {
   BASE_DAY_RATES,
   ROLE_ALIASES,
   INTENDED_ALIAS_COLLISIONS,
+  SENIORITY_LEVELS,
+  SENIORITY_MULTIPLIERS,
   assertTaxonomyIntegrity,
   roleLabel,
   isRole,

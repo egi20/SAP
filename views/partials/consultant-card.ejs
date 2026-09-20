@@ -1,0 +1,28 @@
+<a class="glass-card d-block h-100 text-reset" href="/consultants/<%= c.user_id %>">
+  <div class="card-body">
+    <div class="d-flex gap-3 align-items-center mb-2">
+      <img class="avatar" src="<%= c.profile_picture || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+      <div class="min-w-0">
+        <h3 class="h6 mb-0 text-truncate"><%= c.name %></h3>
+        <p class="small text-muted-2 mb-0 text-truncate"><%= c.headline || roleLabel(c.primary_role) %></p>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-1 mb-2">
+      <% if (c.primary_role) { %><span class="badge-hub accent"><%= roleLabel(c.primary_role) %></span><% } %>
+      <% if (c.seniority) { %><span class="badge-hub"><%= c.seniority %></span><% } %>
+      <% if (c.country) { %><span class="badge-hub"><%= c.country %></span><% } %>
+      <% if (c.certification_count > 0) { %>
+        <span class="badge-hub ok"><i class="bi bi-patch-check"></i> <%= c.certification_count %> cert<%= c.certification_count > 1 ? 's' : '' %></span>
+      <% } %>
+      <%
+        /* Names what was checked. A bare "Verified" reads as verifying the whole profile;
+           all that was confirmed is control of a LinkedIn account. */
+      %>
+      <% if (c.linkedin_verified) { %><span class="badge-hub ok"><i class="bi bi-patch-check"></i> LinkedIn</span><% } %>
+    </div>
+    <p class="small text-muted-2 mb-0">
+      <% if (c.day_rate) { %><strong><%= Math.round(c.day_rate) %> <%= c.currency %></strong>/day · <% } %>
+      <%= { immediate: 'Available now', two_weeks: 'Available in 2 weeks', one_month: 'Available in a month', not_available: 'Not available' }[c.availability] %>
+    </p>
+  </div>
+</a>

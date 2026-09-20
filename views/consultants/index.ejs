@@ -1,0 +1,159 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-people', heading: 'SAP consultants', sub: 'Certified specialists across every cloud. Filter by role, credential, availability and rate.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <aside class="col-lg-3">
+      <form class="glass-panel filter-panel" method="get" action="/consultants">
+        <h2 class="mb-3">Filters</h2>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-q">Keyword</label>
+          <input class="form-control" id="c-q" name="q" value="<%= filters.q %>" placeholder="Name or headline">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-role">Role</label>
+          <select class="form-select" id="c-role" name="role">
+            <option value="">Any role</option>
+            <% roleCategories.forEach(function (cat) { %>
+              <optgroup label="<%= cat.category %>">
+                <% cat.roles.forEach(function (r) { %>
+                  <option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                <% }); %>
+              </optgroup>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label" for="c-seniority">Seniority</label>
+            <select class="form-select" id="c-seniority" name="seniority">
+              <option value="">Any</option>
+              <% ['junior','mid','senior','lead'].forEach(function (s) { %>
+                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= s %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="c-mode">Work mode</label>
+            <select class="form-select" id="c-mode" name="work_mode">
+              <option value="">Any</option>
+              <% ['remote','hybrid','onsite'].forEach(function (m) { %>
+                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= m %></option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-availability">Availability</label>
+          <select class="form-select" id="c-availability" name="availability">
+            <option value="">Any</option>
+            <option value="immediate" <%= filters.availability === 'immediate' ? 'selected' : '' %>>Immediately</option>
+            <option value="two_weeks" <%= filters.availability === 'two_weeks' ? 'selected' : '' %>>Within 2 weeks</option>
+            <option value="one_month" <%= filters.availability === 'one_month' ? 'selected' : '' %>>Within a month</option>
+          </select>
+        </div>
+
+        <%
+          /*
+           * DELIVERED, not claimed. This reads the delivery history, so it answers "who has
+           * shipped EWM" rather than "who has typed EWM into a skills box". Any-of, and
+           * collapsed by default, exactly as on the job board.
+           */
+          const chosenModules = filters.modules || [];
+        %>
+        <div class="mb-3">
+          <details class="filter-group" <%= chosenModules.length ? 'open' : '' %>>
+            <summary class="form-label mb-2">
+              Modules delivered
+              <% if (chosenModules.length) { %><span class="badge-hub accent"><%= chosenModules.length %></span><% } %>
+            </summary>
+            <% productLines.forEach(function (line) { %>
+              <p class="small text-muted-2 mb-1 mt-2"><%= line.label %></p>
+              <% line.modules.forEach(function (m) { %>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="modules" value="<%= m.value %>"
+                         id="c-m-<%= m.value %>" <%= chosenModules.includes(m.value) ? 'checked' : '' %>>
+                  <label class="form-check-label small" for="c-m-<%= m.value %>"><%= m.label %></label>
+                </div>
+              <% }); %>
+            <% }); %>
+          </details>
+          <div class="form-text">From entered engagements, not from a skills list.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-lifecycles">Full lifecycles, minimum</label>
+          <input class="form-control" id="c-lifecycles" name="min_lifecycles" type="number" min="0" max="40"
+                 value="<%= filters.min_lifecycles || '' %>">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-country">Country</label>
+          <select class="form-select" id="c-country" name="country">
+            <option value="">Any country</option>
+            <% countries.forEach(function (c) { %>
+              <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="c-rate">Maximum day rate</label>
+          <input class="form-control" id="c-rate" name="rate_max" type="number" min="0" step="50" value="<%= filters.rate_max %>">
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="c-cert" name="certified" value="1" <%= filters.certified === '1' ? 'checked' : '' %>>
+          <label class="form-check-label" for="c-cert">Certified only</label>
+        </div>
+
+        <button class="btn btn-primary w-100 mb-2" type="submit">Apply filters</button>
+        <a class="btn btn-outline-primary w-100" href="/consultants">Clear</a>
+      </form>
+    </aside>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="mb-0 text-muted-2"><strong><%= pagination.total %></strong> consultant<%= pagination.total === 1 ? '' : 's' %></p>
+        <form method="get" class="d-flex align-items-center gap-2">
+          <% Object.entries(filters).forEach(function (e) { if (e[1]) { %>
+            <input type="hidden" name="<%= e[0] %>" value="<%= e[1] %>">
+          <% } }); %>
+          <label class="form-label mb-0 small" for="c-sort">Sort</label>
+          <select class="form-select form-select-sm" id="c-sort" name="sort" onchange="this.form.submit()">
+            <option value="relevance" <%= sort === 'relevance' ? 'selected' : '' %>>Best match</option>
+            <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest</option>
+            <option value="rate_asc" <%= sort === 'rate_asc' ? 'selected' : '' %>>Lowest rate</option>
+            <option value="rate_desc" <%= sort === 'rate_desc' ? 'selected' : '' %>>Highest rate</option>
+          </select>
+        </form>
+      </div>
+
+      <% if (consultants.length === 0) { %>
+        <div class="empty-state glass-card">
+          <i class="bi bi-people"></i>
+          <p class="mb-1">No consultants match these filters.</p>
+          <a href="/consultants">Clear the filters</a>
+        </div>
+      <% } else { %>
+        <div class="row g-3">
+          <% consultants.forEach(function (c) { %>
+            <div class="col-md-6 col-xl-4"><%- include('../partials/consultant-card', { c: c }) %></div>
+          <% }); %>
+        </div>
+        <%- include('../partials/pagination') %>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

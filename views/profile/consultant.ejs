@@ -1,0 +1,445 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-person-badge', heading: 'Your consultant profile', sub: 'This is what employers see in the talent directory.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
+        <div>
+          <h2 class="h6 mb-1">Profile completeness — <%= profile.completeness %>%</h2>
+          <p class="small text-muted-2 mb-0">
+            <%= profile.completeness >= minCompleteness
+                ? 'Complete enough to be listed publicly.'
+                : 'Reach ' + minCompleteness + '% to be listed in the directory.' %>
+          </p>
+        </div>
+        <form method="post" action="/profile/consultant/visibility" class="d-flex align-items-center gap-2">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="is_public" name="is_public"
+                   <%= profile.is_public ? 'checked' : '' %> onchange="this.form.submit()">
+            <label class="form-check-label" for="is_public">Listed in the directory</label>
+          </div>
+        </form>
+      </div>
+      <div class="meter <%= profile.completeness >= minCompleteness ? 'ready' : '' %>">
+        <i style="width:<%= profile.completeness %>%"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <form method="post" action="/profile/consultant" class="glass-card mb-4">
+        <div class="card-body">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <h2 class="h6 mb-3">About you</h2>
+
+          <div class="mb-3">
+            <label class="form-label" for="headline">Headline</label>
+            <input class="form-control" id="headline" name="headline" maxlength="200"
+                   value="<%= profile.headline || '' %>" placeholder="Senior CPQ consultant, 8 years, remote across EU">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="bio">Bio</label>
+            <textarea class="form-control" id="bio" name="bio" rows="8"><%= profile.bio || '' %></textarea>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="primary_role">Primary role</label>
+              <select class="form-select" id="primary_role" name="primary_role">
+                <option value="">Choose</option>
+                <% roleCategories.forEach(function (cat) { %>
+                  <optgroup label="<%= cat.category %>">
+                    <% cat.roles.forEach(function (r) { %>
+                      <option value="<%= r.value %>" <%= profile.primary_role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                    <% }); %>
+                  </optgroup>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="seniority">Seniority</label>
+              <select class="form-select" id="seniority" name="seniority">
+                <option value="">Choose</option>
+                <% ['junior','mid','senior','lead'].forEach(function (s) { %>
+                  <option value="<%= s %>" <%= profile.seniority === s ? 'selected' : '' %>><%= s %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="years_experience">Years</label>
+              <input class="form-control" id="years_experience" name="years_experience" type="number" min="0" max="60"
+                     value="<%= profile.years_experience || '' %>">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="full_lifecycles">Full lifecycle implementations</label>
+            <%#
+              `?? ''` rather than `|| ''`: a stored 0 is falsy, and `||` would blank the
+              field every time somebody with none reloaded the page — so the one honest
+              answer would be the one that never saved.
+            %>
+            <input class="form-control" id="full_lifecycles" name="full_lifecycles" type="number" min="0" max="40"
+                   value="<%= profile.full_lifecycles ?? '' %>">
+            <div class="form-text">
+              End-to-end implementations you have delivered, from prepare through to go-live.
+              Zero is a real answer and it counts towards a complete profile — support and
+              rollout work is not a lesser career, and a scale that punishes saying so just
+              teaches people to leave it blank.
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="skills">Skills</label>
+            <input class="form-control" id="skills" name="skills"
+                   value="<%= skills.map(function (s) { return s.name; }).join(', ') %>"
+                   placeholder="Apex, LWC, CPQ, Flow, Data Cloud">
+            <p class="form-text">Comma separated. These drive matching and employer filters.</p>
+          </div>
+
+          <hr>
+          <h2 class="h6 mb-3">Location and availability</h2>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label" for="country">Country</label>
+              <select class="form-select" id="country" name="country">
+                <option value="">Choose</option>
+                <% countries.forEach(function (c) { %>
+                  <option value="<%= c.code %>" <%= profile.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="city">City</label>
+              <input class="form-control" id="city" name="city" value="<%= profile.city || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="work_mode">Work mode</label>
+              <select class="form-select" id="work_mode" name="work_mode">
+                <% ['remote','hybrid','onsite'].forEach(function (m) { %>
+                  <option value="<%= m %>" <%= profile.work_mode === m ? 'selected' : '' %>><%= m %></option>
+                <% }); %>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="willing_to_travel" name="willing_to_travel"
+                   <%= profile.willing_to_travel ? 'checked' : '' %>>
+            <label class="form-check-label" for="willing_to_travel">Willing to travel</label>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-3">
+              <label class="form-label" for="day_rate">Day rate</label>
+              <input class="form-control" id="day_rate" name="day_rate" type="number" min="0" step="10"
+                     value="<%= profile.day_rate ? Math.round(profile.day_rate) : '' %>">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="currency">Currency</label>
+              <select class="form-select" id="currency" name="currency">
+                <% ['EUR','USD','GBP','CHF'].forEach(function (c) { %>
+                  <option value="<%= c %>" <%= profile.currency === c ? 'selected' : '' %>><%= c %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="availability">Availability</label>
+              <select class="form-select" id="availability" name="availability">
+                <option value="not_available" <%= profile.availability === 'not_available' ? 'selected' : '' %>>Not available</option>
+                <option value="immediate" <%= profile.availability === 'immediate' ? 'selected' : '' %>>Immediately</option>
+                <option value="two_weeks" <%= profile.availability === 'two_weeks' ? 'selected' : '' %>>Within 2 weeks</option>
+                <option value="one_month" <%= profile.availability === 'one_month' ? 'selected' : '' %>>Within a month</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="available_from">From</label>
+              <input class="form-control" id="available_from" name="available_from" type="date"
+                     value="<%= profile.available_from ? new Date(profile.available_from).toISOString().slice(0,10) : '' %>">
+            </div>
+          </div>
+
+          <hr>
+          <h2 class="h6 mb-3">Links</h2>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label" for="linkedin_url">LinkedIn</label>
+              <input class="form-control" id="linkedin_url" name="linkedin_url" type="url" value="<%= profile.linkedin_url || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="sap_community_url">SAP Community</label>
+              <input class="form-control" id="sap_community_url" name="sap_community_url" type="url" value="<%= profile.sap_community_url || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="website_url">Website</label>
+              <input class="form-control" id="website_url" name="website_url" type="url" value="<%= profile.website_url || '' %>">
+            </div>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save profile</button>
+          <a class="btn btn-outline-primary" href="/consultants/<%= profile.user_id %>">Preview</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card mb-4">
+        <div class="card-body text-center">
+          <img class="avatar avatar-lg mb-3" src="<%= profile.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
+          <form method="post" action="/profile/consultant/photo" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="form-label" for="photo">Profile photo</label>
+            <input class="form-control mb-2" id="photo" name="photo" type="file" accept="image/*" required>
+            <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Upload</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Certifications</h2>
+          <% if (certifications.length) { %>
+            <ul class="list-unstyled small mb-3">
+              <% certifications.forEach(function (c) { %>
+                <li class="d-flex justify-content-between align-items-center mb-1">
+                  <span>
+                    <i class="bi bi-patch-check text-success"></i> <%= c.label %>
+                    <% if (c.tier) { %><span class="badge-hub"><%= c.tier %></span><% } %>
+                    <% if (c.earned_on) { %>
+                      <span class="text-muted-2"><%= new Date(c.earned_on).getFullYear() %></span>
+                    <% } %>
+                  </span>
+                  <form method="post" action="/profile/consultant/certifications/<%= c.id %>/delete">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-sm btn-link text-danger p-0" type="submit" aria-label="Remove">&times;</button>
+                  </form>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+          <form method="post" action="/profile/consultant/certifications">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <%#
+              The stored value is the exam CODE, never the label. SAP renames its
+              certifications and re-versions the codes every year; storing the stem means a
+              renamed exam displays its new name on every profile that holds it, instead of
+              whatever it was called on the day somebody added it.
+            %>
+            <label class="form-label" for="cert-code">Add a certification</label>
+            <select class="form-select mb-2" id="cert-code" name="code" required
+                    onchange="document.getElementById('cert-other').hidden = this.value !== '<%= otherCertificationCode %>'">
+              <option value="">Choose</option>
+              <% certificationGroups.forEach(function (g) { %>
+                <optgroup label="<%= g.group %>">
+                  <% g.items.forEach(function (i) { %>
+                    <option value="<%= i.code %>"><%= i.label %> (<%= i.code %>)</option>
+                  <% }); %>
+                </optgroup>
+              <% }); %>
+              <option value="<%= otherCertificationCode %>">Something else…</option>
+            </select>
+            <div id="cert-other" hidden>
+              <label class="visually-hidden" for="cert-custom">Certification name</label>
+              <input class="form-control form-control-sm mb-2" id="cert-custom" name="custom_name" maxlength="180"
+                     placeholder="Name the certification">
+            </div>
+            <input class="form-control form-control-sm mb-2" name="earned_on" type="date" aria-label="Earned on">
+            <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Add</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Experience</h2>
+          <% if (experiences.length) { %>
+            <ul class="list-unstyled small mb-3">
+              <% experiences.forEach(function (e) { %>
+                <li class="d-flex justify-content-between align-items-start mb-2">
+                  <span><strong><%= e.title %></strong><br><span class="text-muted-2"><%= e.company %></span></span>
+                  <form method="post" action="/profile/consultant/experience/<%= e.id %>/delete">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-sm btn-link text-danger p-0" type="submit" aria-label="Remove">&times;</button>
+                  </form>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+          <form method="post" action="/profile/consultant/experience">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input class="form-control form-control-sm mb-2" name="title" placeholder="Job title" required>
+            <input class="form-control form-control-sm mb-2" name="company" placeholder="Company" required>
+            <div class="row g-1 mb-2">
+              <div class="col-6"><input class="form-control form-control-sm" name="started_on" type="date" required aria-label="Started"></div>
+              <div class="col-6"><input class="form-control form-control-sm" name="ended_on" type="date" aria-label="Ended"></div>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" name="is_current" id="is_current">
+              <label class="form-check-label small" for="is_current">Current role</label>
+            </div>
+            <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Add</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-lg-7">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-1">Delivery history</h2>
+          <p class="small text-muted-2">
+            The engagements themselves, as distinct from who employed you. On a contractor's
+            CV this is the substance — which landscape, which modules, which phase, what
+            shipped — and through an agency the employer line is often the same name every
+            time. The modules you tick here are what the talent directory searches and what
+            the match score compares a job against.
+          </p>
+
+          <% if (projects.length) { %>
+            <ul class="list-unstyled small mb-3">
+              <% projects.forEach(function (p) { %>
+                <li class="d-flex justify-content-between align-items-start border-top py-2">
+                  <span>
+                    <strong><%= p.name %></strong>
+                    <% if (p.client) { %><span class="text-muted-2"> · <%= p.client %></span><% } %>
+                    <br>
+                    <span class="text-muted-2">
+                      <% if (p.product_line) { %><%= lineLabel(p.product_line) %> · <% } %>
+                      <% if (p.role) { %><%= roleLabel(p.role) %> · <% } %>
+                      <% if (p.activate_phase) { %><span class="text-capitalize"><%= p.activate_phase %></span> · <% } %>
+                      <%= p.started_on ? new Date(p.started_on).toISOString().slice(0, 7) : '' %>
+                      <% if (p.ended_on) { %>– <%= new Date(p.ended_on).toISOString().slice(0, 7) %><% } else { %>– present<% } %>
+                    </span>
+                    <% if (p.is_full_lifecycle) { %>
+                      <span class="badge-hub ok">Full lifecycle</span>
+                    <% } %>
+                    <% if (p.modules && p.modules.length) { %>
+                      <br>
+                      <span class="d-inline-flex flex-wrap gap-1 mt-1">
+                        <% p.modules.forEach(function (m) { %><span class="badge-hub"><%= moduleLabel(m) %></span><% }); %>
+                      </span>
+                    <% } else { %>
+                      <br><span class="small text-muted-2">No modules — this engagement will not appear in module searches.</span>
+                    <% } %>
+                  </span>
+                  <form method="post" action="/profile/consultant/projects/<%= p.id %>/delete">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-sm btn-link text-danger p-0" type="submit" aria-label="Remove">&times;</button>
+                  </form>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+
+          <form method="post" action="/profile/consultant/projects">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="row g-2 mb-2">
+              <div class="col-md-7">
+                <label class="visually-hidden" for="proj-name">Engagement</label>
+                <input class="form-control form-control-sm" id="proj-name" name="name"
+                       placeholder="What it was, e.g. Quote-to-cash rollout" maxlength="200" required>
+              </div>
+              <div class="col-md-5">
+                <label class="visually-hidden" for="proj-client">Client</label>
+                <input class="form-control form-control-sm" id="proj-client" name="client"
+                       placeholder="Client (optional)" maxlength="180">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <label class="visually-hidden" for="proj-line">Product line</label>
+                <select class="form-select form-select-sm" id="proj-line" name="product_line">
+                  <option value="">Product line</option>
+                  <% productLines.forEach(function (line) { %>
+                    <option value="<%= line.value %>"><%= line.label %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="visually-hidden" for="proj-role">Your role</label>
+                <select class="form-select form-select-sm" id="proj-role" name="role">
+                  <option value="">Your role</option>
+                  <% roleCategories.forEach(function (cat) { %>
+                    <optgroup label="<%= cat.category %>">
+                      <% cat.roles.forEach(function (r) { %>
+                        <option value="<%= r.value %>"><%= r.label %></option>
+                      <% }); %>
+                    </optgroup>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <label class="visually-hidden" for="proj-phase">SAP Activate phase</label>
+                <select class="form-select form-select-sm" id="proj-phase" name="activate_phase">
+                  <option value="">Phase (optional)</option>
+                  <% activatePhases.forEach(function (phase) { %>
+                    <option value="<%= phase %>"><%= phase.charAt(0).toUpperCase() + phase.slice(1) %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6 d-flex align-items-center">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" name="is_full_lifecycle" id="proj-full">
+                  <label class="form-check-label small" for="proj-full">Full lifecycle, prepare to go-live</label>
+                </div>
+              </div>
+            </div>
+
+            <fieldset class="mb-2">
+              <legend class="form-label small mb-1">Modules this engagement touched</legend>
+              <details class="filter-group">
+                <summary class="small text-muted-2">Choose modules</summary>
+                <% productLines.forEach(function (line) { %>
+                  <p class="small text-muted-2 mb-1 mt-2"><%= line.label %></p>
+                  <div class="d-flex flex-wrap gap-3">
+                    <% line.modules.forEach(function (m) { %>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="modules" value="<%= m.value %>"
+                               id="pm-<%= m.value %>">
+                        <label class="form-check-label small" for="pm-<%= m.value %>"><%= m.label %></label>
+                      </div>
+                    <% }); %>
+                  </div>
+                <% }); %>
+              </details>
+            </fieldset>
+
+            <div class="row g-2 mb-2">
+              <div class="col-6"><input class="form-control form-control-sm" name="started_on" type="date" aria-label="Started"></div>
+              <div class="col-6"><input class="form-control form-control-sm" name="ended_on" type="date" aria-label="Ended"></div>
+            </div>
+            <div class="mb-2">
+              <label class="visually-hidden" for="proj-description">What you did</label>
+              <textarea class="form-control form-control-sm" id="proj-description" name="description" rows="3"
+                        placeholder="What you actually did. This goes on the CV as you write it — nothing rewrites it."></textarea>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" type="submit">Add engagement</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <%#
+      The generated CV and rate card, and the rate calculator beside them, are consultant
+      tooling — a later area. Their constraint is already settled and travels with them:
+      the documents render what the consultant wrote and nothing rewrites it, and every
+      figure in the calculator is before tax and says so.
+    %>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

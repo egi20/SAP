@@ -1,0 +1,112 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-gear', heading: 'Account settings', sub: 'Your sign-in details and what you use the Hub for.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (!user.email_verified) { %>
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+      <span>Your email address is not confirmed yet.</span>
+      <form method="post" action="/auth/resend-verification" class="ms-auto">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-sm btn-outline-primary" type="submit">Resend confirmation</button>
+      </form>
+    </div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Account</h2>
+          <dl class="row mb-0 small">
+            <dt class="col-5 text-muted-2">Email</dt><dd class="col-7"><%= user.email %></dd>
+            <dt class="col-5 text-muted-2">Member since</dt><dd class="col-7"><%= new Date(user.created_at).toISOString().slice(0, 10) %></dd>
+            <dt class="col-5 text-muted-2">Primary role</dt><dd class="col-7"><%= user.user_type %></dd>
+            <% if (user.terms_version) { %>
+              <dt class="col-5 text-muted-2">Terms accepted</dt>
+              <dd class="col-7">v<%= user.terms_version %> on <%= new Date(user.terms_accepted_at).toISOString().slice(0, 10) %></dd>
+            <% } %>
+          </dl>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">What you use the Hub for</h2>
+          <form method="post" action="/profile/settings/roles">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="roles" value="consultant" id="r-consultant"
+                     <%= user.is_consultant ? 'checked disabled' : '' %>>
+              <label class="form-check-label" for="r-consultant">Find work as a consultant</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="roles" value="company" id="r-company"
+                     <%= user.is_company ? 'checked disabled' : '' %>>
+              <label class="form-check-label" for="r-company">Hire SAP talent</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="roles" value="recruiter" id="r-recruiter"
+                     <%= user.is_recruiter ? 'checked disabled' : '' %>>
+              <label class="form-check-label" for="r-recruiter">Place candidates as an agency</label>
+            </div>
+            <%
+              /*
+               * A disabled checkbox posts nothing, so each held role is re-sent as a hidden
+               * field. `addSelfServiceRoles` unions and never removes, so this is belt and
+               * braces rather than load-bearing — but without it the form would look like it
+               * was asking to drop a role it cannot drop.
+               */
+            %>
+            <% if (user.is_consultant) { %><input type="hidden" name="roles" value="consultant"><% } %>
+            <% if (user.is_company) { %><input type="hidden" name="roles" value="company"><% } %>
+            <% if (user.is_recruiter) { %><input type="hidden" name="roles" value="recruiter"><% } %>
+            <p class="form-text">
+              Adding a role here is instant. Removing one is done by support, so a mis-click can
+              never take away access you rely on.
+            </p>
+            <button class="btn btn-primary" type="submit">Save roles</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Change password</h2>
+          <form method="post" action="/profile/settings/password">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-3">
+              <label class="form-label" for="current_password">Current password</label>
+              <input class="form-control" id="current_password" name="current_password" type="password" required autocomplete="current-password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">New password</label>
+              <input class="form-control" id="password" name="password" type="password" required autocomplete="new-password">
+              <p class="form-text">At least 8 characters, with upper case, lower case and a number.</p>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="confirm_password">Confirm new password</label>
+              <input class="form-control" id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password">
+            </div>
+            <button class="btn btn-primary" type="submit">Update password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%#
+    LinkedIn confirmation is a later area, and what it is allowed to CLAIM is the whole
+    feature — DynamicsHub set linkedin_verified without comparing anything it had. The
+    badge, and the plain-language note saying exactly what it does and does not confirm,
+    arrive together or not at all.
+  %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

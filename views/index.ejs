@@ -1,0 +1,130 @@
+<%- include('partials/layout-start') %>
+
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <span class="section-badge mb-3"><i class="bi bi-diagram-3"></i> The SAP ecosystem</span>
+        <h1 class="mb-3">Jobs, talent and real day rates</h1>
+        <p class="mb-4">
+          Contract and permanent roles across S/4HANA, SuccessFactors, Ariba, BTP and Analytics.
+          Consultants you can filter by the modules they have actually delivered, by certification
+          and by availability. And day-rate benchmarks contributed by the people doing the work.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-light fw-semibold" href="/jobs">Browse <%= totalJobs %> open role<%= totalJobs === 1 ? '' : 's' %></a>
+          <a class="btn btn-outline-light fw-semibold" href="/consultants">Find consultants</a>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <form class="glass-card p-3" action="/jobs" method="get" role="search">
+          <label class="form-label" for="home-q">Search roles</label>
+          <input class="form-control mb-2" id="home-q" name="q" placeholder="e.g. FI/CO, EWM, ABAP, SuccessFactors">
+          <label class="form-label" for="home-role">Role</label>
+          <select class="form-select mb-3" id="home-role" name="role">
+            <option value="">Any role</option>
+            <% roleCategories.forEach(function (cat) { %>
+              <optgroup label="<%= cat.category %>">
+                <% cat.roles.forEach(function (r) { %><option value="<%= r.value %>"><%= r.label %></option><% }); %>
+              </optgroup>
+            <% }); %>
+          </select>
+          <button class="btn btn-primary w-100" type="submit">Search jobs</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <%- include('partials/flash') %>
+
+  <div class="row g-3 mb-5">
+    <%
+      const homeStats = [
+        { value: totalJobs, label: 'Open roles', icon: 'bi-briefcase', tone: 'icon-blue' },
+        { value: totalConsultants, label: 'Listed consultants', icon: 'bi-people', tone: 'icon-navyblue' },
+        { value: rateContributors, label: 'Rate contributors', icon: 'bi-graph-up', tone: 'icon-success' },
+        { value: productLines.length, label: 'Clouds covered', icon: 'bi-cloud', tone: 'icon-info' }
+      ];
+    %>
+    <% homeStats.forEach(function (s) { %>
+      <div class="col-6 col-lg-3">
+        <div class="stat-tile animate-on-scroll d-flex align-items-center gap-3">
+          <span class="icon-tile icon-tile-sm <%= s.tone %>"><i class="bi <%= s.icon %>"></i></span>
+          <div>
+            <div class="value"><%= s.value %></div>
+            <div class="label"><%= s.label %></div>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+  <section class="mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <h2 class="mb-0">Latest roles</h2>
+      <a href="/jobs">See all jobs <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <% if (latestJobs.length === 0) { %>
+      <div class="empty-state glass-card"><i class="bi bi-briefcase"></i>No roles posted yet.</div>
+    <% } else { %>
+      <div class="row g-3">
+        <% latestJobs.forEach(function (job) { %>
+          <div class="col-lg-6"><%- include('partials/job-card', { job: job }) %></div>
+        <% }); %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="mb-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <h2 class="mb-0">Available consultants</h2>
+      <a href="/consultants">See all talent <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <% if (featuredConsultants.length === 0) { %>
+      <div class="empty-state glass-card"><i class="bi bi-people"></i>No public profiles yet.</div>
+    <% } else { %>
+      <div class="row g-3">
+        <% featuredConsultants.forEach(function (c) { %>
+          <div class="col-md-6 col-lg-4"><%- include('partials/consultant-card', { c: c }) %></div>
+        <% }); %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="mb-5">
+    <h2 class="mb-3">Browse by cloud</h2>
+    <div class="row g-3">
+      <% productLines.forEach(function (f) { %>
+        <div class="col-6 col-md-4 col-lg-3">
+          <a class="glass-card d-block h-100 text-reset animate-on-scroll" href="/jobs?module=<%= f.modules[0].value %>">
+            <div class="card-body text-center">
+              <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-cloud"></i></span>
+              <h3 class="h6 mb-1"><%= f.label %></h3>
+              <p class="small text-muted-2 mb-0"><%= f.modules.length %> modules</p>
+            </div>
+          </a>
+        </div>
+      <% }); %>
+    </div>
+  </section>
+
+  <section class="glass-card glass-card-tinted p-4 mb-5 animate-on-scroll">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h2 class="mb-2">Know what the work is worth</h2>
+        <p class="mb-0 text-muted-2">
+          The rate index is built from figures contributed by consultants, one per person per month.
+          No bucket is published until at least three different people have contributed to it, so a
+          small market cannot become a guessing game about one person's pay.
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <a class="btn btn-primary" href="/rates"><i class="bi bi-graph-up"></i> Open the rate index</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<%- include('partials/layout-end') %>

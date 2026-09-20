@@ -1,0 +1,21 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-bookmark', heading: 'Saved jobs', sub: 'Roles you bookmarked.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+  <% if (jobs.length === 0) { %>
+    <div class="empty-state glass-card"><i class="bi bi-bookmark"></i>
+      <p class="mb-1">Nothing saved yet.</p><a href="/jobs">Browse roles</a></div>
+  <% } else { %>
+    <div class="row g-3">
+      <% jobs.forEach(function (job) { %>
+        <div class="col-lg-6"><%- include('../partials/job-card', { job: job }) %></div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

@@ -1,0 +1,10 @@
+<% const groups = [['success','success','check-circle'],['error','danger','exclamation-triangle'],['info','info','info-circle']]; %>
+<% groups.forEach(function (g) { %>
+  <% (flash[g[0]] || []).forEach(function (message) { %>
+    <div class="alert alert-<%= g[1] %> alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
+      <i class="bi bi-<%= g[2] %> mt-1"></i>
+      <div><%= message %></div>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% }); %>
+<% }); %>

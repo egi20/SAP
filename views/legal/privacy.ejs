@@ -1,0 +1,37 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', { icon: 'bi-shield-check', heading: 'Privacy policy' }) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+    <div class="glass-card"><div class="card-body">
+      <p class="text-muted-2">Version <%= version %></p>
+
+      <h2 class="h6">What we store</h2>
+      <p>Your account details, the profile you choose to publish, the applications you send, and the
+         rate figures you contribute. We record the country your sign-up came from, derived offline
+         from your IP address; the address itself is stored only in binary form on your account row
+         and is not used for anything else.</p>
+
+      <h2 class="h6">Visitor analytics</h2>
+      <p>We count page views per country per day. No path, identifier or address is kept alongside
+         that count, so it cannot be traced back to a person.</p>
+
+      <h2 class="h6">Your rate contributions</h2>
+      <p>Contributions are never displayed individually. They are aggregated with other people's, and
+         no aggregate is published until at least three different people have contributed to it.</p>
+
+      <h2 class="h6">Demographic questions</h2>
+      <p>Gender and date of birth are optional, used only in aggregate, never shown on your profile
+         and never shared with employers. Leaving them blank has no effect on anything.</p>
+
+      <h2 class="h6">Consent record</h2>
+      <p>When you register we store the exact versions of these documents you accepted, and when. We
+         do not record consent on your behalf for accounts created by an administrator.</p>
+
+      <h2 class="h6">Deletion</h2>
+      <p>Ask us and your account and its data are removed. Aggregate figures already published cannot
+         single you out and are not recomputed.</p>
+    </div></div>
+  </div></div>
+</div>
+<%- include('../partials/layout-end') %>

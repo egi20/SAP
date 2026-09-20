@@ -1,0 +1,210 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-graph-up',
+  heading: 'SAP day rate index',
+  sub: 'Built from figures contributed by consultants, one per person per month.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="alert alert-light border d-flex gap-2 align-items-start">
+    <i class="bi bi-shield-check mt-1"></i>
+    <div class="small mb-0">
+      <strong>How this stays honest.</strong> Every figure counts one person, not one submission.
+      Any bucket with fewer than <%= minSample %> contributors is not published — the contributor count
+      is shown, the numbers are not. Months below the threshold appear as gaps in the trend rather
+      than as zeroes, because drawing a line through missing data invents it.
+    </div>
+  </div>
+
+  <form class="glass-card p-3 mb-4" method="get" action="/rates">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="r-role">Role</label>
+        <select class="form-select" id="r-role" name="role">
+          <option value="">All roles</option>
+          <% roleCategories.forEach(function (cat) { %>
+            <optgroup label="<%= cat.category %>">
+              <% cat.roles.forEach(function (r) { %>
+                <option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+              <% }); %>
+            </optgroup>
+          <% }); %>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="r-seniority">Seniority</label>
+        <select class="form-select" id="r-seniority" name="seniority">
+          <option value="">All</option>
+          <% ['junior','mid','senior','lead'].forEach(function (s) { %>
+            <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= s %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="r-engagement">Type</label>
+        <select class="form-select" id="r-engagement" name="engagement_type">
+          <option value="contract" <%= filters.engagementType === 'contract' ? 'selected' : '' %>>Contract</option>
+          <option value="permanent" <%= filters.engagementType === 'permanent' ? 'selected' : '' %>>Permanent</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="r-country">Country</label>
+        <select class="form-select" id="r-country" name="country">
+          <option value="">All countries</option>
+          <% countries.forEach(function (c) { %>
+            <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">Go</button></div>
+    </div>
+  </form>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="glass-card h-100">
+        <div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase">
+            <%= filters.role ? roleLabel(filters.role) : 'All roles' %><%= filters.seniority ? ' · ' + filters.seniority : '' %>
+          </h2>
+          <% if (summary.suppressed) { %>
+            <p class="rate-figure suppressed mb-1">Not published</p>
+            <p class="text-muted-2 mb-0">
+              <%= summary.contributors %> contributor<%= summary.contributors === 1 ? '' : 's' %> so far.
+              At least <%= minSample %> are needed before this bucket is shown.
+            </p>
+          <% } else { %>
+            <p class="mb-1">
+              <span class="rate-figure"><%= summary.median %></span>
+              <span class="text-muted-2">EUR <%= filters.engagementType === 'contract' ? 'per day' : 'per year' %> (median)</span>
+            </p>
+            <p class="text-muted-2 mb-0">
+              25th–75th percentile: <strong><%= summary.p25 %></strong>–<strong><%= summary.p75 %></strong> ·
+              range <%= summary.min %>–<%= summary.max %> ·
+              <%= summary.contributors %> contributors
+            </p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100">
+        <div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase">Editorial baseline</h2>
+          <% if (curatedBaseline) { %>
+            <p class="mb-1"><span class="rate-figure"><%= curatedBaseline %></span> <span class="text-muted-2">EUR/day</span></p>
+            <p class="small text-muted-2 mb-0">
+              Our own published starting point for this role. Shown separately and never blended
+              into the contributed figures.
+            </p>
+          <% } else { %>
+            <p class="small text-muted-2 mb-0">Choose a role to see the editorial baseline.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (filters.role && trend.length) { %>
+    <div class="glass-card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Last 12 months</h2>
+        <%
+          const values = trend.filter(function (t) { return t.value !== null; }).map(function (t) { return t.value; });
+          const peak = values.length ? Math.max.apply(null, values) : 1;
+        %>
+        <div class="trend" role="img" aria-label="Median rate by month; months with too few contributors are shown as gaps">
+          <% trend.forEach(function (t) { %>
+            <% if (t.value === null) { %>
+              <div class="bar gap" style="height:100%" title="<%= t.period %>: not enough contributors"></div>
+            <% } else { %>
+              <div class="bar" style="height:<%= Math.max(4, Math.round((t.value / peak) * 100)) %>%"
+                   title="<%= t.period %>: <%= t.value %> EUR (<%= t.contributors %> contributors)"></div>
+            <% } %>
+          <% }); %>
+        </div>
+        <div class="trend-labels mt-1">
+          <% trend.forEach(function (t) { %><span><%= t.period.slice(5) %></span><% }); %>
+        </div>
+        <p class="small text-muted-2 mt-2 mb-0">Hatched columns are months with fewer than <%= minSample %> contributors.</p>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (filters.role && bySeniority.length) { %>
+    <div class="glass-card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">By seniority — <%= roleLabel(filters.role) %></h2>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Seniority</th><th class="text-end">Median</th><th class="text-end">P25</th><th class="text-end">P75</th><th class="text-end">Contributors</th></tr></thead>
+            <tbody>
+              <% bySeniority.forEach(function (row) { %>
+                <tr>
+                  <td class="text-capitalize"><%= row.seniority %></td>
+                  <% if (row.suppressed) { %>
+                    <td colspan="3" class="text-end suppressed">Not enough data</td>
+                  <% } else { %>
+                    <td class="text-end"><strong><%= row.median %></strong></td>
+                    <td class="text-end"><%= row.p25 %></td>
+                    <td class="text-end"><%= row.p75 %></td>
+                  <% } %>
+                  <td class="text-end"><%= row.contributors %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">All roles</h2>
+      <% if (byRole.length === 0) { %>
+        <div class="empty-state"><i class="bi bi-bar-chart"></i>No contributions yet.</div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Role</th><th class="text-end">Median</th><th class="text-end">P25–P75</th><th class="text-end">Contributors</th></tr></thead>
+            <tbody>
+              <% byRole.forEach(function (row) { %>
+                <tr>
+                  <td><a href="/rates?role=<%= row.role %>"><%= roleLabel(row.role) %></a></td>
+                  <% if (row.suppressed) { %>
+                    <td colspan="2" class="text-end suppressed">Not enough data</td>
+                  <% } else { %>
+                    <td class="text-end"><strong><%= row.median %></strong></td>
+                    <td class="text-end"><%= row.p25 %>–<%= row.p75 %></td>
+                  <% } %>
+                  <td class="text-end"><%= row.contributors %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <h2 class="h6 mb-1">Add your figure</h2>
+        <p class="small text-muted-2 mb-0"><%= contributors %> people have contributed so far.</p>
+      </div>
+      <% if (currentUser && currentUser.isConsultant) { %>
+        <a class="btn btn-primary" href="/rates/submit">Contribute your rate</a>
+      <% } else if (!currentUser) { %>
+        <a class="btn btn-primary" href="/auth/register">Create a consultant account</a>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

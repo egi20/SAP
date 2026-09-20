@@ -1,0 +1,158 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section pb-5">
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <% if (!profile.is_public) { %>
+    <div class="alert alert-warning">This profile is hidden from the directory. Only you and admins can see it.</div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <div class="d-flex gap-3 mb-3">
+            <img class="avatar avatar-lg" src="<%= profile.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
+            <div>
+              <h1 class="h3 mb-1"><%= profile.name %></h1>
+              <p class="text-muted-2 mb-2"><%= profile.headline || roleLabel(profile.primary_role) %></p>
+              <div class="d-flex flex-wrap gap-1">
+                <% if (profile.primary_role) { %><span class="badge-hub accent"><%= roleLabel(profile.primary_role) %></span><% } %>
+                <% if (profile.seniority) { %><span class="badge-hub"><%= profile.seniority %></span><% } %>
+                <% if (profile.years_experience) { %><span class="badge-hub"><%= profile.years_experience %> yrs</span><% } %>
+                <% if (profile.country) { %><span class="badge-hub"><%= [profile.city, profile.country].filter(Boolean).join(', ') %></span><% } %>
+                <%
+                  /*
+                   * "LinkedIn confirmed", not "Verified".
+                   *
+                   * What was actually checked is that this person controls a LinkedIn
+                   * account. LinkedIn's userinfo response carries no vanity URL, no
+                   * headline and no positions, so nothing here verifies the profile link
+                   * below, their job title or their employer — and a bare "Verified" badge
+                   * would be read as verifying all three. The reference implementation's
+                   * badge said exactly that while checking exactly this.
+                   */
+                %>
+                <% if (profile.linkedin_verified) { %>
+                  <span class="badge-hub ok" title="This member signed in to LinkedIn to confirm they control a LinkedIn account. It does not verify the profile link, their job title or their employer.">
+                    <i class="bi bi-patch-check"></i> LinkedIn confirmed
+                  </span>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
+          <% if (profile.bio) { %>
+            <hr>
+            <h2 class="h6">About</h2>
+            <div><%- sanitizeRichText(profile.bio) %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (experiences.length) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Experience</h2>
+            <ul class="timeline">
+              <% experiences.forEach(function (e) { %>
+                <li>
+                  <strong><%= e.title %></strong> · <%= e.company %>
+                  <div class="small text-muted-2">
+                    <%= new Date(e.started_on).toISOString().slice(0, 7) %> —
+                    <%= e.is_current ? 'present' : (e.ended_on ? new Date(e.ended_on).toISOString().slice(0, 7) : '') %>
+                  </div>
+                  <% if (e.description) { %><div class="small mt-1"><%- sanitizeRichText(e.description) %></div><% } %>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6">Availability and rate</h2>
+          <p class="mb-1">
+            <% if (profile.day_rate) { %>
+              <span class="rate-figure"><%= Math.round(profile.day_rate) %></span>
+              <span class="text-muted-2"><%= profile.currency %>/day</span>
+            <% } else { %>
+              <span class="text-muted-2">Rate on request</span>
+            <% } %>
+          </p>
+          <p class="mb-1">
+            <span class="badge-hub <%= profile.availability === 'immediate' ? 'ok' : '' %>">
+              <%= { immediate: 'Available now', two_weeks: 'Available in 2 weeks', one_month: 'Available in a month', not_available: 'Not currently available' }[profile.availability] %>
+            </span>
+          </p>
+          <p class="small text-muted-2 mb-0">
+            <%= profile.work_mode %><%= profile.willing_to_travel ? ' · willing to travel' : '' %>
+          </p>
+
+          <% if (canSeeContact) { %>
+            <hr>
+            <h2 class="h6">Contact</h2>
+            <p class="mb-1"><a href="mailto:<%= profile.email %>"><%= profile.email %></a></p>
+            <% if (profile.linkedin_url) { %>
+              <%
+                /* Labelled as a link the member gave us, because that is all it is —
+                   nothing available through LinkedIn's API can confirm it is theirs. */
+              %>
+              <p class="mb-1">
+                <a href="<%= profile.linkedin_url %>" rel="nofollow noopener noreferrer" target="_blank">LinkedIn</a>
+                <span class="small text-muted-2">(link provided by the member)</span>
+              </p>
+            <% } %>
+            <% if (profile.sap_community_url) { %><p class="mb-0"><a href="<%= profile.sap_community_url %>" rel="nofollow noopener noreferrer" target="_blank">SAP Community profile</a></p><% } %>
+          <% } else if (!isSelf) { %>
+            <hr>
+            <p class="small text-muted-2 mb-2">Contact details are shown to signed-in hiring accounts.</p>
+            <a class="btn btn-outline-primary w-100 btn-sm" href="/auth/login?redirect=<%= encodeURIComponent('/consultants/' + profile.user_id) %>">Sign in to contact</a>
+          <% } %>
+
+          <% if (isSelf) { %>
+            <hr>
+            <a class="btn btn-primary w-100" href="/profile/consultant">Edit your profile</a>
+          <% } %>
+        </div>
+      </div>
+
+      <%# Messaging is a later area. A form posting to a route that does not exist is a %>
+      <%# button that fails in the one place somebody is trying to reach a person. %>
+
+      <% if (certifications.length) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Certifications</h2>
+            <ul class="list-unstyled mb-0 small">
+              <% certifications.forEach(function (c) { %>
+                <li class="mb-1">
+                  <i class="bi bi-patch-check text-success"></i> <%= c.name %>
+                  <% if (c.earned_on) { %><span class="text-muted-2">· <%= new Date(c.earned_on).getFullYear() %></span><% } %>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (skills.length) { %>
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Skills</h2>
+            <div class="d-flex flex-wrap gap-1">
+              <% skills.forEach(function (s) { %><span class="badge-hub"><%= s.name %></span><% }); %>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

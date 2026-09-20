@@ -56,15 +56,16 @@ sound go-live fails — and it is a line item on real statements of work.
 | Area | Reference | Here | State |
 |---|---|---|---|
 | Role taxonomy, product catalogue, certifications | — | — | **done** |
-| Design system & palette | — | — | **done** (DESIGN.md; CSS next) |
-| Schema, migrations, migration runner | — | — | next |
-| Auth & identity: multi-role, verification, reset | 11 | 11 | next |
-| Consultant & company profiles | 23 + 3 | ~20 | next |
-| Job board: post, publish/pause/close, bulk interlock | 10 | 10 | next |
-| Applications: state machine, audit trail | 3 | 3 | next |
-| Match scoring, with the module aliases | — | — | next |
-| Day-rate index, n≥3 privacy floor | 4 | 4 | next |
-| Directories, dashboards, notifications | 10 | 10 | next |
+| Design system & palette | — | — | **done** |
+| Schema, migrations, migration runner | — | — | **done** (5 migrations, applied from empty) |
+| Auth & identity: multi-role, verification, reset | 11 | 11 | **done** |
+| Consultant & company profiles | 23 + 3 | 17 | **done** |
+| Delivery history: modules, phase, full lifecycles | — | 2 | **done** — no counterpart in either reference |
+| Job board: post, publish/pause/close, bulk interlock | 10 | 10 | **done** |
+| Applications: state machine, audit trail | 3 | 3 | **done** |
+| Match scoring, with the module term and the aliases | — | — | **done** |
+| Day-rate index, n≥3 privacy floor | 4 | 3 | **done** — the calculator is later |
+| Directories, dashboards, notifications | 10 | 10 | **done** |
 | Scope estimator & quotes | 10 | ~8 | after the core |
 | Documents: SOW, WBS, deck | — | — | after the core |
 | Messaging | 5 | 5 | after the core |
@@ -111,6 +112,41 @@ Everything built here satisfies the rules in `CLAUDE.md`. The ones most often at
   with no base rate, a module depending on one that does not exist — fails loudly at the
   one moment somebody is watching.
 
+## What the core build actually found
+
+Four things, and they are the argument for doing this as a port rather than a copy.
+
+1. **`User.list` never went through `utils/likePattern.js`.** Salesforce Hub wrote that
+   module when one search box started asking four filter builders at once, fixed all four,
+   and left the admin user search interpolating `%${search}%`. Nothing was injectable — the
+   value was always bound — but a search for a literal `%` was still a full scan of `users`,
+   and `a_b` still matched `axb`. Fixed here, and the reason is in the code.
+
+2. **Substring alias matching does not survive this ecosystem.** The reference asks
+   `haystack.includes(alias)`, which is safe when the shortest alias is "cpq". Every SAP
+   module code is two letters: `includes('mm')` matches "committed", `includes('fi')`
+   matches "specific", `includes('pm')` matches "employment". Every SAP advert contains
+   those words, so every consultant would have scored a partial role match against every
+   job. `utils/jobMatcher.js` matches on word boundaries, and a test pins it.
+
+3. **A UNIQUE over a nullable expression is not unique.** Certifications are stored by
+   catalogue code, with free text only for the reserved `OTHER`. Without the CHECK in
+   migration 002, two `OTHER` rows with no name would both be accepted, because in SQL a
+   NULL never equals another NULL. Verified against a real database: the duplicate is
+   refused, the nameless OTHER is refused, and two different OTHERs are both allowed.
+
+4. **A capability nothing reaches is not a feature.** `ConsultantProfile.buildFilter` could
+   filter by delivered module from its first commit, and `routes/consultants.js` never
+   passed it one — so `?modules=ewm` returned the entire directory. An integration test
+   found it. This is the same shape as the reference's `consultant_projects` table, which
+   sat in migration 002 with nothing reading or writing it while the CV's most useful
+   section rendered empty.
+
+And one the tests found in the tests: the integration suite decided whether to skip inside
+`beforeAll`, which Jest runs *after* it has already registered every `describe`. It reported
+seven skipped tests against a database that was running — a green run that tested nothing.
+The decision now happens in `tests/globalSetup.js`, in the parent process.
+
 ## Known at the start, so nobody discovers it at the end
 
 Salesforce Hub's own plan ends by noting that the real remaining work was never a feature:
@@ -120,3 +156,15 @@ source was unmocked and unreachable, and every recurring cost contributing zero 
 because `mysql2` returns a DATE as a JS `Date`. All three were green under mocks.
 
 So: this application runs against a real database, from empty, before it is called done.
+
+**It does.** All five migrations apply to an empty schema, the generated column and CHECK on
+`consultant_certifications` were exercised directly, and the whole marketplace flow —
+register, post a role with modules and a phase, build a profile, enter an engagement, match,
+filter both directories — runs end to end in `tests/integration/marketplace.test.js`. 55
+tests pass, `npm run lint` is clean and `npm run validate-boot` passes.
+
+One caveat stated rather than buried: the database exercised here was MariaDB 10.11, not
+MySQL 8. It is close enough to catch every SQL error above, and it is not the same engine.
+The `only_full_group_by` alias collision that Salesforce Hub hit is exactly the class of bug
+that can differ between the two, so the first MySQL 8 run is still a real step and is not
+yet taken.

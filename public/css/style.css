@@ -1,0 +1,1271 @@
+/*
+ * SAP Hub — design system.
+ *
+ * Ported from the DynamicsHub design system by way of Salesforce Hub (premium
+ * glassmorphism: frosted cards over soft washes, -4px hover lift, gradient accents), with
+ * the palette re-based on SAP blue. The structure, component names and rules are theirs;
+ * the colours are not, because a site in somebody else's blue reads as somebody else's
+ * site.
+ *
+ * THE ONE COLOUR DECISION WORTH STATING, because it looks like a mistake until you measure
+ * it: SAP's own brand blue is #0070F2, and it is NOT the interactive colour here. It scores
+ * 4.57:1 against white — it passes AA, by seven hundredths. A threshold that tight survives
+ * nothing: not a hover state, not a disabled opacity, not one channel nudged by a designer.
+ * So #0064D9 (5.49:1) carries links and buttons, and #0070F2 is an accent and a gradient
+ * stop, used where nothing has to be read against it.
+ *
+ * The same decision in shape as Salesforce Hub's about #0070F2 — theirs failed outright at
+ * 2.93:1, ours passes and is still refused — and reached the same way, with
+ * `utils/contrast.js` rather than by eye.
+ *
+ * Rules that come with this system:
+ *   - Use the tokens. Never introduce a foreign palette, and never inline a brand colour.
+ *   - Cards hover at -4px, buttons at -2px. Nothing else moves.
+ *   - Never remove a focus outline without an equal replacement.
+ *   - Body text stays at or above 4.5:1. The text tokens are tuned for it.
+ */
+
+/* ============================================================================
+   TOKENS
+   ========================================================================== */
+
+:root {
+  /* --- Brand ------------------------------------------------------------- */
+  --primary-navy: #00265b;
+  --primary-navy-light: #0a4c9b;
+  --primary-navy-dark: #001739;
+
+  --primary-blue: #0064d9;        /* 5.49:1 on white — the link and CTA colour */
+  --primary-blue-light: #0070f2;  /* SAP brand blue. 4.57:1 — accent and gradient stop only */
+  --primary-blue-bright: #7ac5ff;
+  --primary-blue-dark: #0a4c9b;
+
+  --primary-color: var(--primary-blue);
+  --secondary-dark: var(--primary-navy-dark);
+
+  /* --- Gradients --------------------------------------------------------- */
+  --accent-gradient: linear-gradient(135deg, #0064d9 0%, #0a4c9b 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #0a4c9b 0%, #073b78 100%);
+  --navy-gradient: linear-gradient(135deg, #00265b 0%, #0a4c9b 100%);
+  --hero-gradient: linear-gradient(135deg, #001739 0%, #00265b 45%, #0a4c9b 100%);
+
+  --mesh-gradient:
+    radial-gradient(at 40% 20%, rgba(0, 112, 242, 0.15) 0, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(0, 100, 217, 0.12) 0, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(0, 38, 91, 0.08) 0, transparent 50%);
+
+  --glass-mesh-bg:
+    radial-gradient(ellipse at 15% 0%, rgba(0, 100, 217, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(0, 112, 242, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse at 0% 65%, rgba(0, 38, 91, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 100% 35%, rgba(122, 197, 255, 0.16) 0%, transparent 45%);
+
+  /* Sanctioned accents. ONLY for .icon-tile colour modifiers. */
+  --grad-blue: linear-gradient(135deg, #0064d9 0%, #0070f2 100%);
+  --grad-navy: linear-gradient(135deg, #00265b 0%, #0a4c9b 100%);
+  --grad-navyblue: linear-gradient(135deg, #00265b 0%, #0070f2 100%);
+  --grad-violet: linear-gradient(135deg, #5b6abf 0%, #8b7fd4 100%);
+  --grad-amber: linear-gradient(135deg, #c97a00 0%, #e8a33d 100%);
+  --grad-success: linear-gradient(135deg, #1d6f4f 0%, #2e9e6b 100%);
+  --grad-info: linear-gradient(135deg, #0a7ea4 0%, #35b0d3 100%);
+  --grad-rose: linear-gradient(135deg, #b3364a 0%, #e0637a 100%);
+
+  /* --- Glass surfaces ---------------------------------------------------- */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-light: rgba(255, 255, 255, 0.5);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.85);
+  --glass-bg-tinted: rgba(0, 100, 217, 0.08);
+  --glass-bg-navy: rgba(0, 38, 91, 0.75);
+  --glass-bg-dark: rgba(1, 32, 63, 0.85);
+  --glass-bg-frost: rgba(247, 250, 252, 0.8);
+
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-border-light: rgba(255, 255, 255, 0.2);
+  --glass-border-heavy: rgba(255, 255, 255, 0.6);
+  --glass-border-tinted: rgba(0, 100, 217, 0.2);
+  --glass-border-dark: rgba(255, 255, 255, 0.1);
+
+  --glass-blur-sm: blur(8px);
+  --glass-blur-md: blur(16px);
+  --glass-blur-lg: blur(24px);
+  --glass-blur-xl: blur(40px);
+
+  --glass-shadow:
+    0 8px 32px rgba(0, 38, 91, 0.08),
+    0 2px 8px rgba(0, 38, 91, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-shadow-lg:
+    0 16px 48px rgba(0, 38, 91, 0.1),
+    0 4px 16px rgba(0, 38, 91, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-shadow-glow:
+    0 8px 32px rgba(0, 100, 217, 0.15),
+    0 2px 8px rgba(0, 100, 217, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-shadow-dark:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --glass-shadow-inset:
+    inset 0 2px 4px rgba(0, 38, 91, 0.06),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+
+  --glass-highlight: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 40%);
+
+  /* --- Text -------------------------------------------------------------- */
+  /* Every tier below passes 4.5:1 on white except --text-muted, which is for
+     large text and non-essential marks only. Verified, not assumed. */
+  --text-dark: #16191d;    /* 17.63:1 */
+  --text-medium: #444c56;  /*  8.70:1 */
+  --text-light: #5a6673;   /*  5.86:1 */
+  --text-muted: #8a94a0;   /*  3.08:1 — large text only */
+  --text-on-glass: var(--primary-navy);
+  --text-on-glass-dark: rgba(255, 255, 255, 0.95);
+
+  /* --- Backgrounds and borders ------------------------------------------- */
+  --bg-light: #f6f8fa;
+  --bg-white: #ffffff;
+  --bg-dark: var(--primary-navy-dark);
+  --bg-glass: rgba(255, 255, 255, 0.8);
+
+  --border-color: #e2e8f0;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --border-glass: rgba(255, 255, 255, 0.2);
+
+  /* --- Shadows ----------------------------------------------------------- */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 38, 91, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 38, 91, 0.1), 0 1px 2px -1px rgba(0, 38, 91, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 38, 91, 0.1), 0 2px 4px -2px rgba(0, 38, 91, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 38, 91, 0.1), 0 4px 6px -4px rgba(0, 38, 91, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 38, 91, 0.1), 0 8px 10px -6px rgba(0, 38, 91, 0.1);
+  --shadow-glow: 0 0 40px rgba(0, 100, 217, 0.3);
+
+  /* --- Spacing ----------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* --- Radii ------------------------------------------------------------- */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+  --radius-full: 9999px;
+
+  /* --- Motion ------------------------------------------------------------ */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-glass: 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Bootstrap remap: .text-primary, .bg-primary, .badge.bg-primary and friends
+     become on-brand globally, so a view can safely use them. */
+  --bs-primary: #0064d9;
+  --bs-primary-rgb: 0, 100, 217;
+  --bs-link-color: #0064d9;
+  --bs-link-color-rgb: 0, 100, 217;
+  --bs-link-hover-color: #0a4c9b;
+}
+
+/* ============================================================================
+   BASE
+   ========================================================================== */
+
+* { box-sizing: border-box; }
+
+/*
+ * The body is a clean base, NOT a permanent wash.
+ *
+ * A fixed mesh behind every page greys the whole app and leaves a white card sitting on
+ * pale grey, which reads as washed out rather than as frosted. Glass only reads as glass
+ * when there is something with colour behind it, so the mesh is applied deliberately per
+ * section with .glass-section, exactly as the system this was ported from does.
+ */
+body {
+  font-family: var(--font-sans);
+  color: var(--text-medium);
+  background: var(--bg-white);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: var(--primary-blue); color: #fff; }
+html { scroll-behavior: smooth; }
+
+/* ============================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary-navy);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; }
+h2 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
+h3 { font-size: clamp(1.5rem, 3vw, 1.875rem); }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1rem; }
+
+a {
+  color: var(--primary-blue);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+/* Links DARKEN on hover, never lighten — a lighter link on white loses contrast. */
+a:hover { color: var(--primary-blue-dark); text-decoration: underline; }
+
+.lead { font-size: 1.125rem; color: var(--text-light); }
+.text-muted-2 { color: var(--text-light); }
+.text-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============================================================================
+   SKIP LINK
+   ========================================================================== */
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 2000;
+  background: var(--primary-navy);
+  color: #fff;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0 0 var(--radius-md) 0;
+}
+.skip-link:focus { left: 0; color: #fff; }
+
+/* ============================================================================
+   GLASSMORPHISM COMPONENT SYSTEM
+   ========================================================================== */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-dark {
+  background: var(--glass-bg-dark);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: var(--glass-shadow-dark);
+}
+
+/* The primary surface. */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-glass);
+}
+
+/* Bootstrap's .card-header/.card-body/.card-footer take their padding from
+   --bs-card-* variables that only .card defines. Inside a bare .glass-card those
+   resolve to 0 and the content sits flush against the rounded corner. Give them
+   real padding; utility overrides like .p-0 still win. */
+.glass-card > .card-header { padding: var(--space-4) var(--space-5) var(--space-2); border-bottom: 1px solid var(--border-color); background: transparent; }
+.glass-card > .card-body { padding: var(--space-5); }
+.glass-card > .card-header + .card-body { padding-top: var(--space-3); }
+.glass-card > .card-footer { padding: var(--space-3) var(--space-5); background: transparent; border-top: 1px solid var(--border-color); }
+
+/* The top-edge shine that makes the frost read as glass rather than as grey. */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%);
+  opacity: 0.8;
+}
+
+.glass-card:hover { box-shadow: var(--glass-shadow-lg); border-color: var(--glass-border-heavy); }
+/* Only a card that is itself a link lifts — a static panel that moves under the
+   cursor suggests an affordance that is not there. */
+a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-decoration: none; }
+
+.glass-card-tinted {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(0, 100, 217, 0.08) 100%);
+  border-color: var(--glass-border-tinted);
+  box-shadow: var(--glass-shadow-glow);
+}
+
+.glass-card-dark {
+  background: var(--glass-bg-navy);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-dark);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--glass-shadow-dark);
+  color: var(--text-on-glass-dark);
+}
+.glass-card-dark h1, .glass-card-dark h2, .glass-card-dark h3,
+.glass-card-dark h4, .glass-card-dark h5, .glass-card-dark h6 { color: #fff; }
+.glass-card-dark p { color: rgba(255, 255, 255, 0.8); }
+
+/* Selected state: blue border + blue tint. Never a navy wash. */
+.glass-card.is-selected {
+  border-color: var(--primary-blue);
+  background: rgba(0, 100, 217, 0.06);
+}
+
+/*
+ * Put the wash behind a run of content. Anything frosted on top then has colour to blur,
+ * which is the whole point of the effect.
+ */
+.glass-section {
+  position: relative;
+  background: var(--bg-light);
+}
+.glass-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-mesh-bg);
+  pointer-events: none;
+}
+.glass-section > * { position: relative; z-index: 1; }
+
+/* Full-height wash, for pages whose content does not fill the viewport — an auth form on
+   a bare white page has nothing behind it and the card stops looking like glass. */
+.glass-section-tall {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+}
+/* The wash runs from the header band to the footer, so both meet it without a seam. */
+.glass-section { padding-top: var(--space-8); padding-bottom: var(--space-10); }
+.glass-section-tall { padding-top: 0; }
+
+.glass-panel {
+  background: var(--glass-bg-frost);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--glass-shadow-lg);
+  padding: var(--space-6);
+  position: relative;
+}
+
+/* ============================================================================
+   NAVIGATION
+   ========================================================================== */
+
+.navbar-hub {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 2px 20px rgba(0, 38, 91, 0.06);
+}
+
+.navbar-hub .navbar-brand {
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+  color: var(--primary-navy);
+}
+.navbar-hub .navbar-brand .accent {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.navbar-hub .nav-link {
+  color: var(--text-medium);
+  font-weight: 500;
+  border-radius: var(--radius-lg);
+  padding: 0.45rem 0.8rem;
+  transition: var(--transition-fast);
+}
+.navbar-hub .nav-link:hover {
+  background: rgba(0, 100, 217, 0.08);
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+.navbar-hub .nav-link.active {
+  color: var(--primary-blue);
+  background: rgba(0, 100, 217, 0.1);
+}
+
+.navbar-hub .dropdown-menu {
+  background: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow-lg);
+  padding: var(--space-2);
+}
+.navbar-hub .dropdown-item { border-radius: var(--radius-md); padding: 0.5rem 0.75rem; }
+.navbar-hub .dropdown-item:hover { background: rgba(0, 100, 217, 0.08); color: var(--primary-blue); }
+
+.notif-dot {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: var(--radius-full);
+  background: var(--grad-rose);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(179, 54, 74, 0.35);
+}
+
+/* ============================================================================
+   BUTTONS
+   ========================================================================== */
+
+.btn {
+  font-weight: 600;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+.btn-sm { padding: var(--space-2) var(--space-4); font-size: 0.875rem; }
+
+.btn-primary {
+  background: var(--accent-gradient);
+  border: none;
+  color: #fff;
+  box-shadow: var(--shadow-md), 0 4px 14px rgba(0, 100, 217, 0.3);
+  --bs-btn-focus-shadow-rgb: 0, 100, 217;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  opacity: 0;
+  transition: var(--transition-normal);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 8px 25px rgba(0, 100, 217, 0.4);
+  color: #fff;
+}
+.btn-primary:hover::before { opacity: 1; }
+.btn-primary:active { transform: translateY(0); }
+
+/* Bootstrap compiles outline buttons with hardcoded blue, so the global --bs-primary
+   remap never reaches them. Re-point the per-button vars too, which also covers the
+   :active and :focus states that a colour literal would miss. */
+.btn-outline-primary {
+  border: 2px solid var(--primary-blue);
+  color: var(--primary-blue);
+  background: transparent;
+  --bs-btn-color: #0064d9;
+  --bs-btn-border-color: #0064d9;
+  --bs-btn-hover-bg: #0064d9;
+  --bs-btn-hover-border-color: #0064d9;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #0a4c9b;
+  --bs-btn-active-border-color: #0a4c9b;
+  --bs-btn-active-color: #fff;
+  --bs-btn-focus-shadow-rgb: 0, 100, 217;
+}
+.btn-outline-primary:hover { transform: translateY(-2px); }
+
+.btn-navy {
+  background: var(--navy-gradient);
+  border: none;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+.btn-navy:hover { color: #fff; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.btn-outline-light:hover { transform: translateY(-2px); }
+
+.btn-linkedin { background-color: #0077b5; border: 1px solid #0077b5; color: #fff; }
+.btn-linkedin:hover, .btn-linkedin:focus { background-color: #005f91; border-color: #005f91; color: #fff; }
+
+/* Focus is always visible. Removing the outline is never the fix for how it looks. */
+:focus-visible { outline: 3px solid var(--primary-blue-light); outline-offset: 2px; }
+
+/* ============================================================================
+   HERO AND PAGE HEADERS
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  background: var(--hero-gradient);
+  color: #fff;
+  padding: var(--space-16) 0 var(--space-12);
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--mesh-gradient);
+  pointer-events: none;
+}
+.hero > .container { position: relative; z-index: 1; }
+.hero h1, .hero h2, .hero h3 { color: #fff; }
+.hero p { color: rgba(255, 255, 255, 0.85); }
+.hero a:not(.btn) { color: #fff; text-decoration: underline; }
+
+.page-header {
+  position: relative;
+  background: var(--navy-gradient);
+  color: #fff;
+  padding: var(--space-10) 0 var(--space-8);
+  /* No bottom margin: the washed section that follows supplies the gap. A margin here
+     leaves a bare white strip between the navy band and the wash. */
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.page-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--mesh-gradient);
+  pointer-events: none;
+}
+.page-header > .container { position: relative; z-index: 1; }
+.page-header h1 { color: #fff; margin: 0; }
+.page-header p { color: rgba(255, 255, 255, 0.85); margin: var(--space-2) 0 0; max-width: 62ch; }
+.page-header a { color: #fff; text-decoration: underline; }
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.section-badge-light {
+  background: rgba(0, 100, 217, 0.1);
+  border-color: rgba(0, 100, 217, 0.2);
+  color: var(--primary-blue);
+}
+
+.section-padding { padding: var(--space-12) 0; }
+
+/* ============================================================================
+   ICON MEDALLIONS
+   ========================================================================== */
+
+.icon-tile, .icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #fff;
+  background: var(--grad-blue);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 6px 16px rgba(0, 100, 217, 0.22);
+}
+.icon-circle { border-radius: var(--radius-full); }
+
+.icon-tile-sm, .icon-circle-sm { width: 44px; height: 44px; font-size: 1.15rem; border-radius: var(--radius-lg); }
+.icon-circle-sm { border-radius: var(--radius-full); }
+.icon-tile-lg, .icon-circle-lg { width: 72px; height: 72px; font-size: 1.9rem; border-radius: var(--radius-2xl); }
+.icon-circle-lg { border-radius: var(--radius-full); }
+
+.icon-blue { background: var(--grad-blue); }
+.icon-navy { background: var(--grad-navy); box-shadow: 0 6px 16px rgba(0, 38, 91, 0.25); }
+.icon-navyblue { background: var(--grad-navyblue); box-shadow: 0 6px 16px rgba(0, 38, 91, 0.22); }
+.icon-violet { background: var(--grad-violet); box-shadow: 0 6px 16px rgba(91, 106, 191, 0.25); }
+.icon-amber { background: var(--grad-amber); box-shadow: 0 6px 16px rgba(201, 122, 0, 0.25); }
+.icon-success { background: var(--grad-success); box-shadow: 0 6px 16px rgba(29, 111, 79, 0.25); }
+.icon-info { background: var(--grad-info); box-shadow: 0 6px 16px rgba(10, 126, 164, 0.25); }
+.icon-rose { background: var(--grad-rose); box-shadow: 0 6px 16px rgba(179, 54, 74, 0.25); }
+
+/* ============================================================================
+   STATS AND FEATURE TILES
+   ========================================================================== */
+
+.stat-tile {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  padding: var(--space-5);
+  transition: var(--transition-glass);
+}
+.stat-tile:hover { box-shadow: var(--glass-shadow-lg); }
+.stat-tile .value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--primary-navy);
+}
+.stat-tile .label {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-top: var(--space-1);
+}
+
+/* ============================================================================
+   BADGES
+   ========================================================================== */
+
+.badge-hub {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(0, 38, 91, 0.07);
+  color: var(--text-medium);
+  white-space: nowrap;
+}
+.badge-hub.accent { background: rgba(0, 100, 217, 0.12); color: var(--primary-blue-dark); }
+.badge-hub.ok { background: rgba(29, 111, 79, 0.12); color: #1d6f4f; }
+.badge-hub.warn { background: rgba(201, 122, 0, 0.14); color: #96590a; }
+.badge-hub.danger { background: rgba(179, 54, 74, 0.12); color: #9e2b3d; }
+.badge-hub.muted { background: rgba(0, 38, 91, 0.06); color: var(--text-light); }
+
+/*
+ * A paid featured placement.
+ *
+ * Amber rather than a brand blue, and it carries the WORD "Featured" — a paid position
+ * in a list has to be labelled as one, and a colour alone is neither a label nor
+ * something a colour-blind reader can act on.
+ */
+.badge-hub.featured { background: rgba(201, 122, 0, 0.16); color: #8a5100; }
+
+/*
+ * The card of a featured job. A warm left edge and a slightly stronger shadow, so the
+ * placement is visible while scanning without shouting over the content.
+ */
+.job-featured { border-left: 3px solid rgba(201, 122, 0, 0.55); }
+.job-featured:hover { border-left-color: rgba(201, 122, 0, 0.85); }
+
+/* Work-mode pills, mirroring the reference's .job-badge family. */
+.job-badge { display: inline-block; padding: 0.25rem 0.7rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
+.badge-remote { background: rgba(0, 100, 217, 0.12); color: var(--primary-blue-dark); }
+.badge-hybrid { background: rgba(91, 106, 191, 0.14); color: #4a58a8; }
+.badge-onsite { background: rgba(201, 122, 0, 0.14); color: #96590a; }
+
+/* Pipeline stages. Colour is never the only signal — the stage name is in the pill. */
+.status-submitted { background: rgba(0, 38, 91, 0.08); color: var(--text-medium); }
+.status-reviewing { background: rgba(0, 100, 217, 0.12); color: var(--primary-blue-dark); }
+.status-shortlisted { background: rgba(10, 126, 164, 0.14); color: #0a7ea4; }
+.status-interviewing { background: rgba(201, 122, 0, 0.14); color: #96590a; }
+.status-offered { background: rgba(91, 106, 191, 0.14); color: #4a58a8; }
+.status-hired { background: rgba(29, 111, 79, 0.14); color: #1d6f4f; }
+.status-rejected { background: rgba(179, 54, 74, 0.12); color: #9e2b3d; }
+.status-withdrawn { background: rgba(0, 38, 91, 0.06); color: var(--text-light); }
+
+/* ============================================================================
+   FORMS
+   ========================================================================== */
+
+.form-label { font-weight: 600; font-size: 0.875rem; color: var(--text-dark); margin-bottom: var(--space-2); }
+
+.form-control, .form-select {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.925rem;
+  color: var(--text-dark);
+  transition: var(--transition-fast);
+}
+.form-control:focus, .form-select:focus {
+  background: #fff;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 4px rgba(0, 100, 217, 0.15);
+}
+.form-control::placeholder { color: var(--text-muted); }
+.form-text { color: var(--text-light); font-size: 0.8rem; }
+
+.form-check-input:checked { background-color: var(--primary-blue); border-color: var(--primary-blue); }
+.form-check-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 4px rgba(0, 100, 217, 0.15); }
+
+.input-group-text { background: rgba(255, 255, 255, 0.6); border-color: var(--border-color); border-radius: var(--radius-xl); }
+
+/* ============================================================================
+   TABLES, LISTS, ACCORDION, ALERTS, PAGINATION
+   ========================================================================== */
+
+.table { --bs-table-bg: transparent; color: var(--text-medium); }
+.table > thead { color: var(--primary-navy); }
+.table > :not(caption) > * > * { border-bottom-color: var(--border-color); }
+.table-hover > tbody > tr:hover > * { background-color: rgba(0, 100, 217, 0.04); }
+
+.list-group-item { background: transparent; border-color: var(--border-color); }
+
+.accordion-item { background: transparent; border-color: var(--border-color); }
+.accordion-button { background: transparent; color: var(--primary-navy); font-weight: 600; }
+.accordion-button:not(.collapsed) { background: rgba(0, 100, 217, 0.06); color: var(--primary-blue-dark); box-shadow: none; }
+.accordion-button:focus { box-shadow: 0 0 0 4px rgba(0, 100, 217, 0.15); }
+
+.alert {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+}
+
+.page-link { color: var(--primary-blue); border-radius: var(--radius-md); border-color: var(--border-color); }
+.page-item.active .page-link { background: var(--accent-gradient); border-color: transparent; }
+
+.nav-pills .nav-link { color: var(--text-medium); border-radius: var(--radius-full); font-weight: 600; }
+.nav-pills .nav-link:hover { background: rgba(0, 100, 217, 0.08); color: var(--primary-blue); }
+.nav-pills .nav-link.active { background: var(--accent-gradient); color: #fff; }
+
+/* ============================================================================
+   AVATARS AND LOGOS
+   ========================================================================== */
+
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-sm);
+}
+.avatar-lg { width: 96px; height: 96px; }
+
+.logo-tile {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--glass-border);
+  padding: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================================
+   DOMAIN COMPONENTS
+   ========================================================================== */
+
+.rate-figure {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--primary-navy);
+}
+.suppressed { color: var(--text-light); font-style: italic; font-weight: 500; }
+
+/* A suppressed trend point is a GAP, never a zero. The bar is simply not drawn —
+   the hatch marks the absence so it cannot be mistaken for a low value. */
+.trend { display: flex; align-items: flex-end; gap: 4px; height: 96px; }
+.trend .bar { flex: 1; background: var(--accent-gradient); border-radius: var(--radius-sm) var(--radius-sm) 0 0; min-height: 3px; }
+.trend .bar.gap {
+  background: repeating-linear-gradient(45deg, rgba(0, 38, 91, 0.1), rgba(0, 38, 91, 0.1) 3px, transparent 3px, transparent 7px);
+  border: 1px dashed rgba(0, 38, 91, 0.15);
+}
+.trend-labels { display: flex; gap: 4px; font-size: 10px; color: var(--text-light); }
+.trend-labels span { flex: 1; text-align: center; }
+
+.meter { height: 10px; background: rgba(0, 38, 91, 0.08); border-radius: var(--radius-full); overflow: hidden; }
+.meter > i { display: block; height: 100%; background: var(--accent-gradient); border-radius: var(--radius-full); transition: width var(--transition-glass); }
+.meter.ready > i { background: var(--grad-success); }
+
+.match-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-full);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--primary-navy);
+  background: conic-gradient(var(--primary-blue-light) calc(var(--pct) * 1%), rgba(0, 38, 91, 0.1) 0);
+  position: relative;
+}
+.match-ring::after { content: ''; position: absolute; inset: 5px; border-radius: var(--radius-full); background: #fff; }
+.match-ring span { position: relative; z-index: 1; }
+
+.timeline { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--border-color); }
+.timeline li { position: relative; padding: 0 0 var(--space-5) var(--space-5); }
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 100, 217, 0.15);
+}
+
+.filter-panel { position: sticky; top: var(--space-4); }
+.filter-panel h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-light); font-weight: 700; }
+
+/* Empty states: an icon, one line, one action. Never a braggy zero. */
+.empty-state { text-align: center; padding: var(--space-12) var(--space-4); color: var(--text-light); }
+.empty-state .bi { font-size: 2.75rem; color: var(--text-muted); display: block; margin-bottom: var(--space-3); }
+
+/* ============================================================================
+   FOOTER
+   ========================================================================== */
+
+.footer-hub {
+  position: relative;
+  background: var(--primary-navy-dark);
+  color: rgba(255, 255, 255, 0.75);
+  padding: var(--space-12) 0 var(--space-6);
+  /* No top margin. Every page ends in a padded section, and a margin here leaves a bare
+     white seam between the washed content and the footer. */
+  margin-top: 0;
+  overflow: hidden;
+}
+.footer-hub::after { content: ''; position: absolute; inset: 0; background: var(--mesh-gradient); pointer-events: none; opacity: 0.6; }
+.footer-hub > .container { position: relative; z-index: 1; }
+.footer-hub h3 { color: #fff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.footer-hub a { color: rgba(255, 255, 255, 0.75); }
+.footer-hub a:hover { color: #fff; }
+
+/* ============================================================================
+   MOTION
+   ========================================================================== */
+
+/* Scroll reveal. Above-the-fold content renders instantly — do not add a second
+   reveal system, and never a full-screen page loader: it makes a 25ms server feel slow. */
+/* The hidden start state is gated behind .js-reveal, which only JavaScript sets. With
+   scripting off the content is simply visible — an animation must never be the reason
+   someone cannot read the page. */
+.js-reveal .animate-on-scroll { opacity: 0; transform: translateY(16px); transition: opacity 0.35s ease, transform 0.35s ease; }
+.js-reveal .animate-on-scroll.is-visible { opacity: 1; transform: none; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fade-up { animation: fade-up 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* ============================================================================
+   RESPONSIVE — Bootstrap's .98 breakpoints, never integer max-widths
+   ========================================================================== */
+
+@media (max-width: 991.98px) {
+  .filter-panel { position: static; margin-bottom: var(--space-4); }
+}
+
+@media (max-width: 767.98px) {
+  /* The scale steps down IN FULL, so hierarchy can never invert. */
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.125rem; }
+  h5 { font-size: 1rem; }
+  h6 { font-size: 0.875rem; }
+
+  .hero { padding: var(--space-10) 0 var(--space-8); }
+  .page-header { padding: var(--space-8) 0 var(--space-6); }
+  .section-padding { padding: var(--space-8) 0; }
+  .glass-panel { padding: var(--space-4); border-radius: var(--radius-2xl); }
+  .stat-tile .value { font-size: 1.5rem; }
+}
+
+@media (max-width: 575.98px) {
+  .glass-card > .card-body { padding: var(--space-4); }
+  .btn { padding: var(--space-2) var(--space-4); }
+}
+
+/* ============================================================================
+   ACCESSIBILITY AND OUTPUT MODES
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .js-reveal .animate-on-scroll { opacity: 1; transform: none; }
+}
+
+/* Frosted glass over a busy background can drop effective contrast. In forced-colours
+   and high-contrast modes the blur is dropped for a solid surface. */
+@media (prefers-contrast: more), (forced-colors: active) {
+  .glass, .glass-card, .glass-panel, .stat-tile, .navbar-hub {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: var(--text-medium);
+  }
+  body { background-image: none; }
+}
+
+@media print {
+  body { background: #fff; background-image: none; }
+  .navbar-hub, .footer-hub, .btn, .skip-link { display: none !important; }
+  .glass-card, .glass-panel, .stat-tile { box-shadow: none; border: 1px solid #ccc; backdrop-filter: none; }
+  a[href]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: #555; }
+}
+
+/* A browser without backdrop-filter would render the frost as flat translucency,
+   which loses the separation between card and background. Give it a solid surface. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-card, .glass-panel, .stat-tile, .navbar-hub { background: rgba(255, 255, 255, 0.97); }
+}
+
+/* ============================================================================
+   MESSAGE BUBBLES
+   ========================================================================== */
+
+/* These were inline styles carrying brand colours, which the design rules forbid —
+   a token can then be renamed without silently leaving a dead `var()` behind. */
+.msg-bubble {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-2xl);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0, 38, 91, 0.06);
+  color: var(--text-dark);
+}
+.msg-bubble-mine {
+  background: rgba(0, 100, 217, 0.12);
+  color: var(--primary-navy);
+}
+.msg-column { max-width: 78%; }
+
+/* ============================================================================
+   FOOTER DETAILS
+   ========================================================================== */
+
+.footer-rule { border-color: rgba(255, 255, 255, 0.15); }
+.footer-blurb { max-width: 38ch; }
+/* The wordmark's accent half, on a dark ground where the gradient would disappear. */
+.brand-accent { color: var(--primary-blue-bright); }
+
+/* ============================================================================
+   INVOICE
+   ==========================================================================
+
+   An invoice is a document before it is a page: people print it and file it. The
+   print rules strip the chrome rather than opening a second, drifting "printable
+   version" template — one source for the figures, here as everywhere else.
+ */
+.invoice-sheet { max-width: 46rem; margin: 0 auto; }
+.invoice-sheet .invoice-total { font-size: 1.5rem; font-weight: 700; color: var(--primary-blue-dark); }
+.invoice-meta dt { font-weight: 600; color: var(--text-medium); }
+.invoice-meta dd { margin-bottom: var(--space-2); }
+
+@media print {
+  .navbar-hub, .footer-hub, .page-header, .skip-link, .no-print { display: none !important; }
+  .glass-section, body { background: #fff !important; }
+  .invoice-sheet { max-width: none; }
+  .glass-card { border: 1px solid #ccc !important; box-shadow: none !important; backdrop-filter: none !important; }
+}
+
+/* ============================================================================
+   NAVIGATION SEARCH
+   ==========================================================================
+
+   A narrow box in the bar on large screens, full width once the menu collapses —
+   a search field squeezed to nothing on a phone is a field nobody uses.
+ */
+.nav-search .form-control {
+  min-width: 9rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.nav-search .form-control::placeholder { color: rgba(255, 255, 255, 0.65); }
+.nav-search .form-control:focus {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: #fff;
+  box-shadow: none;
+}
+
+@media (max-width: 991.98px) {
+  .nav-search { width: 100%; }
+  .nav-search .form-control { min-width: 0; }
+}
+
+/* ============================================================================
+   SITE NOTICE
+   ==========================================================================
+
+   The operational banner. Amber, in the flow of the document rather than fixed, and it
+   carries an icon AND words — a coloured bar with no label is decoration, not a notice.
+ */
+.site-notice {
+  background: rgba(201, 122, 0, 0.14);
+  color: #8a5100;
+  border-bottom: 1px solid rgba(201, 122, 0, 0.3);
+  padding: var(--space-2) 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   ASSISTANT WIDGET
+   ==========================================================================
+
+   A floating launcher bottom-right and a panel above it. Present on every page when
+   an API key is configured, and absent from the markup entirely when one is not.
+
+   The panel is a plain element toggled with `hidden`, not a Bootstrap offcanvas: it has
+   to sit above page content without trapping focus or locking the body's scroll, because
+   people ask it where to go while reading the page behind it.
+ */
+
+.sf-assistant { position: fixed; right: var(--space-5); bottom: var(--space-5); z-index: 1045; }
+
+.sf-assistant-launcher {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--grad-navyblue);
+  color: #fff;
+  font-size: 1.35rem;
+  box-shadow: 0 10px 28px rgba(0, 38, 91, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: var(--transition-normal);
+}
+.sf-assistant-launcher:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0, 38, 91, 0.42); }
+
+/* The label says "AI" in words, not by implication. A floating orb that turns out to be
+   a language model is a small dishonesty people notice. */
+.sf-assistant-launcher-tag {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.25rem;
+  background: #fff;
+  color: var(--primary-blue-dark);
+  border-radius: var(--radius-full);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.sf-assistant-panel {
+  position: absolute;
+  right: 0;
+  bottom: 4.25rem;
+  width: min(22rem, calc(100vw - 2 * var(--space-5)));
+  max-height: min(32rem, calc(100vh - 8rem));
+  display: flex;
+  flex-direction: column;
+  /* Opaque, not glass: text over a translucent panel sitting on arbitrary page
+     content is the one place the design system's wash costs legibility. */
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow-lg);
+  overflow: hidden;
+}
+
+.sf-assistant-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-color);
+}
+.sf-assistant-avatar { width: 2rem; height: 2rem; font-size: 0.9rem; flex-shrink: 0; }
+.sf-assistant-title { font-weight: 600; flex-grow: 1; display: flex; align-items: center; gap: var(--space-2); }
+.sf-assistant-close { border: 0; background: transparent; color: var(--text-light); line-height: 1; }
+.sf-assistant-close:hover { color: var(--text-dark); }
+
+.sf-assistant-messages {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sf-assistant-msg {
+  max-width: 90%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  /* The model emits newlines and they carry meaning; the renderer inserts real text
+     nodes rather than <br>, so the whitespace has to survive. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sf-assistant-msg-assistant { align-self: flex-start; background: rgba(0, 38, 91, 0.06); color: var(--text-dark); }
+.sf-assistant-msg-user { align-self: flex-end; background: var(--primary-blue); color: #fff; }
+.sf-assistant-link { color: var(--primary-blue-dark); text-decoration: underline; }
+.sf-assistant-msg-user .sf-assistant-link { color: #fff; }
+
+.sf-assistant-typing { display: inline-flex; gap: 0.25rem; align-items: center; }
+.sf-assistant-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--radius-full);
+  background: var(--text-light);
+  animation: sf-assistant-bounce 1.2s infinite ease-in-out;
+}
+.sf-assistant-dot:nth-child(2) { animation-delay: 0.15s; }
+.sf-assistant-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sf-assistant-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-0.25rem); opacity: 1; }
+}
+/* Never let an animation be the reason something cannot be read or understood. */
+@media (prefers-reduced-motion: reduce) {
+  .sf-assistant-dot { animation: none; opacity: 0.7; }
+  .sf-assistant-launcher { transition: none; }
+}
+
+.sf-assistant-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0 var(--space-4) var(--space-2); }
+.sf-assistant-chip {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-medium);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.7rem;
+}
+.sf-assistant-chip:hover { border-color: var(--primary-blue); color: var(--primary-blue-dark); }
+
+.sf-assistant-form { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-2); }
+.sf-assistant-input {
+  flex-grow: 1;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+}
+.sf-assistant-input:focus { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
+.sf-assistant-send {
+  border: 0;
+  border-radius: var(--radius-full);
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--grad-blue);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.sf-assistant-footnote {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+@media (max-width: 575.98px) {
+  .sf-assistant { right: var(--space-3); bottom: var(--space-3); }
+  .sf-assistant-panel { width: calc(100vw - 2 * var(--space-3)); }
+}
+
+@media print {
+  .sf-assistant { display: none !important; }
+}
+
+/* The hub mark beside the wordmark. Fixed box so the navbar cannot reflow while the SVG
+   loads — a brand that jumps on every page load is the first thing people notice. */
+.navbar-hub .navbar-brand .brand-mark {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: block;
+}
+
+/* ============================================================================
+   FILTER GROUPS
+   --------------------------------------------------------------------------
+   A collapsible group of checkboxes, used by the module filters. New here: this
+   ecosystem's catalogue has 57 modules, and a flat list of them above the results
+   would bury the results. `<details>` rather than a scripted accordion, so it
+   works with scripting off and keeps its own state.
+   ========================================================================== */
+
+.filter-group > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.filter-group > summary::-webkit-details-marker { display: none; }
+
+.filter-group > summary::after {
+  content: '\F282'; /* bootstrap-icons chevron-down */
+  font-family: 'bootstrap-icons';
+  font-size: 0.75rem;
+  color: var(--text-light);
+  transition: transform 0.15s ease;
+}
+
+.filter-group[open] > summary::after { transform: rotate(180deg); }
+
+.filter-group > summary:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The catalogue is long enough that an open group must not push the results off
+   the page entirely. */
+.filter-group[open] {
+  max-height: 22rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}

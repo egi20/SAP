@@ -1,0 +1,112 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section pb-5">
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+              <h1 class="h4 mb-1"><%= application.job_title %></h1>
+              <p class="text-muted-2 mb-0">
+                <a href="/jobs/<%= application.job_slug %>">View the role</a> ·
+                applied <%= new Date(application.created_at).toISOString().slice(0, 10) %>
+              </p>
+            </div>
+            <span class="badge-hub status-<%= application.status %>"><%= application.status %></span>
+          </div>
+
+          <% if (isEmployer) { %>
+            <hr>
+            <h2 class="h6 mb-2">Candidate</h2>
+            <div class="d-flex gap-3 align-items-center mb-3">
+              <img class="avatar" src="<%= application.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
+              <div>
+                <a href="/consultants/<%= application.consultant_user_id %>"><strong><%= application.consultant_name %></strong></a>
+                <div class="small text-muted-2"><%= application.headline || roleLabel(application.primary_role) %></div>
+                <div class="small"><a href="mailto:<%= application.consultant_email %>"><%= application.consultant_email %></a></div>
+              </div>
+            </div>
+          <% } %>
+
+          <% if (application.day_rate || application.available_from) { %>
+            <p class="mb-2">
+              <% if (application.day_rate) { %>
+                <span class="badge-hub"><%= Math.round(application.day_rate) %> <%= application.currency %>/day</span>
+              <% } %>
+              <% if (application.available_from) { %>
+                <span class="badge-hub">available <%= new Date(application.available_from).toISOString().slice(0, 10) %></span>
+              <% } %>
+            </p>
+          <% } %>
+
+          <% if (application.cover_letter) { %>
+            <hr>
+            <h2 class="h6">Message</h2>
+            <p class="mb-0" style="white-space: pre-wrap"><%= application.cover_letter %></p>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">History</h2>
+          <ul class="timeline mb-0">
+            <% events.forEach(function (e) { %>
+              <li>
+                <strong><%= e.from_status ? e.from_status + ' → ' : '' %><%= e.to_status %></strong>
+                <div class="small text-muted-2">
+                  <%= e.actor_name || 'system' %> · <%= new Date(e.created_at).toISOString().slice(0, 16).replace('T', ' ') %>
+                </div>
+                <% if (e.note) { %><div class="small mt-1"><%= e.note %></div><% } %>
+              </li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-4">
+      <%# Messaging is a later area. A form posting to a route that does not exist is a %>
+      <%# button that fails in the one place somebody is trying to reach a person. %>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Move this application</h2>
+          <% if (transitions.length === 0) { %>
+            <p class="small text-muted-2 mb-0">
+              This application is closed. A decided application is never reopened silently —
+              the candidate would apply again.
+            </p>
+          <% } else { %>
+            <form method="post" action="/applications/<%= application.id %>/transition">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="mb-2">
+                <label class="form-label" for="to_status">New status</label>
+                <select class="form-select" id="to_status" name="to_status" required>
+                  <% transitions.forEach(function (t) { %>
+                    <% if (isEmployer || ['withdrawn','submitted'].includes(t)) { %>
+                      <option value="<%= t %>"><%= t %></option>
+                    <% } %>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="note">Note (optional)</label>
+                <textarea class="form-control" id="note" name="note" rows="3" maxlength="500"></textarea>
+              </div>
+              <button class="btn btn-primary w-100" type="submit">Update</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

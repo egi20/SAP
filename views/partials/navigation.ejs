@@ -1,0 +1,112 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="navbar navbar-expand-lg navbar-hub sticky-top" aria-label="Main">
+  <div class="container">
+    <a class="navbar-brand d-inline-flex align-items-center gap-2" href="/">
+      <%# Decorative: the wordmark beside it already names the site, so a screen reader %>
+      <%# announcing both would read it twice. %>
+      <img src="/images/logo-mark.svg" alt="" width="28" height="28" class="brand-mark" aria-hidden="true">
+      <span>SAP<span class="accent">Hub</span></span>
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <%
+        /*
+         * Grouped into hubs rather than one flat row.
+         *
+         * A flat list grows until nothing in it is findable. Grouping by WHO the item is
+         * for — someone looking for work, someone hiring — means a person only ever reads
+         * the half that is theirs. Items behind a sign-in appear only when signed in;
+         * showing them to a stranger and then bouncing them to a login is a worse
+         * experience than not offering them.
+         *
+         * EVERY ITEM HERE POINTS AT A ROUTE THAT EXISTS. The reference's menu carries the
+         * community, messages, quotes, agencies and the assistant; those are later areas,
+         * and a menu that offers a 404 is worse than a menu that is short.
+         */
+        const path = currentPath;
+        const startsWith = (p) => path === p || path.startsWith(p + '/');
+        const isConsultantArea = startsWith('/jobs') || startsWith('/rates')
+          || (currentUser && startsWith('/profile/consultant'));
+        const isCompanyArea = startsWith('/consultants') || startsWith('/companies');
+      %>
+
+      <ul class="navbar-nav me-auto align-items-lg-center">
+        <li class="nav-item">
+          <a class="nav-link <%= path === '/' ? 'active' : '' %>" href="/"><i class="bi bi-house"></i> Home</a>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %>" href="#" role="button"
+             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <i class="bi bi-person-badge"></i> Consultant Hub
+          </a>
+          <ul class="dropdown-menu shadow-sm">
+            <li><a class="dropdown-item" href="/jobs"><i class="bi bi-briefcase"></i> Find work</a></li>
+            <li><a class="dropdown-item" href="/rates"><i class="bi bi-graph-up"></i> Rate index</a></li>
+            <% if (currentUser && currentUser.isConsultant) { %>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/profile/consultant"><i class="bi bi-person-gear"></i> Build your profile</a></li>
+              <li><a class="dropdown-item" href="/dashboard/applications"><i class="bi bi-send"></i> Your applications</a></li>
+              <li><a class="dropdown-item" href="/dashboard/saved"><i class="bi bi-bookmark"></i> Saved jobs</a></li>
+              <li><a class="dropdown-item" href="/rates/submit"><i class="bi bi-plus-circle"></i> Contribute your rate</a></li>
+            <% } %>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %>" href="#" role="button"
+             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <i class="bi bi-building"></i> Companies Hub
+          </a>
+          <ul class="dropdown-menu shadow-sm">
+            <li><a class="dropdown-item" href="/consultants"><i class="bi bi-people"></i> Find consultants</a></li>
+            <li><a class="dropdown-item" href="/companies"><i class="bi bi-buildings"></i> Companies</a></li>
+            <% if (currentUser && currentUser.isCompany) { %>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/jobs/new"><i class="bi bi-plus-square"></i> Post a role</a></li>
+              <li><a class="dropdown-item" href="/dashboard/jobs"><i class="bi bi-briefcase"></i> Your roles</a></li>
+              <li><a class="dropdown-item" href="/profile/company"><i class="bi bi-building-gear"></i> Company profile</a></li>
+            <% } %>
+          </ul>
+        </li>
+      </ul>
+
+      <ul class="navbar-nav align-items-lg-center">
+        <% if (currentUser) { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/notifications" aria-label="Notifications">
+              <i class="bi bi-bell"></i>
+              <span class="notif-dot d-none" id="notifCount" aria-live="polite"></span>
+            </a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button"
+               data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+              <img class="avatar" style="width:30px;height:30px"
+                   src="<%= currentUser.profilePicture || '/images/avatar-placeholder.svg' %>" alt="">
+              <span class="d-none d-lg-inline"><%= currentUser.name %></span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+              <li><a class="dropdown-item" href="/profile/settings"><i class="bi bi-gear"></i> Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="/auth/logout" class="px-3 py-1">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-link p-0 text-decoration-none" type="submit">Sign out</button>
+                </form>
+              </li>
+            </ul>
+          </li>
+        <% } else { %>
+          <li class="nav-item"><a class="nav-link" href="/auth/login">Sign in</a></li>
+          <li class="nav-item ms-lg-2"><a class="btn btn-primary btn-sm" href="/auth/register">Join free</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+</nav>

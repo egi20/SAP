@@ -1,0 +1,46 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section glass-section-tall py-5">
+  <div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <%- include('../partials/flash') %>
+
+      <div class="glass-card">
+        <div class="card-body p-4">
+          <h1 class="h4 mb-3">Sign in</h1>
+
+          <% if (errors.length) { %>
+            <div class="alert alert-danger">
+              <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %></ul>
+            </div>
+          <% } %>
+
+          <form method="post" action="/auth/login">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="redirect" value="<%= redirect %>">
+
+            <div class="mb-3">
+              <label class="form-label" for="email">Email</label>
+              <input class="form-control" id="email" name="email" type="email" required
+                     value="<%= values.email || '' %>" autocomplete="email" autofocus>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">Password</label>
+              <input class="form-control" id="password" name="password" type="password" required autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Sign in</button>
+          </form>
+
+          <div class="d-flex justify-content-between mt-3 small">
+            <a href="/auth/forgot-password">Forgot your password?</a>
+            <a href="/auth/register">Create an account</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>

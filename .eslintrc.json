@@ -1,0 +1,60 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_|^next$"
+      }
+    ],
+    "no-console": "off",
+    "eqeqeq": [
+      "error",
+      "smart"
+    ],
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-await-in-loop": "warn"
+  },
+  "overrides": [
+    {
+      "files": [
+        "tests/**/*.js"
+      ],
+      "env": {
+        "jest": true
+      }
+    },
+    {
+      "files": [
+        "public/js/**/*.js"
+      ],
+      "env": {
+        "browser": true,
+        "node": false,
+        "es2017": true
+      },
+      "parserOptions": {
+        "ecmaVersion": 2017
+      },
+      "rules": {
+        "no-var": "off",
+        "prefer-const": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    "coverage/",
+    "public/vendor/"
+  ]
+}

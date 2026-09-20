@@ -1,0 +1,51 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-people', heading: 'Applicants', sub: job.title }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <ul class="nav nav-pills flex-wrap">
+      <li class="nav-item"><a class="nav-link <%= status === '' ? 'active' : '' %>" href="/applications/job/<%= job.slug %>">All (<%= total %>)</a></li>
+      <% ['submitted','reviewing','shortlisted','interviewing','offered','hired','rejected'].forEach(function (s) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= status === s ? 'active' : '' %>" href="/applications/job/<%= job.slug %>?status=<%= s %>"><%= s %></a>
+        </li>
+      <% }); %>
+    </ul>
+    <a class="btn btn-outline-primary btn-sm" href="/jobs/<%= job.slug %>">View the job</a>
+  </div>
+
+  <% if (applications.length === 0) { %>
+    <div class="empty-state glass-card"><i class="bi bi-people"></i>No applications<%= status ? ' in this stage' : ' yet' %>.</div>
+  <% } else { %>
+    <% applications.forEach(function (a) { %>
+      <div class="glass-card mb-3">
+        <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+          <img class="avatar" src="<%= a.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
+          <div class="flex-grow-1 min-w-0">
+            <h2 class="h6 mb-1">
+              <a href="/consultants/<%= a.consultant_user_id %>"><%= a.consultant_name %></a>
+            </h2>
+            <p class="small text-muted-2 mb-1"><%= a.headline || roleLabel(a.primary_role) %></p>
+            <div class="d-flex flex-wrap gap-1">
+              <% if (a.seniority) { %><span class="badge-hub"><%= a.seniority %></span><% } %>
+              <% if (a.country) { %><span class="badge-hub"><%= a.country %></span><% } %>
+              <% if (a.certification_count > 0) { %><span class="badge-hub ok"><%= a.certification_count %> certs</span><% } %>
+              <% if (a.day_rate) { %><span class="badge-hub"><%= Math.round(a.day_rate) %> <%= a.currency %>/day</span><% } %>
+            </div>
+          </div>
+          <div class="text-end">
+            <span class="badge-hub status-<%= a.status %> d-block mb-2"><%= a.status %></span>
+            <a class="btn btn-sm btn-primary" href="/applications/<%= a.id %>">Review</a>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

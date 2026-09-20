@@ -1,0 +1,126 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-speedometer2', heading: 'Dashboard', sub: 'Everything happening on your account.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (!currentUser.emailVerified) { %>
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+      <span>Confirm your email to apply for roles and contribute rates.</span>
+      <form method="post" action="/auth/resend-verification" class="ms-auto">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-sm btn-outline-primary" type="submit">Resend confirmation</button>
+      </form>
+    </div>
+  <% } %>
+
+  <% if (consultant) { %>
+    <section class="mb-5">
+      <h2 class="h5 mb-3">Consultant</h2>
+
+      <% if (consultant.profile.completeness < 60) { %>
+        <div class="glass-card mb-3"><div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+              <strong>Your profile is <%= consultant.profile.completeness %>% complete.</strong>
+              <p class="small text-muted-2 mb-0">It needs 60% before it appears in the talent directory.</p>
+            </div>
+            <a class="btn btn-primary" href="/profile/consultant">Finish your profile</a>
+          </div>
+          <div class="meter mt-3"><i style="width:<%= consultant.profile.completeness %>%"></i></div>
+        </div></div>
+      <% } %>
+
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <h3 class="h6 text-muted-2 text-uppercase mb-2">Recommended for you</h3>
+          <% if (consultant.recommended.length === 0) { %>
+            <div class="empty-state glass-card"><i class="bi bi-stars"></i>
+              Add your role, skills and rate to get matches.</div>
+          <% } else { %>
+            <% consultant.recommended.forEach(function (r) { %>
+              <a class="glass-card d-block mb-2 text-reset" href="/jobs/<%= r.job.slug %>">
+                <div class="card-body d-flex align-items-center gap-3 py-2">
+                  <div class="match-ring" style="--pct: <%= r.score %>"><span><%= r.score %></span></div>
+                  <div class="min-w-0">
+                    <strong class="d-block text-truncate"><%= r.job.title %></strong>
+                    <span class="small text-muted-2"><%= r.job.company_name || 'Confidential' %></span>
+                  </div>
+                </div>
+              </a>
+            <% }); %>
+          <% } %>
+        </div>
+
+        <div class="col-lg-6">
+          <h3 class="h6 text-muted-2 text-uppercase mb-2">Your applications</h3>
+          <% if (consultant.applications.length === 0) { %>
+            <div class="empty-state glass-card"><i class="bi bi-send"></i>No applications yet.
+              <div><a href="/jobs">Browse roles</a></div></div>
+          <% } else { %>
+            <% consultant.applications.forEach(function (a) { %>
+              <a class="glass-card d-block mb-2 text-reset" href="/applications/<%= a.id %>">
+                <div class="card-body d-flex justify-content-between align-items-center py-2">
+                  <div class="min-w-0">
+                    <strong class="d-block text-truncate"><%= a.job_title %></strong>
+                    <span class="small text-muted-2"><%= a.company_name || 'Confidential' %></span>
+                  </div>
+                  <span class="badge-hub status-<%= a.status %>"><%= a.status %></span>
+                </div>
+              </a>
+            <% }); %>
+            <a class="small" href="/dashboard/applications">See all applications</a>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (company) { %>
+    <section class="mb-5">
+      <h2 class="h5 mb-3">Hiring</h2>
+
+      <div class="row g-3 mb-3">
+        <% ['submitted','reviewing','shortlisted','interviewing','offered','hired'].forEach(function (s) { %>
+          <div class="col-4 col-lg-2">
+            <div class="stat-tile">
+              <div class="value"><%= company.statusCounts[s] || 0 %></div>
+              <div class="label"><%= s %></div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="h6 text-muted-2 text-uppercase mb-0">Your open roles (<%= company.totalOpen %>)</h3>
+        <a class="btn btn-primary btn-sm" href="/jobs/new">Post a role</a>
+      </div>
+
+      <% if (company.jobs.length === 0) { %>
+        <div class="empty-state glass-card"><i class="bi bi-briefcase"></i>No open roles.
+          <div><a href="/jobs/new">Post your first role</a></div></div>
+      <% } else { %>
+        <% company.jobs.forEach(function (job) { %><%- include('../partials/job-card', { job: job }) %><% }); %>
+        <a class="small" href="/dashboard/jobs">Manage all jobs</a>
+      <% } %>
+    </section>
+  <% } %>
+
+  <section>
+    <h2 class="h5 mb-3">Saved jobs</h2>
+    <% if (savedJobs.length === 0) { %>
+      <div class="empty-state glass-card"><i class="bi bi-bookmark"></i>Nothing saved yet.</div>
+    <% } else { %>
+      <div class="row g-3">
+        <% savedJobs.forEach(function (job) { %>
+          <div class="col-lg-6"><%- include('../partials/job-card', { job: job }) %></div>
+        <% }); %>
+      </div>
+    <% } %>
+  </section>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>
