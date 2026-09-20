@@ -5,7 +5,7 @@ const { isNavigation } = require('./auth');
 const { returnTo } = require('../utils/returnTo');
 
 /**
- * The operational switches from `config/settings.js`, enforced.
+ * The two operational switches from `config/settings.js`, enforced.
  *
  * They live as middleware rather than as a check inside each handler so that turning a
  * switch off closes EVERY door at once. A gate written into three of four write handlers
@@ -38,4 +38,16 @@ async function registrationOpen(req, res, next) {
   );
 }
 
-module.exports = { registrationOpen };
+/** Reading stays open: existing posts are still worth having, they just cannot grow. */
+async function communityWritable(req, res, next) {
+  const readOnly = await AppSetting.get('community_read_only');
+  if (!readOnly) return next();
+  return refuse(
+    req,
+    res,
+    'The community is read-only at the moment. You can still read everything.',
+    '/community'
+  );
+}
+
+module.exports = { registrationOpen, communityWritable };

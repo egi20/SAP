@@ -37,12 +37,18 @@ const PAGE_META = {
     description:
       'Aggregated day rates for SAP roles, contributed anonymously by the community. Aggregates below three contributors are suppressed.'
   },
+  '/community': {
+    title: 'The SAP community',
+    description:
+      'Questions, discussions, articles and wins from SAP consultants and the companies hiring them. '
+      + 'Transitions, clean core, certification, day rates and every product line.'
+  },
   '/auth/login': { title: 'Sign in', description: 'Sign in to SAP Hub.' },
   '/auth/register': { title: 'Create an account', description: 'Join SAP Hub as a consultant or a hiring company.' }
 };
 
 /** Paths that may appear in the sitemap and carry a canonical URL. */
-const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/rates', '/legal/privacy', '/legal/terms'];
+const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/rates', '/community', '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {
   const clean = String(path || '/').split('?')[0];

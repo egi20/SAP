@@ -1,0 +1,82 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-pencil', heading: 'Write a post', sub: 'Pick what kind it is — that decides how people can respond.' }) %>
+
+<section class="glass-section">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <% if (errors.length) { %>
+      <div class="alert alert-danger">
+        <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %></ul>
+      </div>
+    <% } %>
+
+    <form method="post" action="/community" class="row g-4">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="col-lg-8">
+        <div class="glass-card">
+          <div class="card-body">
+            <fieldset class="mb-4">
+              <legend class="form-label">Kind of post</legend>
+              <div class="row g-2">
+                <% kinds.forEach(function (k) { %>
+                  <div class="col-md-6">
+                    <input class="btn-check" type="radio" name="kind" id="kind-<%= k.value %>" value="<%= k.value %>"
+                           <%= values.kind === k.value ? 'checked' : '' %> required>
+                    <label class="glass-card d-block h-100 p-3 text-start" for="kind-<%= k.value %>" style="cursor:pointer">
+                      <span class="icon-tile icon-tile-sm <%= k.tone %> mb-2"><i class="bi <%= k.icon %>"></i></span>
+                      <strong class="d-block"><%= k.label %></strong>
+                      <span class="small text-muted-2"><%= k.hint %></span>
+                    </label>
+                  </div>
+                <% }); %>
+              </div>
+            </fieldset>
+
+            <div class="mb-3">
+              <label class="form-label" for="title">Title <span class="text-danger">*</span></label>
+              <input class="form-control" id="title" name="title" required minlength="8" maxlength="200"
+                     value="<%= values.title || '' %>" placeholder="Say it the way you would to a colleague">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="body">Body <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="body" name="body" rows="14" required minlength="20"><%= values.body || '' %></textarea>
+              <p class="form-text">Basic formatting is kept; scripts and unknown tags are removed.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <label class="form-label" for="category_id">Category <span class="text-danger">*</span></label>
+            <select class="form-select" id="category_id" name="category_id" required>
+              <option value="">Choose</option>
+              <% categories.forEach(function (c) { %>
+                <option value="<%= c.id %>" <%= String(values.category_id) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+              <% }); %>
+            </select>
+            <p class="form-text">The categories mirror the product lines used across the Hub, so a post, a job advert and an estimate all name the same thing.</p>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-body">
+            <button class="btn btn-primary w-100" type="submit">Publish</button>
+            <a class="btn btn-outline-primary w-100 mt-2" href="/community">Cancel</a>
+            <p class="form-text mt-3 mb-0">
+              Posting earns points. An accepted answer earns considerably more — the scheme
+              rewards being useful, not being loud.
+            </p>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>

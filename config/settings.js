@@ -36,6 +36,12 @@ const DEFINITIONS = Object.freeze({
     maxLength: 300,
     label: 'Site-wide notice',
     help: 'Shown as a banner on every page. Leave empty for none. Plain text — it is escaped, not rendered as markup.'
+  },
+  community_read_only: {
+    type: 'boolean',
+    default: false,
+    label: 'Community is read-only',
+    help: 'Existing posts stay visible; new posts and replies are refused. A blunt instrument for a bad day.'
   }
 });
 

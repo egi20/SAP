@@ -1,0 +1,238 @@
+<%- include('../partials/layout-start') %>
+
+<%
+  const voteForm = (targetType, id, value, current, icon, label) => ({ targetType, id, value, current, icon, label });
+%>
+
+<section class="glass-section pt-5">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <article class="glass-card mb-4">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+              <span class="badge-hub accent"><i class="bi <%= kind.icon %>"></i> <%= kind.label %></span>
+              <a class="badge-hub text-decoration-none" href="/community/category/<%= post.category_slug %>">
+                <i class="bi <%= post.category_icon %>"></i> <%= post.category_name %>
+              </a>
+              <% if (post.is_solved) { %><span class="badge-hub ok"><i class="bi bi-check-circle"></i> Solved</span><% } %>
+              <% if (post.is_locked) { %><span class="badge-hub muted"><i class="bi bi-lock"></i> Locked</span><% } %>
+            </div>
+
+            <h1 class="h3 mb-3"><%= post.title %></h1>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <img class="avatar" style="width:32px;height:32px"
+                     src="<%= post.author_avatar || '/images/avatar-placeholder.svg' %>" alt="">
+                <div>
+                  <div class="small"><strong><%= post.author_name %></strong></div>
+                  <div class="small text-muted-2">
+                    <%= post.author_points %> pts ·
+                    <%= new Date(post.created_at).toISOString().slice(0, 10) %>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ms-auto d-flex align-items-center gap-2">
+                <% if (currentUser && currentUser.id !== post.author_user_id) { %>
+                  <form method="post" action="/community/vote/post/<%= post.id %>" class="d-inline">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="redirectTo" value="/community/<%= post.slug %>">
+                    <input type="hidden" name="value" value="<%= post.my_vote === 1 ? 0 : 1 %>">
+                    <button class="btn btn-sm <%= post.my_vote === 1 ? 'btn-primary' : 'btn-outline-primary' %>" type="submit"
+                            title="<%= post.my_vote === 1 ? 'Remove your vote' : 'This is useful' %>">
+                      <i class="bi bi-arrow-up"></i> <%= post.vote_score %>
+                    </button>
+                  </form>
+                <% } else { %>
+                  <span class="badge-hub"><i class="bi bi-arrow-up"></i> <%= post.vote_score %></span>
+                <% } %>
+                <span class="badge-hub muted"><i class="bi bi-eye"></i> <%= post.view_count %></span>
+              </div>
+            </div>
+
+            <hr>
+            <% if (post.hidden_at) { %>
+              <div class="alert alert-warning">
+                <i class="bi bi-eye-slash"></i>
+                <strong>This post is hidden.</strong> Nobody but a moderator can reach it.
+                <% if (post.hidden_reason) { %> Reason: <%= post.hidden_reason %><% } %>
+              </div>
+            <% } %>
+
+            <div class="post-body"><%- sanitizeRichText(post.body) %></div>
+
+            <% if (typeof canModerate !== 'undefined' && canModerate) { %>
+              <%
+                /*
+                 * Moderating in context rather than only from a list: the decision is
+                 * almost always made while reading the thing, and a moderator who has to
+                 * go and find it again in an admin table reads less of it.
+                 */
+              %>
+              <form method="post" action="/admin/moderation/posts/<%= post.id %>" class="d-flex gap-2 mt-4 pt-3 border-top">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="hidden" value="<%= post.hidden_at ? 'false' : 'true' %>">
+                <input type="hidden" name="redirectTo" value="/community/<%= post.slug %>">
+                <% if (!post.hidden_at) { %>
+                  <label class="visually-hidden" for="hide-post-reason">Reason</label>
+                  <input class="form-control form-control-sm" id="hide-post-reason" name="reason"
+                         type="text" placeholder="Reason (optional)" maxlength="200" style="max-width: 18rem;">
+                <% } %>
+                <button class="btn btn-sm btn-outline-primary" type="submit">
+                  <%= post.hidden_at ? 'Restore this post' : 'Hide this post' %>
+                </button>
+              </form>
+            <% } %>
+
+            <% if (isAuthor || (currentUser && currentUser.isAdmin)) { %>
+              <hr>
+              <form method="post" action="/community/<%= post.slug %>/delete"
+                    onsubmit="return confirm('Delete this post? Replies go with it.')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Delete post</button>
+              </form>
+            <% } %>
+          </div>
+        </article>
+
+        <h2 class="h5 mb-3" id="replies">
+          <%= post.reply_count %> <%= post.reply_count === 1 ? 'reply' : 'replies' %>
+        </h2>
+
+        <% if (replies.length === 0) { %>
+          <div class="empty-state glass-card mb-4">
+            <i class="bi bi-chat"></i>
+            <p class="mb-0"><%= kind.solvable ? 'No answers yet. Yours could be the accepted one.' : 'No replies yet.' %></p>
+          </div>
+        <% } else { %>
+          <% replies.forEach(function (reply) { %>
+            <div class="glass-card mb-3 <%= reply.is_solution ? 'is-selected' : '' %>"
+                 <%= reply.parent_reply_id ? 'style="margin-left:2rem"' : '' %>>
+              <div class="card-body">
+                <% if (reply.is_solution) { %>
+                  <span class="badge-hub ok mb-2"><i class="bi bi-check-circle-fill"></i> Accepted answer</span>
+                <% } %>
+
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <img class="avatar" style="width:28px;height:28px"
+                       src="<%= reply.author_avatar || '/images/avatar-placeholder.svg' %>" alt="">
+                  <div class="small">
+                    <strong><%= reply.author_name %></strong>
+                    <span class="text-muted-2">
+                      · <%= reply.author_points %> pts
+                      · <%= new Date(reply.created_at).toISOString().slice(0, 16).replace('T', ' ') %>
+                    </span>
+                  </div>
+
+                  <div class="ms-auto d-flex gap-2">
+                    <% if (currentUser && currentUser.id !== reply.author_user_id) { %>
+                      <form method="post" action="/community/vote/reply/<%= reply.id %>" class="d-inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="redirectTo" value="/community/<%= post.slug %>">
+                        <input type="hidden" name="value" value="<%= reply.my_vote === 1 ? 0 : 1 %>">
+                        <button class="btn btn-sm <%= reply.my_vote === 1 ? 'btn-primary' : 'btn-outline-primary' %>" type="submit">
+                          <i class="bi bi-arrow-up"></i> <%= reply.vote_score %>
+                        </button>
+                      </form>
+                    <% } else { %>
+                      <span class="badge-hub"><i class="bi bi-arrow-up"></i> <%= reply.vote_score %></span>
+                    <% } %>
+
+                    <% if (isAuthor && kind.solvable && !reply.is_solution) { %>
+                      <form method="post" action="/community/<%= post.slug %>/accept/<%= reply.id %>" class="d-inline">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn-sm btn-outline-primary" type="submit" title="Mark this as the answer">
+                          <i class="bi bi-check-lg"></i> Accept
+                        </button>
+                      </form>
+                    <% } %>
+                  </div>
+                </div>
+
+                <% if (reply.hidden_at) { %>
+                  <%
+                    /*
+                     * A tombstone, not a gap. The body is never sent — the model returns
+                     * NULL for it — but the reply keeps its place so anything written
+                     * underneath still makes sense and the thread count still adds up.
+                     */
+                  %>
+                  <p class="text-muted-2 fst-italic mb-0">
+                    <i class="bi bi-eye-slash"></i> This reply was removed by a moderator.
+                  </p>
+                <% } else { %>
+                  <div><%- sanitizeRichText(reply.body) %></div>
+                <% } %>
+
+                <% if (typeof canModerate !== 'undefined' && canModerate) { %>
+                  <form method="post" action="/admin/moderation/replies/<%= reply.id %>" class="d-flex gap-2 mt-3">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="hidden" value="<%= reply.hidden_at ? 'false' : 'true' %>">
+                    <input type="hidden" name="redirectTo" value="/community/<%= post.slug %>">
+                    <% if (!reply.hidden_at) { %>
+                      <label class="visually-hidden" for="hide-reply-<%= reply.id %>">Reason</label>
+                      <input class="form-control form-control-sm" id="hide-reply-<%= reply.id %>" name="reason"
+                             type="text" placeholder="Reason (optional)" maxlength="200" style="max-width: 16rem;">
+                    <% } %>
+                    <button class="btn btn-sm btn-outline-primary" type="submit">
+                      <%= reply.hidden_at ? 'Restore reply' : 'Hide reply' %>
+                    </button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
+
+        <% if (currentUser && !post.is_locked) { %>
+          <form method="post" action="/community/<%= post.slug %>/reply" class="glass-card">
+            <div class="card-body">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="form-label" for="body"><%= kind.solvable ? 'Your answer' : 'Your reply' %></label>
+              <textarea class="form-control mb-2" id="body" name="body" rows="6" required></textarea>
+              <button class="btn btn-primary" type="submit">Post <%= kind.solvable ? 'answer' : 'reply' %></button>
+            </div>
+          </form>
+        <% } else if (!currentUser) { %>
+          <div class="glass-card">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <span class="text-muted-2">Sign in to reply.</span>
+              <a class="btn btn-primary btn-sm" href="/auth/login?redirect=<%= encodeURIComponent('/community/' + post.slug) %>">Sign in</a>
+            </div>
+          </div>
+        <% } %>
+      </div>
+
+      <aside class="col-lg-4">
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">About this <%= kind.label.toLowerCase() %></h2>
+            <p class="small text-muted-2 mb-3"><%= kind.hint %></p>
+            <dl class="row small mb-0">
+              <dt class="col-6 text-muted-2">Asked</dt>
+              <dd class="col-6"><%= new Date(post.created_at).toISOString().slice(0, 10) %></dd>
+              <dt class="col-6 text-muted-2">Last activity</dt>
+              <dd class="col-6"><%= new Date(post.last_activity_at).toISOString().slice(0, 10) %></dd>
+              <dt class="col-6 text-muted-2">Views</dt>
+              <dd class="col-6"><%= post.view_count %></dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-body">
+            <a class="btn btn-outline-primary w-100" href="/community/category/<%= post.category_slug %>">
+              <i class="bi <%= post.category_icon %>"></i> More in <%= post.category_name %>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>

@@ -16,6 +16,7 @@ const { assertCatalogueIntegrity, moduleLabel, lineLabel } = require('./config/s
 const { assertCertificationIntegrity } = require('./config/certifications');
 const { assertSettingsIntegrity } = require('./config/settings');
 const { assertEstimationIntegrity } = require('./config/estimation');
+const { assertCommunityIntegrity } = require('./config/community');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -45,6 +46,10 @@ assertSettingsIntegrity();
  * different things.
  */
 assertEstimationIntegrity();
+// And the community: a duplicate category slug collides on a unique key at sync time, and
+// a level band that does not start above the one below it makes `levelFor` return the
+// wrong title for everybody in it.
+assertCommunityIntegrity();
 
 const app = express();
 
@@ -229,6 +234,7 @@ app.use('/companies', require('./routes/companies'));
 app.use('/jobs', require('./routes/jobs'));
 app.use('/applications', require('./routes/applications'));
 app.use('/quotes', require('./routes/quotes'));
+app.use('/community', require('./routes/community'));
 app.use('/messages', require('./routes/messages'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));

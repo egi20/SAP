@@ -1,0 +1,41 @@
+<%
+  const meta = postKind(post.kind);
+  const preview = toPlainText(post.body, 240);
+%>
+<article class="glass-card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <span class="badge-hub accent"><i class="bi <%= meta.icon %>"></i> <%= meta.label %></span>
+      <a class="badge-hub text-decoration-none" href="/community/category/<%= post.category_slug %>">
+        <i class="bi <%= post.category_icon %>"></i> <%= post.category_name %>
+      </a>
+      <% if (post.is_solved) { %><span class="badge-hub ok"><i class="bi bi-check-circle"></i> Solved</span><% } %>
+      <% if (post.is_pinned) { %><span class="badge-hub warn"><i class="bi bi-pin-angle"></i> Pinned</span><% } %>
+      <span class="ms-auto small text-muted-2">
+        <%= new Date(post.last_activity_at).toISOString().slice(0, 10) %>
+      </span>
+    </div>
+
+    <h3 class="h5 mb-2">
+      <a class="text-reset" href="/community/<%= post.slug %>"><%= post.title %></a>
+    </h3>
+
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <img class="avatar" style="width:28px;height:28px"
+           src="<%= post.author_avatar || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+      <span class="small text-muted-2">
+        <%= post.author_name %>
+        <% if (post.author_role) { %> · <%= roleLabel(post.author_role) %><% } %>
+      </span>
+    </div>
+
+    <% if (preview) { %><p class="mb-3 text-muted-2"><%= preview %></p><% } %>
+
+    <div class="d-flex flex-wrap align-items-center gap-3 small text-muted-2">
+      <span title="Votes"><i class="bi bi-arrow-up-circle"></i> <%= post.vote_score %></span>
+      <span title="Replies"><i class="bi bi-chat"></i> <%= post.reply_count %></span>
+      <span title="Views"><i class="bi bi-eye"></i> <%= post.view_count %></span>
+      <a class="ms-auto" href="/community/<%= post.slug %>">Open <i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+</article>

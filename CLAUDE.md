@@ -143,6 +143,49 @@ Hub's own when they fail. Only the two accents are brandable: a company choosing
 heading colour is branding, a company choosing its own body-text colour is a company
 shipping an unreadable document to a client under its own name.
 
+## The community and the points ledger
+
+`points_ledger` is APPEND-ONLY. A `points` column on the user row would be unauditable —
+nobody could answer "where did these come from", and a double award could never be found,
+let alone undone. The total is a `SUM` over the ledger.
+
+**Pay by settling to the state, not by reacting to the event.** `Points.settleTo(user,
+reason, subject, intendedPoints)` reads what a subject has paid so far and appends the
+difference. The obvious alternative — award on upvote, reverse on un-upvote, both keyed on
+the event — is not reversible twice: the second upvote is ignored because the award's
+dedupe key already exists, so the author keeps the reversal and ends BELOW where they
+started while the score reads +1. The same shape hits an accepted answer moved away and
+moved back. Settling is idempotent (a repeat computes a difference of zero), append-only,
+and not farmable — the net is pinned to the intended amount however many times somebody
+flips, so each swing costs a ledger row and never a point.
+
+`Points.award` and `Points.reverse` remain for one-shot events that cannot be undone and
+re-done (posting, replying). Anything that can be toggled goes through `settleTo`.
+
+**Accepting your own answer marks the reply and pays nothing.** Self-answering is
+legitimate and useful, so the reply is still the solution; paying 25 points for it — the
+largest award on the list — would make "ask a question, answer it yourself" the cheapest
+route to a standing.
+
+**A post is hidden, never deleted**, and `hidden_at`/`hidden_by_user_id`/`hidden_reason`
+exist from migration 009 even though the moderation screen is a later area. `Post.buildFilter`
+already filters on `hidden_at IS NULL`; the reference adds the columns three migrations
+later, so its community worked only because nothing had been hidden yet. Same argument as
+`voided_at` on `rate_submissions`.
+
+**`levelFor` must survive a negative total.** Reversals can take an account below zero, and
+the next level is the one above the CURRENT band — not the first threshold above the point
+total, which at -100 is level 1's own floor and renders as "100 points to level 1" at
+somebody already in it. The progress bar is clamped for the same reason.
+
+**The category tree is derived from `PRODUCT_LINES`**, so the community, the job board and
+the estimator speak one vocabulary. `npm run sync:catalogues` is a deploy step that
+deactivates a category that leaves the config rather than deleting it — posts point at it.
+
+**`AppSetting.setMany` writes EVERY declared key**, because it reads an admin form where an
+unticked checkbox posts nothing and absence has to mean false. A caller changing one switch
+must hand back the others, or it silently closes registration.
+
 ## Messaging
 
 **Every conversation is anchored to a subject** — an application, or an enquiry about a

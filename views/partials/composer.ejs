@@ -1,0 +1,23 @@
+<%
+  /* The "what do you want to create" block. One row of intents, each a link into the
+     right form, rather than a text box that has to guess what kind of post it is. */
+%>
+<div class="glass-card mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <img class="avatar" style="width:36px;height:36px"
+           src="<%= currentUser.profilePicture || '/images/avatar-placeholder.svg' %>" alt="">
+      <strong>What do you want to create, <%= currentUser.name.split(' ')[0] %>?</strong>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <% if (currentUser.isCompany) { %>
+        <a class="btn btn-outline-primary btn-sm" href="/jobs/new"><i class="bi bi-briefcase"></i> Post a job</a>
+      <% } %>
+      <% kinds.forEach(function (k) { %>
+        <a class="btn btn-outline-primary btn-sm" href="/community/new?kind=<%= k.value %>">
+          <i class="bi <%= k.icon %>"></i> <%= k.verb %>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</div>

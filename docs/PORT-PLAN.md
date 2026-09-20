@@ -193,6 +193,46 @@ figure, and where to find the multipliers that make up the difference — becaus
 adds up a column and gets a different number will email about it, and they should not have
 to.
 
+## The community
+
+Posts, replies, votes, accepted answers, the points ledger, levels, a 30-day leaderboard and
+the signed-in feed. The category tree is derived from `PRODUCT_LINES`, so a post, a job
+advert and an estimate all name the same thing — plus two cross-cutting categories neither
+reference has and every real SAP forum needs: **Transitions & upgrades** (greenfield versus
+brownfield, readiness, simplification items) and **Clean core & extensibility**, because "can
+I do this in standard" is not the same conversation as architecture.
+
+Three findings, and the third is the one worth the area.
+
+**Accepting a different answer never reversed the first award.** The reference clears
+`is_solution` on the previous reply and stops, so both answerers keep 25 points and one
+question has paid for two solutions while displaying one. `Points.reverse` exists for
+exactly this — its own comment says so — and nothing called it.
+
+**Accepting your own answer paid the largest award on the list.** Self-answering is
+legitimate, so the reply is still marked; paying for it makes "ask a question, answer it
+yourself" the cheapest route to a standing, in a scheme whose own stated rule is that one
+which pays for volume gets volume.
+
+**And the ledger was not reversible twice.** This is the one a test found rather than a
+reading. Award-on-upvote plus reverse-on-withdrawal are both keyed on the event, so:
+
+    upvote      post_upvoted:12:34          +2
+    withdraw    reverse:post_upvoted:12:34  -2
+    upvote      post_upvoted:12:34          ignored — the key exists
+
+The author ends on **-2** while the score reads **+1**, permanently, because one voter
+changed their mind twice. The same shape hits an answer accepted, moved away and accepted
+again. `Points.settleTo` replaces both paths: it reads what a subject has paid and appends
+the difference, so the ledger states what is true now. Append-only, idempotent, and not
+farmable — flipping costs a row, never a point.
+
+Also closed here: the four things the earlier commits deferred with a note — the signed-in
+feed branch in `routes/index.js`, the `community_read_only` switch, the `communityWritable`
+gate it enforces, and the Community menu. And `hidden_at` moved into migration 009 for the
+same reason `voided_at` sits in 004: `Post.buildFilter` already filters on it, so the
+reference's community worked only because nothing had been hidden yet.
+
 ## Messaging
 
 Ported close to unchanged, because the design is the good part: every thread is anchored to

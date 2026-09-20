@@ -22,14 +22,15 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | Day-rate index with an n≥3 privacy floor, percentiles and a trend | built |
 | Notifications, saved jobs, dashboards | built |
 | Messaging: threads anchored to an application or a role, unread counts, notifications | built |
+| Community: questions, discussions, articles and wins, votes, accepted answers | built |
+| Signed-in feed, points on an append-only ledger, levels, 30-day leaderboard | built |
 | Scope estimator: transition approach, clean core, cross-module boundaries, SAP Activate phases | built |
 | Quotes: stored breakdown, lifecycle with an audit trail, stale-catalogue flagging | built |
 | Deliverables: SOW (.docx), work breakdown with a Gantt (.xlsx), summary deck (.pptx), zipped | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: community, payments, the in-site
-assistant, admin, referrals, LinkedIn confirmation, search, recruiters, the sales CRM and
-finance. See
+Not built yet, and listed so nobody mistakes the scope: payments, the in-site assistant,
+admin, referrals, LinkedIn confirmation, search, recruiters, the sales CRM and finance. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 

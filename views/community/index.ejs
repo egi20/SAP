@@ -1,0 +1,106 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: typeof category !== 'undefined' && category ? category.icon : 'bi-people',
+  heading: typeof category !== 'undefined' && category ? category.name : 'Community',
+  sub: typeof category !== 'undefined' && category
+        ? (category.description || '')
+        : 'Questions, discussions, articles and wins from people doing SAP work.'
+}) %>
+
+<section class="glass-section">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+          <%- include('../partials/kind-filters', {
+            filterBase: typeof category !== 'undefined' && category ? '/community/category/' + category.slug : '/community'
+          }) %>
+          <% if (currentUser) { %>
+            <a class="btn btn-primary btn-sm mb-3" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a>
+          <% } %>
+        </div>
+
+        <form class="glass-card p-3 mb-3" method="get">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label" for="q">Search</label>
+              <input class="form-control" id="q" name="q" value="<%= filters.q %>" placeholder="Title or body">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="sort">Sort</label>
+              <select class="form-select" id="sort" name="sort" onchange="this.form.submit()">
+                <option value="recent" <%= sort === 'recent' ? 'selected' : '' %>>Recent activity</option>
+                <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest</option>
+                <option value="top" <%= sort === 'top' ? 'selected' : '' %>>Most voted</option>
+                <option value="busiest" <%= sort === 'busiest' ? 'selected' : '' %>>Most replies</option>
+              </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Go</button></div>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="unanswered" name="unanswered" value="1"
+                   <%= filters.unanswered === '1' ? 'checked' : '' %> onchange="this.form.submit()">
+            <label class="form-check-label small" for="unanswered">Unanswered questions only</label>
+          </div>
+        </form>
+
+        <% if (posts.length === 0) { %>
+          <div class="empty-state glass-card">
+            <i class="bi bi-chat-square-text"></i>
+            <p class="mb-1">Nothing matches.</p>
+            <% if (currentUser) { %><a href="/community/new">Write the first post</a><% } %>
+          </div>
+        <% } else { %>
+          <% posts.forEach(function (post) { %>
+            <%- include('../partials/post-card', { post: post }) %>
+          <% }); %>
+          <%- include('../partials/pagination') %>
+        <% } %>
+      </div>
+
+      <aside class="col-lg-4">
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">Categories</h2>
+            <ul class="list-unstyled mb-0">
+              <% categories.forEach(function (c) { %>
+                <li class="mb-1">
+                  <a class="d-flex align-items-center gap-2 text-reset text-decoration-none py-1"
+                     href="/community/category/<%= c.slug %>">
+                    <i class="bi <%= c.icon %> text-muted-2"></i>
+                    <span class="flex-grow-1 text-truncate"><%= c.name %></span>
+                    <span class="badge-hub muted"><%= c.post_count %></span>
+                  </a>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        </div>
+
+        <% if (leaderboard && leaderboard.length) { %>
+          <div class="glass-card">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Most helpful, 30 days</h2>
+              <ul class="list-unstyled mb-0">
+                <% leaderboard.forEach(function (m, i) { %>
+                  <li class="d-flex align-items-center gap-2 mb-2">
+                    <span class="text-muted-2 small" style="width:1.2rem"><%= i + 1 %></span>
+                    <img class="avatar" style="width:28px;height:28px"
+                         src="<%= m.profile_picture || m.logo || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+                    <a class="small text-reset flex-grow-1 text-truncate" href="/consultants/<%= m.user_id %>"><%= m.name %></a>
+                    <span class="badge-hub ok"><%= m.points %></span>
+                  </li>
+                <% }); %>
+              </ul>
+            </div>
+          </div>
+        <% } %>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>

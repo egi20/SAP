@@ -1,0 +1,25 @@
+<%
+  /* Type filter pills. Counts come from the same filter the list uses, minus `kind`, so a
+     pill never promises rows the list will not show. */
+  const base = typeof filterBase !== 'undefined' ? filterBase : '/community';
+  const qs = (extra) => {
+    const params = new URLSearchParams();
+    Object.entries(filters || {}).forEach(function (e) { if (e[1] && e[0] !== 'kind') params.set(e[0] === 'category_slug' ? 'category' : e[0], e[1]); });
+    Object.entries(extra || {}).forEach(function (e) { if (e[1]) params.set(e[0], e[1]); });
+    const s = params.toString();
+    return s ? base + '?' + s : base;
+  };
+  const totalCount = Object.values(counts || {}).reduce(function (a, b) { return a + b; }, 0);
+%>
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-sm <%= filters.kind ? 'btn-outline-primary' : 'btn-primary' %>" href="<%= qs({}) %>">
+    All <span class="opacity-75">(<%= totalCount %>)</span>
+  </a>
+  <% kinds.forEach(function (k) { %>
+    <a class="btn btn-sm <%= filters.kind === k.value ? 'btn-primary' : 'btn-outline-primary' %>"
+       href="<%= qs({ kind: k.value }) %>">
+      <i class="bi <%= k.icon %>"></i> <%= k.label %>s
+      <span class="opacity-75">(<%= counts[k.value] || 0 %>)</span>
+    </a>
+  <% }); %>
+</div>

@@ -41,6 +41,21 @@
         </li>
 
         <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= startsWith('/community') ? 'active' : '' %>" href="#" role="button"
+             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <i class="bi bi-people"></i> Community
+          </a>
+          <ul class="dropdown-menu shadow-sm">
+            <li><a class="dropdown-item" href="/community"><i class="bi bi-chat-square-text"></i> Questions and posts</a></li>
+            <li><a class="dropdown-item" href="/community?kind=question&amp;unanswered=1"><i class="bi bi-patch-question"></i> Unanswered questions</a></li>
+            <% if (currentUser) { %>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a></li>
+            <% } %>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %>" href="#" role="button"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-person-badge"></i> Consultant Hub
@@ -106,6 +121,7 @@
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
               <li><a class="dropdown-item" href="/messages"><i class="bi bi-chat-dots"></i> Messages</a></li>
+              <li><a class="dropdown-item" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a></li>
               <li><a class="dropdown-item" href="/profile/settings"><i class="bi bi-gear"></i> Settings</a></li>
               <li><hr class="dropdown-divider"></li>
               <li>

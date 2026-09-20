@@ -1,0 +1,114 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section pt-5">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="mb-4">
+      <h1 class="mb-1"><%= greeting %>, <%= currentUser.name.split(' ')[0] %></h1>
+      <p class="text-muted-2 mb-0">The community kept busy while you were away — here's the latest.</p>
+    </div>
+
+    <%- include('../partials/composer') %>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <%- include('../partials/kind-filters', { filterBase: '/' }) %>
+          <a class="btn btn-navy btn-sm mb-3" href="/community">
+            <i class="bi bi-people"></i> Community home <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+
+        <% if (posts.length === 0) { %>
+          <div class="empty-state glass-card">
+            <i class="bi bi-chat-square-text"></i>
+            <p class="mb-1">Nothing here yet.</p>
+            <p class="small mb-3">Be the first — a question counts as much as an article.</p>
+            <a class="btn btn-primary" href="/community/new">Write the first post</a>
+          </div>
+        <% } else { %>
+          <% posts.forEach(function (post) { %>
+            <%- include('../partials/post-card', { post: post }) %>
+          <% }); %>
+          <%- include('../partials/pagination') %>
+        <% } %>
+      </div>
+
+      <aside class="col-lg-4">
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-3">
+              <div class="match-ring" style="--pct: <%= standing.progressPercent %>">
+                <span><%= standing.level %></span>
+              </div>
+              <div class="flex-grow-1">
+                <strong><%= standing.title %></strong>
+                <div class="meter mt-2"><i style="width: <%= standing.progressPercent %>%"></i></div>
+                <p class="small text-muted-2 mb-0 mt-1">
+                  <% if (standing.nextLevel) { %>
+                    <%= standing.pointsToNext %> pts to level <%= standing.nextLevel %>
+                  <% } else { %>
+                    <%= standing.points %> pts — top level
+                  <% } %>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">New this week</h2>
+            <p class="mb-2">
+              <strong><%= newMembers %> <%= newMembers === 1 ? 'person' : 'people' %></strong>
+              joined the community — a hello goes a long way on day one.
+            </p>
+            <a class="small" href="/consultants">Meet them <i class="bi bi-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <% if (leaderboard.length) { %>
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Most helpful, 30 days</h2>
+              <ul class="list-unstyled mb-0">
+                <% leaderboard.forEach(function (m, i) { %>
+                  <li class="d-flex align-items-center gap-2 mb-2">
+                    <span class="text-muted-2 small" style="width:1.2rem"><%= i + 1 %></span>
+                    <img class="avatar" style="width:28px;height:28px"
+                         src="<%= m.profile_picture || m.logo || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+                    <a class="small text-reset flex-grow-1 text-truncate" href="/consultants/<%= m.user_id %>"><%= m.name %></a>
+                    <span class="badge-hub ok"><%= m.points %></span>
+                  </li>
+                <% }); %>
+              </ul>
+              <p class="form-text mb-0">A rolling window, so it stays winnable.</p>
+            </div>
+          </div>
+        <% } %>
+
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Latest roles</h2>
+            <% if (latestJobs.length === 0) { %>
+              <p class="small text-muted-2 mb-0">No open roles right now.</p>
+            <% } else { %>
+              <ul class="list-unstyled mb-2">
+                <% latestJobs.forEach(function (job) { %>
+                  <li class="mb-2">
+                    <a class="text-reset d-block text-truncate" href="/jobs/<%= job.slug %>"><%= job.title %></a>
+                    <span class="small text-muted-2"><%= job.company_name || 'Confidential' %></span>
+                  </li>
+                <% }); %>
+              </ul>
+              <a class="small" href="/jobs">All jobs <i class="bi bi-arrow-right"></i></a>
+            <% } %>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>
