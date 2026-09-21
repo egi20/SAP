@@ -149,7 +149,21 @@ router.get('/contact', (req, res) => {
  * never advertise a URL that robots.txt disallows.
  */
 router.get('/robots.txt', (req, res) => {
-  const lines = ['User-agent: *', 'Disallow: /admin', 'Disallow: /dashboard', 'Disallow: /profile', 'Disallow: /auth', ''];
+  /*
+   * `/search` is disallowed as well as being noindex on the page itself. A results page
+   * is infinite crawl space — every query string is a distinct URL a crawler will happily
+   * enumerate — and a meta tag only stops it being INDEXED after it has already been
+   * fetched. This stops the fetching.
+   */
+  const lines = [
+    'User-agent: *',
+    'Disallow: /admin',
+    'Disallow: /dashboard',
+    'Disallow: /profile',
+    'Disallow: /auth',
+    'Disallow: /search',
+    ''
+  ];
   lines.push(`Sitemap: ${config.app.baseUrl}/sitemap.xml`);
   res.type('text/plain').send(lines.join('\n'));
 });

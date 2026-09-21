@@ -76,7 +76,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Referrals & commissions | 4 | 4 | **done** |
 | LinkedIn confirmation | 3 | 3 | **done** |
 | AI drafting, every draft verified | — | — | after the core |
-| Search across everything | 1 | 1 | after the core |
+| Search across everything | 1 | 1 | **done** — four sources; agencies join with that area |
 | Recruiters, stories, reviews | 16 | ~16 | after the core |
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
@@ -459,6 +459,34 @@ of them said so.
 
 Also found in passing: `routes/consultants.js` built its page title with the fallback
 "Salesforce consultant".
+
+## Search
+
+One handler over four sources, and the design is taken whole because its central rule is
+the one this codebase already argues for everywhere else: search declares no filter. Each
+source is a call into a model's own `browse`, so visibility stays the property of the
+builder that owns it. A unit test now reads each source's function body and fails if it
+contains SQL — crude, and exactly the check that matters, because the pressure to write
+"just one query here" arrives the first time somebody wants a result ranked better.
+
+Three things differ from the reference.
+
+**The minimum query length is two characters, and here that is not arbitrary.** SAP module
+codes ARE two letters — FI, CO, MM, SD, PP, QM — so "MM" is among the most obvious searches
+anybody types on this site. The reference's floor of two happened to be right; on a
+Salesforce corpus a floor of three would have cost nothing, and here it would refuse the
+common case. The test says why, so nobody raises it later to make the LIKE cheaper.
+
+**The agencies source is absent rather than stubbed.** `RecruiterProfile` does not exist
+yet, and a fifth source returning nothing — or a view branch for a group nothing produces —
+is the shape this port keeps finding and removing. The sources are a declared list, so that
+area adds one entry.
+
+**Two things were already styled or accepted for a feature that did not exist.** The
+stylesheet has carried a `.nav-search` rule since the design system landed, with no element
+to apply it to, and all four list routes already accepted a `q` parameter — so "see all"
+works because those pages were built to be linked to this way, not because anything was
+changed to accommodate search.
 
 ## What the core build actually found
 

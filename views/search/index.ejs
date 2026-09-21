@@ -1,0 +1,167 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-search',
+  heading: 'Search',
+  sub: 'Jobs, consultants, companies and the community.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <form class="glass-card mb-4" method="get" action="/search">
+    <div class="card-body">
+      <label class="visually-hidden" for="q">What are you looking for?</label>
+      <div class="input-group input-group-lg">
+        <input class="form-control" id="q" name="q" type="search" maxlength="120"
+               value="<%= results.query %>" placeholder="EWM, S/4HANA finance, Munich, a company name…"
+               autofocus>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Search</button>
+      </div>
+    </div>
+  </form>
+
+  <% if (!results.usable) { %>
+    <div class="glass-card">
+      <div class="card-body text-center py-5">
+        <span class="icon-tile icon-navy mb-3"><i class="bi bi-search"></i></span>
+        <% if (results.query.length) { %>
+          <h2 class="h6">Type a little more</h2>
+          <p class="text-muted-2 mb-0">
+            At least <%= minLength %> characters. Anything shorter matches most of the site and
+            tells you nothing.
+          </p>
+        <% } else { %>
+          <h2 class="h6">One box, four places</h2>
+          <p class="text-muted-2 mb-0">
+            Open roles, public consultant profiles, companies and community posts.
+          </p>
+        <% } %>
+      </div>
+    </div>
+  <% } else { %>
+
+    <p class="text-muted-2 mb-4">
+      <%
+        /*
+         * The total is a SUM of what each source reported, not a relevance figure and not
+         * deduplicated across types: a job and the company that posted it are two results,
+         * because they are two things somebody might have been looking for.
+         */
+      %>
+      <strong><%= results.total %></strong> result<%= results.total === 1 ? '' : 's' %>
+      for “<%= results.query %>”.
+    </p>
+
+    <% if (results.total === 0) { %>
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6">Nothing matched</h2>
+          <p class="text-muted-2 mb-0">
+            Try fewer words, or browse directly:
+            <a href="/jobs">jobs</a>, <a href="/consultants">consultants</a>,
+            <a href="/companies">companies</a>, <a href="/community">the community</a>.
+          </p>
+        </div>
+      </div>
+    <% } %>
+
+    <% results.groups.forEach(function (group) { %>
+      <% if (group.failed || group.total > 0) { %>
+        <div class="glass-card mb-4">
+          <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 class="h6 mb-0">
+              <i class="bi <%= group.icon %>"></i> <%= group.label %>
+              <% if (!group.failed) { %>
+                <span class="badge-hub"><%= group.total %></span>
+              <% } %>
+            </h2>
+            <% if (!group.failed && group.total > group.rows.length) { %>
+              <a class="btn btn-sm btn-outline-primary" href="<%= group.href %>">
+                See all <%= group.total %>
+              </a>
+            <% } %>
+          </div>
+
+          <div class="card-body">
+            <% if (group.failed) { %>
+              <%
+                /*
+                 * One source failing is a missing section with a note, never a failed page.
+                 * Saying so is better than quietly showing nothing, which reads as "no
+                 * results" and is a different claim.
+                 */
+              %>
+              <p class="text-muted-2 mb-0">
+                <i class="bi bi-exclamation-triangle"></i>
+                This section could not be searched just now. The rest of the results are complete.
+              </p>
+
+            <% } else if (group.key === 'jobs') { %>
+              <% group.rows.forEach(function (job) { %>
+                <%- include('../partials/job-card', { job }) %>
+              <% }); %>
+
+            <% } else if (group.key === 'consultants') { %>
+              <div class="row g-3">
+                <% group.rows.forEach(function (c) { %>
+                  <div class="col-md-6"><%- include('../partials/consultant-card', { c }) %></div>
+                <% }); %>
+              </div>
+
+            <% } else if (group.key === 'companies') { %>
+              <ul class="list-unstyled mb-0">
+                <% group.rows.forEach(function (company) { %>
+                  <li class="d-flex align-items-center gap-3 border-top py-2">
+                    <img class="logo-tile flex-shrink-0" src="<%= company.logo || '/images/logo-placeholder.svg' %>" alt="" loading="lazy">
+                    <div class="min-w-0">
+                      <a href="/companies/<%= company.slug %>"><strong><%= company.company_name %></strong></a>
+                      <% if (company.open_jobs > 0) { %>
+                        <span class="badge-hub ok"><%= company.open_jobs %> open</span>
+                      <% } %>
+                      <% if (company.tagline) { %>
+                        <div class="small text-muted-2"><%= company.tagline %></div>
+                      <% } %>
+                    </div>
+                  </li>
+                <% }); %>
+              </ul>
+
+            <% } else { %>
+              <ul class="list-unstyled mb-0">
+                <% group.rows.forEach(function (post) { %>
+                  <li class="border-top py-2">
+                    <a href="/community/<%= post.slug %>"><strong><%= post.title %></strong></a>
+                    <span class="badge-hub"><%= post.kind %></span>
+                    <div class="small text-muted-2">
+                      <%= toPlainText(post.body, 140) %>
+                    </div>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    <% }); %>
+
+    <%
+      /*
+       * Sources that matched nothing are listed together at the end rather than each
+       * getting an empty card. Four empty panels is noise; one line saying which places
+       * were looked in and came back empty is information.
+       */
+      const emptyGroups = results.groups.filter(function (g) { return !g.failed && g.total === 0; });
+    %>
+    <% if (emptyGroups.length && results.total > 0) { %>
+      <p class="small text-muted-2">
+        Nothing in
+        <%= emptyGroups.map(function (g) { return g.label.toLowerCase(); }).join(', ') %>.
+      </p>
+    <% } %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

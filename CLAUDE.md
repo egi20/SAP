@@ -446,6 +446,37 @@ next payout settles less, which is the correct answer and a visible one.
 **Deactivating a referrer stops new introductions only.** It does not touch existing
 attributions or anything already earned.
 
+## Search
+
+**Search adds no filter of its own, and that is the security argument as much as a tidiness
+one.** Every source in `services/search.js` calls the same `browse` its list view calls,
+with the same defaults, so a row invisible on `/jobs` is invisible here without anything in
+that file knowing why. A search page that assembled its own WHERE clause would be a second
+place that has to remember `status = 'open'`, `is_public = 1`, `u.is_active = 1` and
+`hidden_at IS NULL` — and the first one to forget is the one that leaks. A unit test reads
+each source's function body and fails if it contains SQL or passes `q` anywhere but the
+filter argument.
+
+**No cross-type relevance score.** A match on a company name and a match inside a
+five-thousand-word post are not comparable, and a blended ranking would be a number
+invented to look authoritative. Results are grouped by type, ordered within a type by that
+type's own ordering. The total is a SUM and is NOT deduplicated: a job and the company that
+posted it are two results, because they are two things somebody might have been looking
+for.
+
+**The minimum query is two characters because SAP module codes are two letters.** FI, CO,
+MM, SD, PP, QM. A floor of three would refuse the most obvious search on the site.
+
+**Each source may fail on its own.** They run in parallel, a failure is caught per source,
+and the page shows that section as unavailable while the rest stands. A search box that
+goes down entirely because one table is locked is worse than an incomplete answer that says
+it is incomplete — and showing nothing silently is a different claim from showing nothing
+with a reason.
+
+**`/search` is both `noindex` and disallowed in robots.txt.** A results page is infinite
+crawl space, every query string a distinct URL; a meta tag only stops it being indexed
+after it has already been fetched.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

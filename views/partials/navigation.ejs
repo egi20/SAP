@@ -96,6 +96,18 @@
         </li>
       </ul>
 
+      <%#
+        The search box, in the slot the stylesheet has had a `.nav-search` rule for since
+        the design system landed and nothing to put in it. A plain GET form: it works with
+        scripting off, the browser remembers what was typed, and the results page is the
+        same URL somebody can bookmark or share.
+      %>
+      <form class="nav-search d-flex me-lg-3 my-2 my-lg-0" method="get" action="/search" role="search">
+        <label class="visually-hidden" for="navSearch">Search the Hub</label>
+        <input class="form-control form-control-sm" id="navSearch" name="q" type="search"
+               maxlength="120" placeholder="Search" value="<%= currentPath === '/search' ? (query.q || '') : '' %>">
+      </form>
+
       <ul class="navbar-nav align-items-lg-center">
         <% if (currentUser) { %>
           <li class="nav-item">
