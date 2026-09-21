@@ -73,7 +73,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Payments: featured placements, deposits, invoices | 7 | 7 | **done** |
 | In-site assistant | 1 | 1 | **done** |
 | Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
-| Referrals & commissions | 4 | 4 | after the core |
+| Referrals & commissions | 4 | 4 | **done** |
 | LinkedIn confirmation | 3 | 3 | after the core |
 | AI drafting, every draft verified | — | — | after the core |
 | Search across everything | 1 | 1 | after the core |
@@ -396,6 +396,42 @@ Open, and stated rather than glossed: the request shape has never been exercised
 live key. A wrong shape is a 400 on every call, so the route logs that case as its own kind
 of failure — "this will not recover on its own" — instead of hiding it behind the
 transient-failure message, and `/admin/ai` shows the daily error count beside the spend.
+
+## Referrals and commissions
+
+The one area where the reference arrived correct, and saying so is the finding. Its schema
+— no balance columns, a signed append-only ledger in minor units, basis points as
+integers, first-touch attribution unique on the referred account, a rate and an earning
+window stamped at attribution — is taken almost unchanged, because every one of those
+choices is already the answer to a bug its own predecessor had.
+
+Two things are new here.
+
+**The commission cap stops being an edge case.** Against the reference's five-figure
+engagements, an uncapped 10% of a deposit is a rare large liability. Here the deposit
+itself caps at €25,000 and, on an SAP-sized programme, reaches that cap almost every time
+— so the uncapped commission is not the exception, it is the normal case, created by one
+click. `MAX_COMMISSION_MINOR` is the same €500 the reference set; what changed is that a
+test now pins the interaction between the two caps, because the figures either side of it
+came from a different-sized market.
+
+**A refunded payment no longer owes a commission forever.** The reference credits on money
+received and has no path that un-credits it; the only correction is a manual adjustment
+nobody is prompted to make, retyped by hand into a ledger that holds exact integers.
+`Referral.reverseForPayment` reverses from the stored entry, idempotently, and it runs
+from the admin refund button — so the human decision has already been taken and this only
+stops it leaving an untracked debt. The distinction the reference was protecting still
+holds: nothing in a webhook debits anybody.
+
+That change made `/admin/payments` honest as well. Recording a refund previously cleared
+the queue flag and nothing else, so a payment that was refunded still read `paid`; it now
+moves to `refunded`, and the button is offered on any settled payment rather than only on
+the collision queue — which was the only case that could never have earned a commission in
+the first place.
+
+Also closed here: the two hooks earlier commits left as comments rather than stubs, in
+`routes/auth.js` and `services/paymentFulfilment.js`. Both said where the call would go
+and why it could not go anywhere else; both now have the call, at exactly that point.
 
 ## What the core build actually found
 

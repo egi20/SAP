@@ -1,0 +1,80 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-people',
+  heading: 'Refer someone',
+  sub: 'Bring someone in, and earn when they actually pay for something.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h5">How it works, in full</h2>
+          <ul class="mb-4">
+            <li>You get a link. Anyone who creates an account through it is attributed to you.</li>
+            <li>
+              <strong>You earn <%= rateBps / 100 %>%</strong> of what they pay, capped at
+              <%= maxCommission %> per payment, and only on things that pay commission:
+              <%= commissionableProducts.join(' and ').replace(/_/g, ' ') %>.
+            </li>
+            <li>
+              Commission is credited when the money is <strong>actually received</strong> — not when a
+              quote is produced, not when a checkout is opened.
+            </li>
+            <li>
+              Attribution lasts <strong><%= windowDays %> days</strong> for earning. The record of who
+              introduced whom is permanent; the earning window is not, so nobody carries an open-ended
+              claim on someone else's future.
+            </li>
+            <li>You are paid once your balance reaches <%= minPayout %>. Below that it keeps accruing — it is never lost.</li>
+          </ul>
+
+          <h2 class="h6">Things worth knowing before you join</h2>
+          <ul class="small text-muted-2 mb-4">
+            <li>You cannot refer yourself. The check is in the attribution, not in the terms.</li>
+            <li>
+              First touch wins, permanently. If someone was already attributed to another member,
+              a later link does not move them — a scheme whose attribution can be taken has a fight in it.
+            </li>
+            <li>
+              Your dashboard shows how many people you introduced and what each earned. It does not
+              show who they are: they did not agree to have their purchases reported to you.
+            </li>
+            <li>
+              Payouts are made by a person, by bank transfer or PayPal, against the details you give us.
+              Nothing is transferred automatically.
+            </li>
+          </ul>
+
+          <form method="post" action="/referrals/join">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-primary" type="submit">Get my link</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card">
+        <div class="card-body">
+          <span class="icon-tile icon-amber mb-3"><i class="bi bi-exclamation-triangle"></i></span>
+          <h2 class="h6">Be realistic about the amounts</h2>
+          <p class="small text-muted-2 mb-0">
+            Most of what this Hub does is free, and it intends to stay that way. There are two paid
+            things, so a referral earns when someone features a job or pays a project deposit — and
+            not otherwise. That is a real but modest amount of money, and we would rather say so
+            here than have you work it out from an empty balance.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

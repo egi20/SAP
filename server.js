@@ -19,10 +19,12 @@ const { assertEstimationIntegrity } = require('./config/estimation');
 const { assertCommunityIntegrity } = require('./config/community');
 const { assertPaymentIntegrity, WEBHOOK_PATH } = require('./config/payments');
 const assistantConfig = require('./config/assistant');
+const { assertReferralIntegrity } = require('./config/referrals');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
 const { csrfProtection } = require('./middleware/csrf');
+const { captureReferralCode } = require('./middleware/referral');
 const { notFound, errorHandler, asyncHandler } = require('./middleware/errorHandler');
 const { visitGeo } = require('./middleware/visitGeo');
 const { sanitizeRichText, toPlainText, jsonForScript } = require('./utils/sanitize');
@@ -62,6 +64,12 @@ assertPaymentIntegrity();
  * path turns into "please try again in a moment" forever.
  */
 assistantConfig.assertAssistantIntegrity();
+/*
+ * And the referral scheme: a rate above its own ceiling, or a payout floor no commission
+ * could ever reach, does not fail at request time — it fails as a person asking why they
+ * have not been paid.
+ */
+assertReferralIntegrity();
 
 const app = express();
 
@@ -207,6 +215,12 @@ app.use(flash());
  */
 app.use(csrfProtection({ exempt: (req) => req.path === WEBHOOK_PATH }));
 app.use(validateActiveAccount);
+/*
+ * A referral link can point at any page, so the code is captured on every request rather
+ * than only on the registration form. It writes to the session and nothing else; see
+ * middleware/referral.js for why the session is read before the posted field.
+ */
+app.use(captureReferralCode);
 app.use(visitGeo);
 app.use(seoLocals);
 
@@ -268,6 +282,7 @@ app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));
 app.use('/admin', require('./routes/admin'));
 app.use('/assistant', require('./routes/assistant'));
+app.use('/referrals', require('./routes/referrals'));
 
 app.use(notFound);
 app.use(errorHandler);

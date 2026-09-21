@@ -1,0 +1,203 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-people', heading: 'Your referrals', sub: 'What you have introduced, and what it has earned.' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (!referrer.is_active) { %>
+    <div class="alert alert-warning">
+      <strong>Your referrer account is paused.</strong> New introductions will not be attributed.
+      Everything already earned is untouched and still payable.
+    </div>
+  <% } %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile">
+        <div class="value"><%= formatMinor(balance.unpaidMinor) %></div>
+        <div class="label">unpaid balance</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile">
+        <div class="value"><%= formatMinor(balance.lifetimeEarnedMinor) %></div>
+        <div class="label">earned in total</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile">
+        <div class="value"><%= formatMinor(balance.lifetimePaidMinor) %></div>
+        <div class="label">paid out</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile">
+        <div class="value"><%= introductions.length %></div>
+        <div class="label">introductions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <h2 class="h6">Your link</h2>
+      <p class="small text-muted-2">
+        Anyone who creates an account through this is attributed to you, once and permanently.
+        You earn <%= referrer.rate_bps / 100 %>% of what they pay for the next <%= windowDays %> days,
+        on <%= commissionableProducts.join(' and ').replace(/_/g, ' ') %>, credited when the money
+        actually arrives.
+      </p>
+      <div class="input-group">
+        <label class="visually-hidden" for="shareUrl">Your referral link</label>
+        <input class="form-control" id="shareUrl" type="text" value="<%= shareUrl %>" readonly
+               data-select-on-focus>
+      </div>
+      <p class="small text-muted-2 mt-2 mb-0">
+        Your code is <code><%= referrer.code %></code> — it can also be typed into the sign-up form.
+      </p>
+    </div>
+  </div>
+
+  <% if (!balance.payable && balance.unpaidMinor > 0) { %>
+    <div class="alert alert-info">
+      You are below the <%= formatMinor(balance.minPayoutMinor) %> payout minimum. A transfer for a
+      few euros costs more to make and reconcile than it settles, so the balance keeps accruing —
+      it is never forfeited.
+    </div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card">
+        <div class="card-header"><h2 class="h6 mb-0">Every entry</h2></div>
+        <% if (!ledger.length) { %>
+          <div class="card-body"><p class="text-muted-2 mb-0">Nothing yet. Share your link.</p></div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">What</th>
+                  <th scope="col" class="text-end">Amount</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% ledger.forEach(function (entry) { %>
+                  <tr>
+                    <td class="small text-muted-2"><%= new Date(entry.created_at).toLocaleDateString('en-GB') %></td>
+                    <td class="small">
+                      <%= entry.note || entry.entry_type %>
+                    </td>
+                    <td class="text-end fw-semibold <%= entry.amount_minor < 0 ? 'text-muted-2' : '' %>">
+                      <%= entry.amount_minor < 0 ? '−' : '' %><%= formatMinor(Math.abs(entry.amount_minor), entry.currency) %>
+                    </td>
+                    <td>
+                      <%
+                        /* A zero entry is deliberate, not a bug: the introduction bought something
+                           that does not pay commission, and saying so beats leaving a gap. */
+                        const tone = entry.entry_type === 'paid' ? 'cloud'
+                          : entry.amount_minor === 0 ? 'muted'
+                          : entry.payout_id ? 'ok' : 'warn';
+                        const label = entry.entry_type === 'paid' ? 'paid out'
+                          : entry.amount_minor === 0 ? 'no commission'
+                          : entry.payout_id ? 'settled' : 'unpaid';
+                      %>
+                      <span class="badge-hub <%= tone %>"><%= label %></span>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+      <%- include('../partials/pagination') %>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6">Where to pay you</h2>
+          <p class="small text-muted-2">
+            Read by a person who makes the transfer by hand. Nothing here is sent anywhere by this
+            application.
+          </p>
+          <form method="post" action="/referrals/payout-details">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-2">
+              <label class="form-label" for="method">Method</label>
+              <select class="form-select" id="method" name="method">
+                <option value="">Not set</option>
+                <% payoutMethods.forEach(function (m) { %>
+                  <option value="<%= m %>" <%= referrer.payout_method === m ? 'selected' : '' %>>
+                    <%= m.replace(/_/g, ' ') %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="reference">Account or address</label>
+              <input class="form-control" id="reference" name="reference" type="text" maxlength="255"
+                     value="<%= referrer.payout_reference || '' %>" placeholder="IBAN, or the PayPal address">
+            </div>
+            <button class="btn btn-outline-primary btn-sm" type="submit">Save</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6">Introductions</h2>
+          <p class="small text-muted-2">
+            How many, and what each earned. Not who they are — they did not agree to have their
+            purchases reported to you.
+          </p>
+          <% if (!introductions.length) { %>
+            <p class="small text-muted-2 mb-0">Nobody yet.</p>
+          <% } else { %>
+            <ul class="list-unstyled small mb-0">
+              <% introductions.forEach(function (i) { %>
+                <li class="d-flex justify-content-between border-top py-2">
+                  <span>
+                    <%= new Date(i.created_at).toLocaleDateString('en-GB') %>
+                    <% if (new Date(i.earns_until) < new Date()) { %>
+                      <span class="badge-hub muted">window closed</span>
+                    <% } %>
+                  </span>
+                  <span class="fw-semibold"><%= formatMinor(i.earned_minor) %></span>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (payouts.length) { %>
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6">Payouts made</h2>
+            <ul class="list-unstyled small mb-0">
+              <% payouts.forEach(function (p) { %>
+                <li class="d-flex justify-content-between border-top py-2">
+                  <span>
+                    <%= new Date(p.created_at).toLocaleDateString('en-GB') %>
+                    <span class="text-muted-2">· <%= p.method.replace(/_/g, ' ') %></span>
+                    <% if (p.reference) { %><br><code class="small"><%= p.reference %></code><% } %>
+                  </span>
+                  <span class="fw-semibold"><%= formatMinor(p.amount_minor, p.currency) %></span>
+                </li>
+              <% }); %>
+            </ul>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

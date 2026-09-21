@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 
 const User = require('../models/User');
 const Token = require('../models/Token');
+const Referral = require('../models/Referral');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const { isGuest, isAuthenticated } = require('../middleware/auth');
@@ -112,15 +113,22 @@ router.post(
     if (finalRoles.includes('company')) await CompanyProfile.ensureExists(user.id, req.body.company_name || user.name);
 
     /*
-     * NO REFERRAL ATTRIBUTION YET, and this is the only place it could ever happen.
+     * Referral attribution, at the one moment it can happen.
      *
-     * Registration is the single moment a referral can be attributed, so when referrals
-     * land they attach HERE — reading the session before the form field, because the
-     * session value was put there by the link the visitor actually followed while the
-     * field is whatever the browser posted and could name anybody. Noted rather than
-     * stubbed: a `req.body.ref` read into a table that does not exist is worse than
-     * nothing, because it looks like attribution is working.
+     * The SESSION value is read before the form field, and that order is the security of
+     * the whole scheme: the session value was put there by `captureReferralCode` from the
+     * link this visitor actually followed, while the field is whatever the browser posted
+     * and could name anybody. A form-first read would let one referrer claim another's
+     * introduction by posting their code.
+     *
+     * Never throws and is not awaited for correctness: attribution is a side effect of a
+     * registration that has already succeeded, and failing to record who introduced
+     * somebody must not fail the account.
      */
+    const referralCode = req.session.referralCode || req.body.ref || null;
+    if (referralCode) await Referral.attribute(referralCode, user.id);
+    delete req.session.referralCode;
+
 
     const { token } = await Token.issue('email_verification', user.id);
     email.send({

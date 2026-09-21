@@ -250,12 +250,22 @@ class Payment {
    * systems of record disagree about a refund, the one that is wrong is always the one
    * that is not the payment processor.
    *
-   * Guarded on `needs_refund = 1` so it reports honestly rather than silently succeeding
-   * against a payment that was never in the queue.
+   * Reports honestly rather than silently succeeding against a payment that was never
+   * settled in the first place.
    */
-  static async clearRefundFlag(id, { actorUserId = null, note = null } = {}) {
+  static async recordRefund(id, { actorUserId = null, note = null } = {}) {
+    /*
+     * Guarded on `status = 'paid'` rather than on the queue flag, and that widening is
+     * deliberate. The flag only marks money that could not be FULFILLED, which is money
+     * no commission was ever credited on; a refund of a payment that was fulfilled — a
+     * complaint, a duplicate, a goodwill decision — is the case that actually leaves
+     * something behind, and before this there was no path to record it at all.
+     *
+     * The status moves to `refunded` in the same statement that clears the flag, so the
+     * ledger says what happened rather than merely that a queue was emptied.
+     */
     const [result] = await promisePool.query(
-      'UPDATE payments SET needs_refund = 0 WHERE id = ? AND needs_refund = 1',
+      "UPDATE payments SET status = 'refunded', needs_refund = 0 WHERE id = ? AND status = 'paid'",
       [id]
     );
     if (result.affectedRows !== 1) return false;

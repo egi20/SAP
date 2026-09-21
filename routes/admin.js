@@ -10,11 +10,13 @@ const RateSubmission = require('../models/RateSubmission');
 const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
 const AppSetting = require('../models/AppSetting');
+const Referral = require('../models/Referral');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
 const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
 const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
+const { PAYOUT_METHODS, MIN_PAYOUT_MINOR, DEFAULT_RATE_BPS } = require('../config/referrals');
 const { roleLabel } = require('../config/roleTaxonomy');
 const { returnTo } = require('../utils/returnTo');
 const { promisePool } = require('../config/database');
@@ -396,15 +398,35 @@ router.post(
   requireIdParam('id'),
   writeLimiter,
   asyncHandler(async (req, res) => {
-    const cleared = await Payment.clearRefundFlag(req.params.id, {
+    const note = (req.body.note || '').trim() || null;
+    const recorded = await Payment.recordRefund(req.params.id, {
       actorUserId: req.session.user.id,
-      note: (req.body.note || '').trim() || null
+      note
     });
+
+    if (!recorded) {
+      req.flash('error', 'That payment is not in a state that can be refunded.');
+      return res.redirect(returnTo(req, '/admin/payments'));
+    }
+
+    /*
+     * And take back the commission it earned.
+     *
+     * NOT an automatic clawback — the distinction matters and it is the same one the rest
+     * of payments makes. Nothing in a webhook debits anybody: this runs because a person
+     * pressed this button, having already decided to give the money back. What it stops is
+     * that decision leaving an untracked debt behind it, which is what happens when the
+     * only correction available is a separate manual adjustment nobody is prompted to
+     * make. Reversing from the stored entry is also exact, where retyping the figure into
+     * an adjustment is how a balance ends up a cent out.
+     */
+    const { reversed } = await Referral.reverseForPayment(req.params.id, { note });
+
     req.flash(
-      cleared ? 'success' : 'error',
-      cleared
-        ? 'Marked as refunded. The payment stays in the ledger; only the queue flag is cleared.'
-        : 'That payment is not in the refund queue.'
+      'success',
+      reversed
+        ? `Marked as refunded, and ${formatMinor(Math.abs(reversed))} of commission reversed. Both stay in their ledgers.`
+        : 'Marked as refunded. The payment stays in the ledger; its status now says so.'
     );
     return res.redirect(returnTo(req, '/admin/payments'));
   })
@@ -436,6 +458,133 @@ router.get(
       priceInput: assistantConfig.PRICE_PER_MTOK_INPUT,
       priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT
     });
+  })
+);
+
+/* ---------------------------------------------------------------- referrals */
+
+/**
+ * GET /admin/referrals — who is owed what.
+ *
+ * Every balance on this page is a SUM over `commission_ledger`. There is no cached total
+ * anywhere to disagree with it, which is the whole reason the scheme has no balance
+ * columns: the first time a stored figure and its own history diverge, nobody can say
+ * which one somebody is actually owed.
+ */
+router.get(
+  '/referrals',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
+    const { rows, total } = await Referral.listAll({ limit, offset });
+
+    res.render('admin/referrals', {
+      title: 'Referrals and payouts',
+      referrers: rows,
+      payoutMethods: PAYOUT_METHODS,
+      minPayoutMinor: MIN_PAYOUT_MINOR,
+      defaultRateBps: DEFAULT_RATE_BPS,
+      formatMinor,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/admin/referrals', req.query, p)
+    });
+  })
+);
+
+/**
+ * POST /admin/referrals/:id/payout — record that a transfer was made.
+ *
+ * It settles the WHOLE unpaid balance, not an amount typed into a box. The reference took
+ * a requested figure and matched it against unpaid rows FIFO, which produced refusals like
+ * "requested €3 cannot be matched exactly by unpaid commissions" — a problem created
+ * entirely by that design. Settling everything unpaid has no remainder to explain.
+ *
+ * This records that money LEFT; it does not move any. There is no automated transfer here
+ * and there should not be: Stripe collects, a person pays out, and the gap between them is
+ * where somebody looks at the number before it goes.
+ */
+router.post(
+  '/referrals/:id/payout',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await Referral.payOut(req.params.id, {
+        method: req.body.method,
+        reference: req.body.reference || null,
+        note: req.body.note || null,
+        actorUserId: req.session.user.id
+      });
+      req.flash(
+        'success',
+        `Recorded a payout of ${formatMinor(result.amountMinor, result.currency)} covering ${result.entries} entries.`
+      );
+    } catch (err) {
+      if (!['NOTHING_TO_PAY', 'BELOW_MINIMUM', 'BAD_PAYOUT_METHOD'].includes(err.code)) throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect('/admin/referrals');
+  })
+);
+
+/**
+ * POST /admin/referrals/:id/adjust — a compensating entry.
+ *
+ * The only way a commission is ever reversed, and it takes a human and a reason that the
+ * referrer will see. There is deliberately no automatic clawback on a refund: a webhook
+ * silently debiting somebody's balance is how a referrer discovers from a dashboard that
+ * they owe money.
+ */
+router.post(
+  '/referrals/:id/adjust',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    try {
+      await Referral.adjust(req.params.id, {
+        // Entered in euros because that is what a person reading a refund thinks in;
+        // stored in cents because that is the only thing the ledger holds.
+        amountMinor: Math.round(Number(req.body.amount_eur) * 100),
+        note: req.body.note,
+        actorUserId: req.session.user.id
+      });
+      req.flash('success', 'Adjustment recorded. It is visible to the referrer with its reason.');
+    } catch (err) {
+      if (!['BAD_ADJUSTMENT', 'REASON_REQUIRED'].includes(err.code)) throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect('/admin/referrals');
+  })
+);
+
+router.post(
+  '/referrals/:id/active',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    await Referral.setActive(req.params.id, req.body.is_active === 'true');
+    // Note what this does NOT do: a retired referrer keeps every attribution and every
+    // entry already earned. Deactivating stops new introductions, it does not take money
+    // back.
+    req.flash('success', 'Referrer updated. Existing attributions and balances are untouched.');
+    return res.redirect('/admin/referrals');
+  })
+);
+
+router.post(
+  '/referrals/:id/rate',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const rate = await Referral.setRate(req.params.id, req.body.rate_bps);
+    // Only future introductions: `referral_attributions.rate_bps` snapshots the rate in
+    // force when the introduction was made, so nobody is repriced retroactively.
+    req.flash('success', `Rate set to ${rate / 100}% for introductions made from now on.`);
+    return res.redirect('/admin/referrals');
   })
 );
 

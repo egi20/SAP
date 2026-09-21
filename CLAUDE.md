@@ -393,6 +393,59 @@ though it were a finished answer.
 in a moment" is true; a 400 is the request shape being wrong, which fails identically
 forever, and the generic message would otherwise be a lie sitting in the log for weeks.
 
+## Referrals and commissions
+
+**There is no balance column anywhere.** A balance is `SUM(amount_minor)` over
+`commission_ledger`, exactly as a points total is a SUM over `points_ledger`. The
+reference kept `pending_earnings`, `total_earnings` and `paid_earnings` on the referrer
+row beside the rows they counted; the moment those disagree nobody can say which is right,
+and this is real money somebody is owed.
+
+**Everything is minor units and basis points, as integers.** `amount_minor * rate_bps /
+10000` is exact. The reference stored a DECIMAL percentage and reconciled payouts with
+`parseFloat` and a `+ 0.001` tolerance in every comparison — that tolerance IS the bug,
+made visible.
+
+**Attribution is first-touch, once, and permanent.** `referral_attributions` is UNIQUE on
+the referred account, and `middleware/referral.js` never overwrites a code already in the
+session. Last-touch would let anybody claim somebody else's introduction by getting a link
+in front of them the day before they pay.
+
+**The session is read before the posted field, and that ordering is the security of the
+scheme.** The session value came from a link this visitor followed; `req.body.ref` is
+whatever the browser sent and could name anybody.
+
+**`rate_bps` and `earns_until` are stamped at attribution**, not recomputed on read.
+Changing the rate or the window in config must never reprice or revive an introduction
+made under different terms. A test pins it.
+
+**A commission is earned when money is RECEIVED** — `Referral.credit` is called from
+`services/paymentFulfilment.js` and nowhere else. Crediting at checkout creation or on a
+quote's headline figure is how a scheme ends up owing a percentage of revenue that never
+arrived. It is NOT gated on which racer claimed the payment: the dedupe key makes a second
+call a no-op, and a commission that depends on who won the race goes missing the once the
+webhook lost.
+
+**A zero-value entry is still written.** "Your introduction bought something and it earned
+nothing, because that product does not pay commission" is information the referrer is
+owed; a gap is what produces the email asking where their money went.
+
+**A payout settles the whole unpaid balance, never a typed amount.** The reference matched
+a requested figure against unpaid rows FIFO and produced refusals like "requested €3 cannot
+be matched exactly" — a problem created entirely by that design. It records that money
+LEFT; nothing here moves any.
+
+**Recording a refund reverses that payment's commission, and nothing else ever claws one
+back automatically.** `Referral.reverseForPayment` runs from the admin refund button —
+after a person has already decided to give the money back — and writes a compensating
+entry computed from the stored earning, so it is exact where a retyped adjustment is not.
+The reference has no reversal at all, which leaves a refunded payment owing commission
+forever. A commission already paid out still reverses and the balance goes negative: the
+next payout settles less, which is the correct answer and a visible one.
+
+**Deactivating a referrer stops new introductions only.** It does not touch existing
+attributions or anything already earned.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

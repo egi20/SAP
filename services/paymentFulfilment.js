@@ -2,6 +2,7 @@
 
 const { promisePool, withTransaction } = require('../config/database');
 const Payment = require('../models/Payment');
+const Referral = require('../models/Referral');
 const Invoice = require('../models/Invoice');
 const Notification = require('../models/Notification');
 const { JOB_FEATURE_DAYS, formatMinor } = require('../config/payments');
@@ -172,15 +173,19 @@ async function fulfil(payment, { source = 'unknown', stripeSessionId = null, str
   }
 
   /*
-   * REFERRAL COMMISSION IS CREDITED HERE WHEN IT LANDS — on money actually received, and
-   * nowhere else.
+   * REFERRAL COMMISSION IS CREDITED HERE — on money actually received, and nowhere else.
    *
-   * Noted rather than stubbed. A scheme that credits at checkout creation, or on a quote's
-   * headline figure, ends up owing people a percentage of revenue that never arrived. When
-   * referrals arrive, the call goes at this exact point: after the fulfilment and the
-   * invoice, OUTSIDE their transaction, idempotent on the payment id and unable to throw —
-   * because a bookkeeping problem must not roll back a service the customer has paid for.
+   * A scheme that credits at checkout creation, or on a quote's headline figure, ends up
+   * owing people a percentage of revenue that never arrived. This is the exact point the
+   * earlier commit reserved for it: after the fulfilment and the invoice, OUTSIDE their
+   * transaction, idempotent on the payment id and unable to throw — because a bookkeeping
+   * problem must not roll back a service the customer has already paid for.
+   *
+   * Not gated on `claimed`, unlike the notification below. The dedupe key makes a second
+   * call a no-op, and a commission that depends on which racer won is a commission that
+   * goes missing the one time the webhook lost.
    */
+  await Referral.credit(settled);
 
   // Only the caller that actually claimed the payment tells the buyer, so a webhook and
   // a page refresh do not produce two receipts. The dedupe key would make a second one
