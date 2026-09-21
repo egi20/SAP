@@ -1,0 +1,114 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-chat-dots',
+  heading: 'Assistant usage',
+  sub: 'What the in-site assistant has cost this month, and against what cap.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'ai' }) %>
+  <%- include('../partials/flash') %>
+
+  <% if (!configured) { %>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i>
+      The assistant is not switched on for this deployment — <span class="font-monospace">ANTHROPIC_API_KEY</span>
+      is unset, so the widget is not rendered and the endpoint answers 503. The figures
+      below are whatever was spent before it was turned off.
+    </div>
+  <% } %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile icon-navy mb-2"><i class="bi bi-cash-stack"></i></span>
+        <p class="stat-value mb-0">$<%= budget.spentUsd.toFixed(2) %></p>
+        <p class="mb-0">Spent this month</p>
+        <p class="small text-muted-2 mb-0">calendar month, to match the invoice</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile <%= budget.percentUsed >= 80 ? 'icon-amber' : 'icon-navy' %> mb-2"><i class="bi bi-shield-check"></i></span>
+        <% if (budget.capped) { %>
+          <p class="stat-value mb-0"><%= budget.percentUsed %>%</p>
+          <p class="mb-0">of the $<%= budget.globalCapUsd %> cap</p>
+          <p class="small text-muted-2 mb-0">$<%= budget.remainingUsd.toFixed(2) %> left before it pauses</p>
+        <% } else { %>
+          <p class="stat-value mb-0">None</p>
+          <p class="mb-0">No global cap set</p>
+          <p class="small text-muted-2 mb-0">nothing bounds the invoice</p>
+        <% } %>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile icon-navy mb-2"><i class="bi bi-person-badge"></i></span>
+        <p class="stat-value mb-0">$<%= budget.userCapUsd %></p>
+        <p class="mb-0">Per signed-in account</p>
+        <p class="small text-muted-2 mb-0">anonymous visitors face the global cap only</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <h2 class="h5">What is answering</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Model</dt>
+        <dd class="col-sm-8 font-monospace"><%= model %></dd>
+        <dt class="col-sm-4">Effort</dt>
+        <dd class="col-sm-8"><%= effort %></dd>
+        <dt class="col-sm-4">Price used for the budget</dt>
+        <dd class="col-sm-8">$<%= priceInput %> in / $<%= priceOutput %> out, per million tokens</dd>
+      </dl>
+      <p class="small text-muted-2 mb-0 mt-3">
+        Those prices are what every figure on this page is computed from. If the model is
+        changed without changing them, the cap cuts off early or late and nothing else in
+        the system would notice — which is why both are asserted at boot and printed here.
+      </p>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="card-body">
+      <h2 class="h5">Last 30 days</h2>
+      <% if (!daily.length) { %>
+        <p class="text-muted-2 mb-0">Nothing recorded.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col" class="text-end">Calls</th>
+                <th scope="col" class="text-end">Errors</th>
+                <th scope="col" class="text-end">Input tokens</th>
+                <th scope="col" class="text-end">Output tokens</th>
+                <th scope="col" class="text-end">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% daily.forEach(function (d) { %>
+                <tr>
+                  <%# mysql2 returns a DATE as a JS Date, so it is formatted, never printed raw. %>
+                  <td class="small"><%= new Date(d.day).toLocaleDateString('en-GB') %></td>
+                  <td class="text-end"><%= d.calls %></td>
+                  <td class="text-end <%= Number(d.errors) > 0 ? 'text-danger' : '' %>"><%= d.errors %></td>
+                  <td class="text-end"><%= Number(d.input_tokens).toLocaleString('en-GB') %></td>
+                  <td class="text-end"><%= Number(d.output_tokens).toLocaleString('en-GB') %></td>
+                  <td class="text-end">$<%= Number(d.cost).toFixed(4) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

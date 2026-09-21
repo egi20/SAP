@@ -128,6 +128,23 @@ router.get('/legal/terms', (req, res) => {
 });
 
 /**
+ * GET /contact
+ *
+ * An address and what to say in the message, not a form. A contact form needs somewhere
+ * to put what it collects, a spam defence and somebody watching a queue; until all three
+ * exist, a mailto is the honest version — it cannot silently drop a message the way an
+ * unwatched form can.
+ *
+ * It exists because two things already pointed here: the pricing page's "ask us and we
+ * will invoice you directly", and the assistant, which is told to send every
+ * account-specific question to a person. Both were links to a 404 — found by the test
+ * that opens every path the assistant may name.
+ */
+router.get('/contact', (req, res) => {
+  res.render('legal/contact', { title: 'Contact us' });
+});
+
+/**
  * robots.txt and the sitemap are generated from the SAME allowlist, so the sitemap can
  * never advertise a URL that robots.txt disallows.
  */

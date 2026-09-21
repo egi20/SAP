@@ -331,6 +331,68 @@ equivalent and is not: MySQL resolves the name against the table's real columns 
 `rate_submissions.period` exists — it holds the rate's own period. That one series would
 group by the wrong column and then fail `only_full_group_by`.
 
+## The assistant
+
+A public endpoint that spends money per request, which is the only fact about it that
+matters. Everything below follows from it.
+
+**Three bounds, not one.** Per-IP rate limiting, a process-wide backstop, and a
+month-to-date spend cap in `utils/aiBudget.js`. Only the third one bounds the invoice: rate
+limiting bounds requests PER ADDRESS, and five hundred addresses each staying politely
+under the limit still produce an unbounded bill. The per-IP limiter is keyed on the IP and
+never on the session id — with `saveUninitialized: false` a cookie-less flood gets a fresh
+session id every request, so a session-keyed counter never accumulates.
+
+**The breaker fails OPEN and charges its own cache.** An unreadable ledger must not take
+the feature down, so a failed lookup allows the call and logs loudly. The check runs before
+the call and the cost is known only after it, so the cap is crossed by at most one
+exchange — and `chargeToCache` adds each call's cost to the cached total, or a burst inside
+one 45-second window would all read the same stale figure and sail past the cap together.
+There is a test for that burst.
+
+**Prices are part of the budget, so they are asserted at boot.** A token price of zero
+makes every call free, the breaker never trips, and the first anybody hears of it is the
+invoice. The model is an environment variable; the prices are two more, and changing the
+first without the other two is the failure this assertion exists for. `/admin/ai` prints
+all three together.
+
+**The long half of the system prompt must be byte-identical on every request.** The cache
+keys on an exact prefix, so the knowledge base is read once at module load and the
+per-viewer context is a SEPARATE, uncached block appended after it. Interpolating anything
+per-request into the prefix multiplies the input cost of the whole feature. A test asserts
+the split and that only the first block is marked cacheable.
+
+**What the site is ABOUT is generated, never typed.** The module catalogue, the role
+taxonomy and the Activate phases come from `config/*.js` into the prompt. A hand-typed list
+of SAP modules in a prompt is a second catalogue, and here the drift would be an assistant
+confidently naming a module the filters do not have. Only `docs/assistant-knowledge.md`
+describes how the site WORKS.
+
+**Every path the knowledge base names is opened by a test.** The prompt tells the model
+that this list is exhaustive and forbids inventing others, which makes a stale path worse
+than a missing one: the assistant sends somebody to a 404 with complete confidence and has
+no way of finding out it was wrong. That test found two on its first run.
+
+**The visitor's history is untrusted input.** It lives in their own sessionStorage, is
+posted back with every message, and is cut before it is walked, truncated per entry, and
+stripped of any role that is not `user` or `assistant`. A `system` turn in a posted history
+is not a typo to fix. Nothing is stored server-side: there are no conversation tables, for
+a feature that answers questions about public pages.
+
+**Only the account's SHAPE reaches the model** — signed in or not, and which marketplace
+roles. No name, no email, no id. It is also the only part of the prompt a user could
+influence, so keeping it to a closed set of booleans leaves nothing to inject into.
+
+**Thinking tokens count against `max_tokens`.** The reference's 700-token ceiling was right
+for a model that does not think; here it would spend the allowance reasoning and truncate
+the visible answer. Brevity comes from the prompt and the low effort level. A
+`stop_reason` of `max_tokens` is reported to the widget and labelled, never served as
+though it were a finished answer.
+
+**A 400 is logged as its own thing.** Every other failure here is transient and "try again
+in a moment" is true; a 400 is the request shape being wrong, which fails identically
+forever, and the generic message would otherwise be a lie sitting in the log for weeks.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

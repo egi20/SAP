@@ -71,7 +71,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Messaging | 5 | 5 | **done** |
 | Community, feed, points | 9 | 9 | **done** |
 | Payments: featured placements, deposits, invoices | 7 | 7 | **done** |
-| In-site assistant | 1 | 1 | after the core |
+| In-site assistant | 1 | 1 | **done** |
 | Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
 | Referrals & commissions | 4 | 4 | after the core |
 | LinkedIn confirmation | 3 | 3 | after the core |
@@ -347,6 +347,55 @@ obvious `new Date(j.published_at || j.created_at)` rendered every unpublished ad
 employer's status form, in the route that validates what that form posts, and in the admin
 filter, against an ENUM in migration 003 that is the actual authority. A unit test compares
 it — and `Moderation.SUBJECT_TYPES` — against the migration file itself.
+
+## The assistant
+
+One handler, as in the reference, and the design is taken almost whole: three independent
+bounds (per-IP, process-wide, month-to-date spend), a ledger the breaker reads, a system
+prompt split into a cached half and a per-viewer half, and no conversation storage at all.
+Four things changed.
+
+**The model is `claude-opus-5`, and the cost of that is stated rather than hidden.** The
+reference picked the cheap model on the grounds that site navigation help is lookup rather
+than reasoning — a defensible argument, and the wrong one to make silently on somebody
+else's behalf. An Opus answer costs roughly five times a Haiku one, so the same cap buys
+about a fifth as many exchanges. The model is therefore the one knob a deployment is
+expected to turn, `/admin/ai` prints which model is answering next to what it has spent,
+and the prices it is billed at are asserted at boot beside it — because a model changed
+through the environment without changing the two price variables makes the circuit-breaker
+cut off early or late, and nothing else in the system knows what a call costs.
+
+**Thinking tokens count against the output ceiling.** 700 tokens was right for a model that
+does not think. Here it would spend most of the allowance reasoning and truncate the
+visible answer mid-sentence, which reads as a broken feature rather than as a cap. The
+ceiling is 2000, brevity comes from the prompt and from a low effort level, and
+`stop_reason: max_tokens` is reported to the widget and labelled rather than served as a
+finished answer.
+
+**The breaker charges its own cache.** The month-to-date total is cached for 45 seconds, so
+a burst inside one window would otherwise all read the same stale figure and pass the cap
+together. Each call now adds its own cost to the cached total as well as to the ledger.
+There is a test that drives two expensive calls with no cache clear between them and
+asserts the second is refused.
+
+**What the site is ABOUT is generated from the catalogues, not typed into the prompt.** The
+product lines, their modules, the role taxonomy and the Activate phases are rendered into
+the cached prefix from `config/*.js` — the same source the job board, the estimator and the
+community read. A hand-typed list of SAP modules in a prompt is a second catalogue, and the
+drift would be an assistant confidently naming a module the filters do not have.
+
+**And the test that opens every path the assistant may link to found two on its first
+run.** The prompt tells the model the knowledge base lists every path it may use and
+forbids inventing others, which makes a stale one worse than a missing one. `/contact` did
+not exist — and the pricing page has been linking to it since the payments area, so "ask us
+and we will invoice you directly" was a link to a 404. `/legal/cookies` did not exist
+either; that one was removed from the knowledge base rather than invented into being, since
+there is no cookie policy to point at.
+
+Open, and stated rather than glossed: the request shape has never been exercised against a
+live key. A wrong shape is a 400 on every call, so the route logs that case as its own kind
+of failure — "this will not recover on its own" — instead of hiding it behind the
+transient-failure message, and `/admin/ai` shows the daily error count beside the spend.
 
 ## What the core build actually found
 

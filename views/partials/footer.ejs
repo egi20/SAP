@@ -36,5 +36,8 @@
   </div>
 </footer>
 
+<% if (assistantReady) { %><%- include('assistant') %><% } %>
+
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>
+<% if (assistantReady) { %><script src="/js/assistant.js"></script><% } %>

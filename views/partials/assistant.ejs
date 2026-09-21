@@ -1,0 +1,52 @@
+<%
+  /*
+   * The assistant widget.
+   *
+   * Rendered only when the feature is actually configured — see `assistantReady`, set in
+   * server.js. A launcher that opens a panel which answers 503 is worse than no launcher:
+   * it advertises something the deployment does not have.
+   *
+   * Everything here is plain markup and a progressively-enhanced script. With JavaScript
+   * off the launcher is not shown at all, because a chat box that cannot send is furniture.
+   */
+%>
+<div class="assistant" id="assistant" hidden>
+  <button class="assistant-launcher" type="button" id="assistantLauncher"
+          aria-expanded="false" aria-controls="assistantPanel">
+    <i class="bi bi-chat-dots" aria-hidden="true"></i>
+    <span>Ask about the Hub</span>
+  </button>
+
+  <section class="assistant-panel" id="assistantPanel" hidden aria-labelledby="assistantTitle">
+    <header class="assistant-head">
+      <h2 class="h6 mb-0" id="assistantTitle">Hub assistant</h2>
+      <button class="btn-close" type="button" id="assistantClose" aria-label="Close the assistant"></button>
+    </header>
+
+    <div class="assistant-log" id="assistantLog" role="log" aria-live="polite">
+      <div class="assistant-msg assistant-msg-bot">
+        <p class="mb-0">
+          I answer questions about how SAP Hub works — the job board, the rate index, the
+          scope estimator, quotes and the community. I cannot see your account, and I do
+          not give SAP consulting advice.
+        </p>
+      </div>
+    </div>
+
+    <form class="assistant-form" id="assistantForm" data-no-guard="true">
+      <label class="visually-hidden" for="assistantInput">Your question</label>
+      <input class="form-control" type="text" id="assistantInput" name="message"
+             maxlength="<%= assistantMaxChars %>" autocomplete="off"
+             placeholder="How does the rate index work?">
+      <button class="btn btn-primary" type="submit" id="assistantSend">
+        <i class="bi bi-send" aria-hidden="true"></i>
+        <span class="visually-hidden">Send</span>
+      </button>
+    </form>
+
+    <p class="assistant-foot">
+      Answers come from a language model and can be wrong. Nothing you type here is stored
+      on the server.
+    </p>
+  </section>
+</div>

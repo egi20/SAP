@@ -25,6 +25,7 @@
     "setup": "npm run db:create && npm run migrate && npm run sync:catalogues"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.3",

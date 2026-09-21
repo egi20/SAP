@@ -84,6 +84,16 @@ const config = {
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
   },
+
+  assistant: {
+    /*
+     * Unset disables the assistant the same way an unset Stripe key disables payments:
+     * the widget is never rendered and the endpoint answers 503. Everything else about
+     * the feature — model, caps, limits — lives in config/assistant.js, which asserts
+     * itself at boot.
+     */
+    apiKey: process.env.ANTHROPIC_API_KEY || ''
+  },
   rates: {
     // Privacy floor: never publish an aggregate derived from fewer than this many
     // distinct people. Counting people (not submissions) is part of the rule.

@@ -29,10 +29,11 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | Deliverables: SOW (.docx), work breakdown with a Gantt (.xlsx), summary deck (.pptx), zipped | built |
 | Payments: featured placements, quote deposits, invoices, Stripe webhook | built |
 | Admin: users and roles, jobs, moderation, rates, payments, settings, analytics | built |
+| In-site assistant, with a spend cap, a ledger and no stored transcripts | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: the in-site assistant, referrals,
-LinkedIn confirmation, search, recruiters, the sales CRM and finance. See
+Not built yet, and listed so nobody mistakes the scope: referrals, LinkedIn confirmation,
+search, recruiters, the sales CRM and finance. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 

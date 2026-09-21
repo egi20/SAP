@@ -1,0 +1,55 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-envelope',
+  heading: 'Contact us',
+  sub: 'A person reads these.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">Email</h2>
+      <p class="mb-3">
+        <a class="fs-5" href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
+      </p>
+      <%#
+        An address rather than a form, deliberately. A contact form needs somewhere to put
+        what it collects, a spam defence and somebody watching a queue; until all three
+        exist, a form is the version that can silently drop a message and let both sides
+        believe it was sent.
+      %>
+      <p class="text-muted-2 mb-0">
+        We answer during UK working hours. Please include your account email if your
+        question is about something on your account — we cannot look anybody up from a
+        name alone.
+      </p>
+    </div></div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">What to tell us</h2>
+      <ul class="mb-0">
+        <li><strong>A payment or an invoice</strong> — the payment reference from
+            <a href="/payments/history">your payments page</a>. It starts with <code>PAY-</code>.</li>
+        <li><strong>A quote</strong> — the quote reference, which starts with <code>Q-</code>.</li>
+        <li><strong>A job or an application</strong> — the link to the advert.</li>
+        <li><strong>Something that looks wrong on the site</strong> — the page you were on and
+            what you expected to happen.</li>
+        <li><strong>Your data, or closing your account</strong> — say so plainly and we will
+            handle it under the <a href="/legal/privacy">privacy policy</a>.</li>
+      </ul>
+    </div></div>
+
+    <div class="glass-card"><div class="card-body">
+      <h2 class="h5">Before you write</h2>
+      <p class="mb-0 text-muted-2">
+        Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
+        built is explained on <a href="/rates">the index itself</a>, and what the estimator
+        does with your inputs is on <a href="/quotes/new">the estimator</a>. The assistant in
+        the corner of the page answers questions about how the Hub works — though it cannot
+        see your account, so anything account-specific still comes here.
+      </p>
+    </div></div>
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

@@ -18,6 +18,7 @@ const { assertSettingsIntegrity } = require('./config/settings');
 const { assertEstimationIntegrity } = require('./config/estimation');
 const { assertCommunityIntegrity } = require('./config/community');
 const { assertPaymentIntegrity, WEBHOOK_PATH } = require('./config/payments');
+const assistantConfig = require('./config/assistant');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -54,6 +55,13 @@ assertCommunityIntegrity();
 // And money: a product with no resolver, a non-integer price or a deposit floor above its
 // own cap is a silently wrong charge rather than a visible failure.
 assertPaymentIntegrity();
+/*
+ * And the assistant: a token price of zero makes every call free, so the spend
+ * circuit-breaker never trips and the first anybody hears of it is the invoice. An effort
+ * level the API does not accept is a 400 on every request, which this endpoint's own error
+ * path turns into "please try again in a moment" forever.
+ */
+assistantConfig.assertAssistantIntegrity();
 
 const app = express();
 
@@ -220,6 +228,12 @@ app.use(
 // Locals every template can rely on.
 app.use((req, res, next) => {
   res.locals.appName = config.app.name;
+  /*
+   * The widget is rendered only where the feature is actually configured. A launcher that
+   * opens a panel which answers 503 advertises something the deployment does not have.
+   */
+  res.locals.assistantReady = assistantConfig.isConfigured();
+  res.locals.assistantMaxChars = assistantConfig.MAX_MESSAGE_CHARS;
   res.locals.supportEmail = config.app.supportEmail;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;
@@ -253,6 +267,7 @@ app.use('/messages', require('./routes/messages'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));
 app.use('/admin', require('./routes/admin'));
+app.use('/assistant', require('./routes/assistant'));
 
 app.use(notFound);
 app.use(errorHandler);

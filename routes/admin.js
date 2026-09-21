@@ -10,6 +10,9 @@ const RateSubmission = require('../models/RateSubmission');
 const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
 const AppSetting = require('../models/AppSetting');
+const ApiUsage = require('../models/ApiUsage');
+const assistantConfig = require('../config/assistant');
+const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
 const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
 const { roleLabel } = require('../config/roleTaxonomy');
@@ -404,6 +407,35 @@ router.post(
         : 'That payment is not in the refund queue.'
     );
     return res.redirect(returnTo(req, '/admin/payments'));
+  })
+);
+
+/* ---------------------------------------------------------------- assistant */
+
+/**
+ * GET /admin/ai — what the assistant has cost.
+ *
+ * The number that matters is month-to-date against the cap, because that cap is the only
+ * thing bounding a public endpoint that spends money per request. Everything else on this
+ * page is context for it — including which model is answering and at what price, since
+ * those two are what the budget arithmetic is built on and the pair most likely to drift
+ * apart when somebody changes the model through the environment.
+ */
+router.get(
+  '/ai',
+  asyncHandler(async (req, res) => {
+    const [budget, daily] = await Promise.all([budgetStatus(), ApiUsage.dailyCost({ days: 30 })]);
+
+    return res.render('admin/ai', {
+      title: 'Assistant usage',
+      budget,
+      daily,
+      model: assistantConfig.MODEL,
+      effort: assistantConfig.EFFORT,
+      configured: assistantConfig.isConfigured(),
+      priceInput: assistantConfig.PRICE_PER_MTOK_INPUT,
+      priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT
+    });
   })
 );
 
