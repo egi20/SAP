@@ -1,0 +1,94 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section py-5">
+<div class="container">
+  <div class="invoice-sheet">
+    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+      <a class="btn btn-sm btn-outline-primary" href="/payments/history"><i class="bi bi-arrow-left"></i> All payments</a>
+      <button class="btn btn-sm btn-primary" type="button" data-print>
+        <i class="bi bi-printer"></i> Print
+      </button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+          <div>
+            <div class="h4 mb-1"><%= appName %></div>
+            <p class="small text-muted-2 mb-0">Invoice</p>
+          </div>
+          <div class="text-end">
+            <div class="h5 mb-1"><%= invoice.number %></div>
+            <p class="small text-muted-2 mb-0">
+              Issued <%= new Date(invoice.issued_at).toLocaleDateString('en-GB') %>
+            </p>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <div class="col-sm-6">
+            <dl class="invoice-meta mb-0">
+              <dt>Billed to</dt>
+              <dd>
+                <%= invoice.bill_to_name %><br>
+                <% if (invoice.bill_to_company) { %><%= invoice.bill_to_company %><br><% } %>
+                <span class="text-muted-2"><%= invoice.bill_to_email %></span>
+              </dd>
+            </dl>
+          </div>
+          <div class="col-sm-6">
+            <dl class="invoice-meta mb-0">
+              <dt>Payment reference</dt>
+              <dd><code><%= invoice.payment_reference %></code></dd>
+              <% if (invoice.paid_at) { %>
+                <dt>Paid</dt>
+                <dd><%= new Date(invoice.paid_at).toLocaleDateString('en-GB') %></dd>
+              <% } %>
+            </dl>
+          </div>
+        </div>
+
+        <table class="table mb-4">
+          <thead>
+            <tr><th scope="col">Description</th><th scope="col" class="text-end">Amount</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><%= invoice.description %></td>
+              <td class="text-end"><%= formatMinor(invoice.subtotal_minor, invoice.currency) %></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" class="text-end">Total</th>
+              <td class="text-end invoice-total"><%= formatMinor(invoice.total_minor, invoice.currency) %></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <%
+          /*
+           * The price basis, shown rather than hidden. It is what the amount was derived
+           * FROM, captured at checkout, so an invoice can be explained years later without
+           * re-deriving anything from a catalogue that has since moved.
+           */
+          const basis = invoice.price_basis && typeof invoice.price_basis === 'string'
+            ? (function () { try { return JSON.parse(invoice.price_basis); } catch (e) { return null; } })()
+            : invoice.price_basis;
+        %>
+        <% if (basis && basis.percent) { %>
+          <p class="small text-muted-2 mb-0">
+            <%= basis.percent %>% of a quoted total of
+            <%= Number(basis.quoteTotal).toLocaleString('en-GB') %> <%= invoice.currency %><% if (basis.catalogueVersion) { %>,
+            priced under catalogue <code><%= basis.catalogueVersion %></code><% } %>.
+          </p>
+        <% } else if (basis && basis.days) { %>
+          <p class="small text-muted-2 mb-0">Flat fee for a <%= basis.days %>-day featured placement.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

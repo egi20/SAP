@@ -69,8 +69,8 @@ sound go-live fails — and it is a line item on real statements of work.
 | Scope estimator & quotes | 10 | 6 | **done** |
 | Documents: SOW, WBS, deck | 17 | 1 | **done** — one handler, four kinds |
 | Messaging | 5 | 5 | **done** |
-| Community, feed, points | 9 | ~9 | after the core |
-| Payments: featured placements, deposits, invoices | 7 | ~7 | after the core |
+| Community, feed, points | 9 | 9 | **done** |
+| Payments: featured placements, deposits, invoices | 7 | 7 | **done** |
 | In-site assistant | 1 | 1 | after the core |
 | Admin: users, jobs, moderation, analytics, settings | 33 | ~18 | after the core |
 | Referrals & commissions | 4 | 4 | after the core |
@@ -262,6 +262,42 @@ Also closed here: the three forms the core commit left as comments — asking th
 about a role, approaching a listed consultant about one, and opening the thread for an
 application. They were deliberately not stubbed, because a button posting to a route that
 does not exist fails in the one place somebody is trying to reach a person.
+
+## Payments
+
+Seven handlers, the same seven as the reference: checkout for each of the two products, the
+webhook, success and cancel, the buyer's history, and one invoice. What changed is where the
+guarantees live.
+
+**The price moved out of the request.** The reference's featured-placement checkout reads
+`req.body.amount` and trusts it, which is the oldest hole in e-commerce; it is unexploited
+there only because the template happens to post the right number. Here a checkout takes a
+subject id, and `config/payments.js` derives the amount from the row after checking the
+signed-in user owns it. An integration test posts a price and proves it never lands.
+
+**The idempotency moved into the schema.** The reference fulfils inside
+`if (payment.status !== 'paid')`, which is a check-then-act: Stripe redelivers, the success
+page is refreshed, and two fulfilments run from one payment. `Payment.markPaid` updates
+conditionally and returns whether this caller moved the row, so the database picks the
+winner. A test drives the same payment through fulfilment twice and asserts one window and
+one invoice come out.
+
+**The cap turned out to be the normal case, not the edge.** A ten per cent deposit is
+sensible against the reference's five-figure engagements. Against an SAP programme it is six
+figures, well past what a card will authorise, so `DEPOSIT_MAX_MINOR` binds on almost every
+quote this application prices. That is a copy problem before it is a code problem:
+`depositForTotal` therefore returns the `basis` that produced the number, the quote shows the
+rule and the balance left to invoice, and the pricing page leads with "10%, up to €25,000"
+rather than burying the cap in a footnote. €2,237,250 of scope takes €25,000 — 1.1%, and the
+page says so before anybody clicks.
+
+**No automatic refund.** Two deposits against one quote flags the loser `needs_refund` and
+issues it no invoice. The alternative is a webhook handler that reverses a charge on a
+partial view of the world.
+
+This area also closed three promises the earlier commits left open: the paid placement the
+job board's `is_featured` ordering was written for but nothing could buy, the CSRF `exempt`
+predicate that had no exempt route to justify it, and the Stripe block in `config/config.js`.
 
 ## What the core build actually found
 

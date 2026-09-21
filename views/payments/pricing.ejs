@@ -1,0 +1,85 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-credit-card',
+  heading: 'Pricing',
+  sub: 'Two paid things. Everything else on the Hub is free.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (!stripeReady) { %>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i>
+      Card payments are not switched on for this deployment yet. Everything below is still
+      available — <a href="/contact">ask us</a> and we will invoice you directly.
+    </div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="card-body">
+          <span class="icon-tile icon-amber mb-3"><i class="bi bi-stars"></i></span>
+          <h2 class="h4">Featured job placement</h2>
+          <p class="invoice-total mb-1"><%= formatMinor(jobFeaturePrice) %></p>
+          <p class="text-muted-2 small">per job, per <%= jobFeatureDays %> days</p>
+          <p>
+            Your role sits at the top of the board and carries a Featured label, in whatever
+            order the reader has chosen to sort by. Buying again while a window is open
+            extends it rather than replacing it.
+          </p>
+          <p class="small text-muted-2 mb-0">
+            Bought from the job itself: open a job you have published and choose
+            <strong>Feature this job</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="card-body">
+          <span class="icon-tile icon-blue mb-3"><i class="bi bi-file-earmark-text"></i></span>
+          <h2 class="h4">Project deposit</h2>
+          <p class="invoice-total mb-1"><%= depositPercent %>%, up to <%= formatMinor(depositMax) %></p>
+          <p class="text-muted-2 small">of an accepted quote, <%= formatMinor(depositMin) %> minimum</p>
+          <p>
+            Take a deposit against a scope estimate your client has accepted. The amount comes
+            from the quote's own stored total — the figure that was actually presented — not
+            from today's catalogue, so a quote priced last quarter takes last quarter's deposit.
+          </p>
+          <%#
+            The cap is stated as part of the headline rather than as a footnote, because on
+            the quotes this application prices it is the NORMAL case: an SAP programme runs
+            to seven figures, so ten per cent is far above what a card will authorise and
+            the deposit tops out almost every time. A page that leads with "10%" and charges
+            one would be a page that is wrong more often than it is right.
+          %>
+          <p class="small text-muted-2 mb-0">
+            On an SAP-sized programme the cap is what applies: ten per cent of a
+            seven-figure total is well beyond what a card will authorise. The exact amount,
+            the share of the total it works out at and the balance left to invoice are all
+            shown on the quote before you take it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card mt-4">
+    <div class="card-body">
+      <h2 class="h5">What we do not charge for</h2>
+      <p class="mb-0 text-muted-2">
+        Posting a job, applying for one, the rate index, the scope estimator, messaging and the
+        community are free and stay free. A marketplace that charges to be seen ends up ranking
+        by budget, and the rate index only means anything while everybody is still in it.
+      </p>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

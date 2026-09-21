@@ -17,6 +17,7 @@ const { assertCertificationIntegrity } = require('./config/certifications');
 const { assertSettingsIntegrity } = require('./config/settings');
 const { assertEstimationIntegrity } = require('./config/estimation');
 const { assertCommunityIntegrity } = require('./config/community');
+const { assertPaymentIntegrity, WEBHOOK_PATH } = require('./config/payments');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -50,6 +51,9 @@ assertEstimationIntegrity();
 // a level band that does not start above the one below it makes `levelFor` return the
 // wrong title for everybody in it.
 assertCommunityIntegrity();
+// And money: a product with no resolver, a non-integer price or a deposit floor above its
+// own cap is a silently wrong charge rather than a visible failure.
+assertPaymentIntegrity();
 
 const app = express();
 
@@ -103,6 +107,16 @@ app.use((req, res, next) => {
 });
 
 app.use(morgan(config.isProduction ? 'combined' : 'dev'));
+
+/*
+ * The Stripe webhook needs the RAW bytes, and it needs them BEFORE any JSON parser sees
+ * the stream. Stripe's signature covers exactly what it sent; a body that has been parsed
+ * and re-serialised will not verify, however identical it looks.
+ *
+ * Mounting the raw parser first also disarms the JSON parser below for this one path:
+ * body-parser marks the request as read and every later parser skips it.
+ */
+app.use(WEBHOOK_PATH, express.raw({ type: 'application/json', limit: '1mb' }));
 
 // 5 MB rather than the 100 kB default: long rich-text bodies were being rejected with a
 // bare 413 that gave the author no way to recover their draft.
@@ -177,14 +191,13 @@ app.use(
 
 app.use(flash());
 /*
- * No exemptions yet, and the predicate stays because of how the first one will arrive.
- *
- * A signed webhook — a payment provider, later — has no browser, no session and no page to
- * read a token from, so it authenticates with a signature over its raw body instead. When
- * that lands it is exempted THROUGH this predicate rather than by being mounted outside
- * the middleware, which is the difference between a documented hole and an accidental one.
+ * The webhook is the one exempt route, and it is exempt THROUGH the predicate rather than
+ * by being mounted outside the middleware — which is the difference between a documented
+ * hole and an accidental one. It authenticates itself with a Stripe signature over the raw
+ * body, a stronger check than a token it could not carry anyway: it has no browser, no
+ * session and no page to read one from.
  */
-app.use(csrfProtection());
+app.use(csrfProtection({ exempt: (req) => req.path === WEBHOOK_PATH }));
 app.use(validateActiveAccount);
 app.use(visitGeo);
 app.use(seoLocals);
@@ -235,6 +248,7 @@ app.use('/jobs', require('./routes/jobs'));
 app.use('/applications', require('./routes/applications'));
 app.use('/quotes', require('./routes/quotes'));
 app.use('/community', require('./routes/community'));
+app.use('/payments', require('./routes/payments'));
 app.use('/messages', require('./routes/messages'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));

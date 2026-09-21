@@ -73,6 +73,17 @@ const config = {
     maxPhotoBytes: 5 * 1024 * 1024,
     maxDocumentBytes: 10 * 1024 * 1024
   },
+  stripe: {
+    /*
+     * Unset keys disable payments ENTIRELY rather than half-enabling them: the routes
+     * offer a "not available" path and no checkout can be created. Half-configured is the
+     * worse failure — a button that appears, takes somebody to a checkout, and fails after
+     * they have entered a card number. See utils/stripe.js.
+     */
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
+  },
   rates: {
     // Privacy floor: never publish an aggregate derived from fewer than this many
     // distinct people. Counting people (not submissions) is part of the rule.

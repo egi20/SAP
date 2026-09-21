@@ -221,6 +221,52 @@ reference declares a private `wantsJson` in `routes/messages.js` that disagrees 
 auth guard about a request carrying no `Sec-Fetch-Dest`, so a plain Node client is
 redirected by the guard and answered in JSON by the handler behind it.
 
+## Payments
+
+Two things are for sale — a featured job placement and a deposit against an accepted quote —
+and `config/payments.js` is the only place that knows what either costs.
+
+**A price is DERIVED, never accepted.** `resolveJobFeature` and `resolveQuoteDeposit` take a
+subject id and the signed-in user, load the row, check ownership and eligibility, and return
+an amount. Nothing reads an amount from the request body, and `Payment.create` throws on
+anything that is not a positive integer of minor units, so a price cannot be smuggled in one
+layer further down. There is a test that posts an `amount` and proves it never reaches the
+payment.
+
+**Idempotency lives in the schema.** `quote_deposits.quote_id` and
+`job_feature_windows`' active window are unique keys, not `if (alreadyPaid) return` branches.
+A redelivered webhook and a refreshed success page race each other on every real deployment;
+`Payment.markPaid` updates conditionally and reports whether THIS call moved the row, so
+exactly one of them fulfils. `payment_events.stripe_event_id` is unique for the same reason —
+a retried delivery does not grow a second line of history.
+
+**Fulfilment is not gated on the status column.** It is gated on the claim. Reading the
+status and then acting on it is a check-then-act with a gap in the middle; `markPaid`
+returning true IS the permission to fulfil, because the database decided it.
+
+**Money we cannot fulfil is a queue, not an automatic refund.** Two people paying a deposit
+on the same quote is rare and real. The second payment is flagged `needs_refund` and gets no
+invoice. Reversing a charge from inside a webhook handler is an irreversible action taken on
+a partial view of the world, so a person works the queue.
+
+**The deposit states which rule produced it.** `depositForTotal` returns the amount and its
+`basis` — `percent`, `floor` or `cap` — plus the share of the total it actually works out
+at. This is not decoration: an SAP programme runs to seven figures, so ten per cent is far
+above what a card will authorise and the CAP is the normal case, not the exception. A page
+that says "10%" and charges €25,000 is a page that is wrong more often than it is right, so
+the quote shows the amount, the rule, the real percentage and the balance left to invoice.
+
+**The webhook is raw-bodied and CSRF-exempt, deliberately and narrowly.** `server.js` mounts
+`express.raw` on `WEBHOOK_PATH` BEFORE the JSON parsers (a parsed body cannot be signature
+checked), and the route is exempted through the `exempt` predicate rather than by being
+mounted outside the middleware — see the CSRF section. Without `STRIPE_WEBHOOK_SECRET` the
+handler refuses every delivery instead of trusting the body.
+
+**Invoices snapshot the buyer.** Name, address and VAT number are copied onto the invoice
+row at the moment it is issued. An invoice that re-reads the user table is an invoice that
+rewrites itself when somebody moves office, which is the one thing a receipt must not do.
+Same reasoning as a quote's stored breakdown.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

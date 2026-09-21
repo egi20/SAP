@@ -121,7 +121,22 @@ maybe()('a role posted with modules reaches the consultant who delivered them', 
       });
     expect(posted.status).toBe(302);
 
-    const [[job]] = await promisePool.query('SELECT slug, status FROM jobs LIMIT 1');
+    /*
+     * Scoped to the account this suite owns. The first version was
+     * `SELECT slug, status FROM jobs LIMIT 1`, which was green only for as long as this
+     * was the one suite that had ever written a job — the payments suite posts one too,
+     * and then this picked up whichever row the server happened to hand back first and
+     * asserted this suite's phase against somebody else's advert.
+     */
+    const [[job]] = await promisePool.query(
+      `SELECT j.slug, j.status
+         FROM jobs j
+         JOIN users u ON u.id = j.company_user_id
+        WHERE u.email = ?
+        ORDER BY j.id DESC
+        LIMIT 1`,
+      ['hiring@example.test']
+    );
     expect(job.status).toBe('open');
     jobSlug = job.slug;
   });

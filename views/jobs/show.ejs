@@ -93,8 +93,31 @@
             </form>
             <p class="small text-muted-2 mt-3 mb-0"><%= job.view_count %> views</p>
 
-            <%# Featured placement is a paid product and arrives with payments. Nothing is %>
-            <%# offered here until there is something to sell and a way to charge for it. %>
+            <hr>
+            <h2 class="h6">Featured placement</h2>
+            <% if (featuredUntil) { %>
+              <p class="small mb-2">
+                <span class="badge-hub featured"><i class="bi bi-stars"></i> Featured</span>
+                until <%= new Date(featuredUntil).toLocaleDateString('en-GB') %>.
+              </p>
+              <p class="small text-muted-2">Buying another window extends this one rather than replacing it.</p>
+            <% } else { %>
+              <p class="small text-muted-2">
+                Put this role at the top of the board for <%= jobFeatureDays %> days.
+              </p>
+            <% } %>
+            <% if (job.status === 'open') { %>
+              <form method="post" action="/payments/checkout/job_feature">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="subjectId" value="<%= job.id %>">
+                <input type="hidden" name="redirectTo" value="/jobs/<%= job.slug %>">
+                <button class="btn btn-outline-primary w-100 btn-sm" type="submit">
+                  <%= featuredUntil ? 'Extend by' : 'Feature for' %> <%= jobFeatureDays %> days — <%= jobFeaturePrice %>
+                </button>
+              </form>
+            <% } else { %>
+              <p class="small text-muted-2 mb-0">Only an open job can be featured.</p>
+            <% } %>
 
           <% } else if (currentUser && currentUser.isConsultant) { %>
             <% if (application && application.status !== 'withdrawn') { %>

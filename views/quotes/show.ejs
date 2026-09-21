@@ -240,6 +240,54 @@
         </div>
       </div>
 
+      <% if (deposit || depositQuote) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Deposit</h2>
+
+            <% if (deposit) { %>
+              <p class="mb-1">
+                <span class="badge-hub ok"><i class="bi bi-check2-circle"></i> Paid</span>
+                <%= formatMinor(deposit.amount_minor, deposit.currency) %>
+              </p>
+              <p class="form-text mb-0">
+                Taken on <%= new Date(deposit.created_at).toLocaleDateString('en-GB') %>.
+              </p>
+            <% } else { %>
+              <p class="invoice-total mb-1"><%= formatMinor(depositQuote.amountMinor) %></p>
+
+              <%#
+                Which rule set the amount, in words. On an SAP-sized total the cap applies
+                almost every time, so "10% deposit" would be wrong on most quotes this
+                application prices — see config/payments.js.
+              %>
+              <p class="form-text mt-0">
+                <% if (depositQuote.basis === 'cap') { %>
+                  Capped. That is <%= depositQuote.percentOfTotal %>% of the total rather than
+                  the usual <%= depositPercent %>%, because ten per cent of this programme is
+                  more than a card will authorise.
+                <% } else if (depositQuote.basis === 'floor') { %>
+                  The minimum deposit, which is <%= depositQuote.percentOfTotal %>% of this total.
+                <% } else { %>
+                  <%= depositPercent %>% of the quoted total.
+                <% } %>
+                <br>
+                <strong><%= formatMinor(depositQuote.balanceMinor) %></strong> remains to be invoiced.
+              </p>
+
+              <form method="post" action="/payments/checkout/quote_deposit">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="subjectId" value="<%= quote.id %>">
+                <input type="hidden" name="redirectTo" value="/quotes/<%= quote.reference %>">
+                <button class="btn btn-primary w-100 btn-sm" type="submit">
+                  Take the deposit
+                </button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
       <div class="glass-card mb-3">
         <div class="card-body">
           <h2 class="h6 mb-2">Assumptions</h2>

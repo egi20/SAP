@@ -20,6 +20,8 @@ const {
 } = require('../config/estimation');
 const { PRODUCT_LINES, isModule, lineByValue } = require('../config/sapProducts');
 const { sanitizeRichText } = require('../utils/sanitize');
+const { depositForTotal, formatMinor, DEPOSIT_PERCENT } = require('../config/payments');
+const Payment = require('../models/Payment');
 const { returnTo } = require('../utils/returnTo');
 const {
   DOCUMENT_KINDS,
@@ -230,11 +232,17 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const [events, modules, downloads] = await Promise.all([
+    const [events, modules, downloads, deposit] = await Promise.all([
       Quote.events(quote.id),
       Quote.modulesFor(quote.id),
-      Quote.downloads(quote.id, { limit: 10 })
+      Quote.downloads(quote.id, { limit: 10 }),
+      Payment.depositForQuote(quote.id)
     ]);
+
+    // Priced from the quote's OWN stored total, never from today's catalogue — the same
+    // rule the estimate itself follows. `basis` says which rule set the amount, because on
+    // an SAP-sized total it is almost always the cap rather than the percentage.
+    const depositQuote = quote.status === 'accepted' && !deposit ? depositForTotal(quote.total_budget) : null;
 
     /*
      * A quote priced under an older catalogue is FLAGGED, not silently re-priced.
@@ -253,6 +261,10 @@ router.get(
       events,
       stale,
       downloads,
+      deposit,
+      depositQuote,
+      depositPercent: DEPOSIT_PERCENT,
+      formatMinor,
       documentKinds: DOCUMENT_KINDS,
       currentCatalogue: catalogueVersion(),
       transitionApproaches: TRANSITION_APPROACHES,

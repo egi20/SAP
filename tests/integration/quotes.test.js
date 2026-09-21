@@ -127,7 +127,17 @@ maybe()('producing and keeping an estimate', () => {
       });
 
     expect(posted.status).toBe(302);
-    const [[row]] = await promisePool.query('SELECT reference FROM quotes LIMIT 1');
+    // Scoped to this suite's own author, for the reason spelled out in marketplace.test.js:
+    // an unscoped LIMIT 1 reads whichever suite wrote last.
+    const [[row]] = await promisePool.query(
+      `SELECT q.reference
+         FROM quotes q
+         JOIN users u ON u.id = q.owner_user_id
+        WHERE u.email = ?
+        ORDER BY q.id DESC
+        LIMIT 1`,
+      ['partner@example.test']
+    );
     reference = row.reference;
   });
 

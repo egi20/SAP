@@ -14,20 +14,29 @@ const SORTS = {
   relevance: 'j.published_at DESC, j.id DESC'
 };
 
-/*
- * NO FEATURED PLACEMENT YET, and its absence is deliberate rather than forgotten.
+/**
+ * Whether a paid featured window is open on this job right now.
  *
- * The reference sorts paid placements to the head of every list through a correlated
- * EXISTS over `job_features`. That table arrives with payments (migration 010 there), and
- * writing the read side first would mean either a query against a table that does not
- * exist or a `is_featured` column that nothing ever sets — a sort key permanently stuck at
- * 0, which looks like working code. When payments land, the placement window is asked for
- * at READ time, exactly as the reference does it: a boolean column would need something to
- * come round and unset it, and the day that job fails to run is the day somebody keeps a
- * placement they stopped paying for.
+ * A correlated EXISTS rather than a column on `jobs`, because a window EXPIRES: a boolean
+ * flag would need something to come round and unset it, and the day that job fails to run
+ * is the day somebody keeps a placement they stopped paying for. Asking the question at
+ * read time cannot go stale. Overlapping rows are expected — a renewal bought mid-window
+ * appends another row (see `job_features` in migration 010).
+ */
+const FEATURED_EXPR = `EXISTS (
+        SELECT 1 FROM job_features f
+         WHERE f.job_id = j.id AND f.starts_at <= NOW() AND f.ends_at > NOW()
+      )`;
+
+/**
+ * Featured jobs sort first, within whatever order was asked for.
+ *
+ * Prefixed rather than replacing the sort: somebody who explicitly sorted by rate still
+ * gets a rate-sorted list, with the paid placements at its head. Silently overriding a
+ * chosen sort would make the control look broken.
  */
 function orderByFor(sort) {
-  return SORTS[sort] || SORTS.newest;
+  return `is_featured DESC, ${SORTS[sort] || SORTS.newest}`;
 }
 
 /**
@@ -275,7 +284,8 @@ class Job {
   static async findBySlug(slug) {
     const [rows] = await promisePool.query(
       `SELECT j.*, cp.company_name, cp.slug AS company_slug, cp.logo AS company_logo,
-              cp.website AS company_website, cp.company_type
+              cp.website AS company_website, cp.company_type,
+              ${FEATURED_EXPR} AS is_featured
          FROM jobs j
          LEFT JOIN company_profiles cp ON cp.user_id = j.company_user_id
         WHERE j.slug = ? LIMIT 1`,
@@ -292,7 +302,8 @@ class Job {
       `SELECT j.id, j.title, j.slug, j.role, j.seniority, j.engagement_type, j.work_mode,
               j.country, j.city, j.rate_min, j.rate_max, j.currency, j.rate_visible,
               j.duration_months, j.activate_phase, j.published_at, j.application_count, j.status,
-              cp.company_name, cp.slug AS company_slug, cp.logo AS company_logo
+              cp.company_name, cp.slug AS company_slug, cp.logo AS company_logo,
+              ${FEATURED_EXPR} AS is_featured
          FROM jobs j
          LEFT JOIN company_profiles cp ON cp.user_id = j.company_user_id
         WHERE ${clause}
@@ -377,6 +388,20 @@ class Job {
   static async isSaved(userId, jobId) {
     const [rows] = await promisePool.query('SELECT 1 FROM saved_jobs WHERE user_id = ? AND job_id = ? LIMIT 1', [userId, jobId]);
     return rows.length > 0;
+  }
+
+  /**
+   * When the current featured placement on a job runs out, or null if none is open.
+   *
+   * MAX rather than "the latest row": renewals overlap deliberately, so the window that
+   * matters is the furthest-out end date, not the most recently bought one.
+   */
+  static async featuredUntil(jobId) {
+    const [rows] = await promisePool.query(
+      'SELECT MAX(ends_at) AS ends_at FROM job_features WHERE job_id = ? AND ends_at > NOW()',
+      [jobId]
+    );
+    return (rows[0] && rows[0].ends_at) || null;
   }
 
   static async listSaved(userId, { limit = 20, offset = 0 } = {}) {
