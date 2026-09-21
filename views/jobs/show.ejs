@@ -84,7 +84,7 @@
               <label class="form-label" for="status">Status</label>
               <div class="d-flex gap-2">
                 <select class="form-select" id="status" name="status">
-                  <% ['draft','open','paused','filled','closed'].forEach(function (s) { %>
+                  <% jobStatuses.forEach(function (s) { %>
                     <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= s %></option>
                   <% }); %>
                 </select>

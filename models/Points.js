@@ -1,7 +1,7 @@
 'use strict';
 
 const { promisePool } = require('../config/database');
-const { POINT_AWARDS, levelFor } = require('../config/community');
+const { levelFor } = require('../config/community');
 const { escapeLike } = require('../utils/likePattern');
 
 /**
@@ -11,52 +11,19 @@ const { escapeLike } = require('../utils/likePattern');
  * could answer "where did these come from", and a double award could never be found, let
  * alone reversed. The ledger is the record; a total is a SUM over it.
  *
- * `award()` is fire-and-forget for the same reason notifications are: points are a side
+ * `settleTo()` is the ONLY way to write to it, and that is deliberate rather than
+ * minimalism. There used to be an `award`/`reverse` pair as well, and two writers with
+ * two different key schemes in one ledger is a trap: an award writes `post:12`, a settle
+ * reconciles over `post:12#%`, and the settle cannot see the award — so the community
+ * paid for a post and the moderation screen took nothing back when it was hidden, each
+ * half perfectly correct on its own. There is one scheme now, and nothing that can pay
+ * outside it.
+ *
+ * Writes are fire-and-forget for the same reason notifications are: points are a side
  * effect of an action that has already succeeded, and failing to record them must never
- * fail the action. The unique `dedupe_key` makes the insert idempotent, so a retried
- * request or a re-run emitter cannot pay twice.
+ * fail the action.
  */
 class Points {
-  static async award(userId, reason, dedupeKey, { connection = null } = {}) {
-    const definition = POINT_AWARDS[reason];
-    if (!definition || !userId || !dedupeKey) return false;
-
-    const runner = connection || promisePool;
-    try {
-      const [result] = await runner.query(
-        'INSERT IGNORE INTO points_ledger (user_id, reason, points, dedupe_key) VALUES (?, ?, ?, ?)',
-        [userId, reason, definition.points, String(dedupeKey).slice(0, 190)]
-      );
-      return result.affectedRows === 1;
-    } catch (err) {
-      console.error(`Points award failed (${reason}): ${err.message}`);
-      return false;
-    }
-  }
-
-  /**
-   * Reverse an award by writing a compensating entry rather than deleting the original.
-   *
-   * A ledger that can be edited is not a ledger. Un-accepting an answer or removing an
-   * upvote must leave both the award and its reversal visible.
-   */
-  static async reverse(userId, reason, dedupeKey, { connection = null } = {}) {
-    const definition = POINT_AWARDS[reason];
-    if (!definition || !userId || !dedupeKey) return false;
-
-    const runner = connection || promisePool;
-    try {
-      const [result] = await runner.query(
-        'INSERT IGNORE INTO points_ledger (user_id, reason, points, dedupe_key) VALUES (?, ?, ?, ?)',
-        [userId, `${reason}_reversed`, -definition.points, `reverse:${String(dedupeKey).slice(0, 180)}`]
-      );
-      return result.affectedRows === 1;
-    } catch (err) {
-      console.error(`Points reversal failed (${reason}): ${err.message}`);
-      return false;
-    }
-  }
-
   /**
    * Make the ledger say what the CURRENT state says, by appending the difference.
    *

@@ -1,0 +1,79 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-bug',
+  heading: 'Error log',
+  sub: 'What the error handler recorded, newest first.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'errors' }) %>
+  <%- include('../partials/flash') %>
+
+  <% if (currentUser && currentUser.isSuperadmin) { %>
+    <div class="glass-card mb-4">
+      <div class="card-body">
+        <form class="row g-2 align-items-end" method="post" action="/admin/errors/purge">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="col-md-4">
+            <label class="form-label" for="days">Remove entries older than</label>
+            <select class="form-select" id="days" name="days">
+              <option value="30">30 days</option>
+              <option value="90" selected>90 days</option>
+              <option value="180">180 days</option>
+              <option value="365">a year</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-outline-danger" type="submit">Purge</button>
+          </div>
+          <div class="col-12">
+            <p class="small text-muted-2 mb-0">
+              The only action on this screen that cannot be undone. The window is checked
+              against these four values rather than taken as a number, because a zero would
+              delete everything.
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (!errors.length) { %>
+    <div class="glass-card"><div class="card-body text-center py-5">
+      <span class="icon-tile icon-navy mb-3"><i class="bi bi-check2-circle"></i></span>
+      <p class="text-muted-2 mb-0">Nothing logged.</p>
+    </div></div>
+  <% } else { %>
+    <div class="glass-card">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Status</th>
+              <th scope="col">Where</th>
+              <th scope="col">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% errors.forEach(function (e) { %>
+              <tr>
+                <td class="small text-muted-2 text-nowrap"><%= new Date(e.created_at).toLocaleString('en-GB') %></td>
+                <td><span class="badge text-bg-<%= e.status_code >= 500 ? 'danger' : 'secondary' %>"><%= e.status_code %></span></td>
+                <td class="small"><%= e.method %> <%= e.path %></td>
+                <td class="small"><%= e.message %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <%- include('../partials/pagination') %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

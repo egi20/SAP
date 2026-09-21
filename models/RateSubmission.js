@@ -67,7 +67,33 @@ class RateSubmission {
                                country = VALUES(country)`,
       [userId, role, seniority, engagementType, workMode, country, amount, currency, amountEur, period]
     );
-    return { period, amountEur };
+
+    /*
+     * Read the row back rather than trusting `insertId`.
+     *
+     * With ON DUPLICATE KEY UPDATE, `insertId` is the auto-increment of the affected row
+     * only when the UPDATE clause says `id = LAST_INSERT_ID(id)`; otherwise a correction
+     * comes back as 0 and the caller would settle points against `rate:0`. One extra
+     * SELECT on a path a person hits at most once a month is the cheap end of that trade.
+     *
+     * `voided_at` comes back with it because it decides what the caller may say next: a
+     * voided row still accepts an overwrite through the unique key, and telling somebody
+     * their figure "counts towards this month" when it is excluded from every aggregate
+     * is the one answer this screen must not give.
+     */
+    const [[row]] = await promisePool.query(
+      `SELECT id, voided_at FROM rate_submissions
+        WHERE user_id = ? AND role = ? AND seniority = ? AND engagement_type = ? AND period = ?
+        LIMIT 1`,
+      [userId, role, seniority, engagementType, period]
+    );
+
+    return {
+      period,
+      amountEur,
+      id: row ? row.id : null,
+      voided: Boolean(row && row.voided_at)
+    };
   }
 
   static async findOwnLatest(userId) {

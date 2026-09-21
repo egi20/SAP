@@ -1,0 +1,174 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-shield-check',
+  heading: 'Moderation',
+  sub: 'Content is hidden, never deleted — so everything here can be put back.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'moderation' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h5">Recent posts</h2>
+          <p class="small text-muted-2">
+            The newest posts as a reader sees them, plus the hidden ones. Hiding keeps the
+            author’s text and takes back the points for it; restoring gives both back.
+          </p>
+
+          <% if (!recentPosts.length) { %>
+            <p class="text-muted-2 mb-0">Nothing posted yet.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% recentPosts.forEach(function (p) { %>
+                <li class="border-top py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <a href="/community/<%= p.slug %>"><%= p.title %></a>
+                      <% if (p.hidden_at) { %><span class="badge text-bg-danger ms-1">hidden</span><% } %>
+                      <div class="small text-muted-2">
+                        <%= p.kind %> · <%= p.author_name %> ·
+                        <%= new Date(p.created_at).toLocaleDateString('en-GB') %>
+                      </div>
+                    </div>
+                    <form class="d-flex gap-1" method="post" action="/admin/moderation/posts/<%= p.id %>">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input type="hidden" name="redirectTo" value="/admin/moderation">
+                      <% if (p.hidden_at) { %>
+                        <input type="hidden" name="hidden" value="false">
+                        <button class="btn btn-sm btn-outline-success" type="submit">Restore</button>
+                      <% } else { %>
+                        <input type="hidden" name="hidden" value="true">
+                        <input class="form-control form-control-sm" type="text" name="reason"
+                               placeholder="Reason" maxlength="200" style="max-width: 12rem;">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Hide</button>
+                      <% } %>
+                    </form>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h5">Currently hidden</h2>
+
+          <h3 class="h6 mt-3">Posts</h3>
+          <% if (!hidden.posts.length) { %>
+            <p class="small text-muted-2">None.</p>
+          <% } else { %>
+            <ul class="list-unstyled">
+              <% hidden.posts.forEach(function (p) { %>
+                <li class="border-top py-2 d-flex justify-content-between align-items-start gap-2">
+                  <div>
+                    <a href="/community/<%= p.slug %>"><%= p.title %></a>
+                    <div class="small text-muted-2">
+                      <%= p.author_name %> · hidden by <%= p.hidden_by_name || 'an administrator' %>
+                      <%= p.hidden_reason ? '— ' + p.hidden_reason : '' %>
+                    </div>
+                  </div>
+                  <form method="post" action="/admin/moderation/posts/<%= p.id %>">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="hidden" value="false">
+                    <button class="btn btn-sm btn-outline-success" type="submit">Restore</button>
+                  </form>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+
+          <h3 class="h6 mt-3">Replies</h3>
+          <% if (!hidden.replies.length) { %>
+            <p class="small text-muted-2">None.</p>
+          <% } else { %>
+            <ul class="list-unstyled">
+              <% hidden.replies.forEach(function (r) { %>
+                <li class="border-top py-2 d-flex justify-content-between align-items-start gap-2">
+                  <div>
+                    <a href="/community/<%= r.post_slug %>">on “<%= r.post_title %>”</a>
+                    <div class="small text-muted-2">
+                      <%= r.author_name %> · hidden by <%= r.hidden_by_name || 'an administrator' %>
+                      <%= r.hidden_reason ? '— ' + r.hidden_reason : '' %>
+                    </div>
+                  </div>
+                  <form method="post" action="/admin/moderation/replies/<%= r.id %>">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="hidden" value="false">
+                    <button class="btn btn-sm btn-outline-success" type="submit">Restore</button>
+                  </form>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+
+          <h3 class="h6 mt-3">Voided rate submissions</h3>
+          <% if (!hidden.rates.length) { %>
+            <p class="small text-muted-2">None.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% hidden.rates.forEach(function (r) { %>
+                <li class="border-top py-2">
+                  <div class="small">
+                    <%= r.role %> · <%= r.seniority %> · <%= r.amount %> <%= r.currency %> · <%= r.period %>
+                  </div>
+                  <div class="small text-muted-2">
+                    voided by <%= r.voided_by_name || 'an administrator' %>
+                    <%= r.void_reason ? '— ' + r.void_reason : '' %>
+                    <% if (currentUser && currentUser.isSuperadmin) { %>
+                      — reinstate it from the <a href="/admin/rates?voided=1">rates screen</a>.
+                    <% } %>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h5">What was decided</h2>
+          <p class="small text-muted-2">
+            Append-only. An undo is another entry, never an edit to this one.
+          </p>
+
+          <% if (!events.length) { %>
+            <p class="text-muted-2 mb-0">No moderation decision has been taken yet.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% events.forEach(function (e) { %>
+                <li class="border-top py-2">
+                  <div class="small">
+                    <span class="badge text-bg-light border"><%= e.action %></span>
+                    <%= e.subject_type.replace('_', ' ') %> #<%= e.subject_id %>
+                  </div>
+                  <div class="small text-muted-2">
+                    <%= e.actor_name || 'an administrator' %>
+                    <% if (e.member_name) { %> · author <%= e.member_name %><% } %>
+                    · <%= new Date(e.created_at).toLocaleString('en-GB') %>
+                  </div>
+                  <% if (e.reason) { %><div class="small">“<%= e.reason %>”</div><% } %>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+
+          <%- include('../partials/pagination') %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

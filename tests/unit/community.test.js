@@ -15,7 +15,7 @@ const { PRODUCT_LINES } = require('../../config/sapProducts');
 describe('the configuration asserts itself', () => {
   test('integrity', () => expect(assertCommunityIntegrity()).toBe(true));
 
-  test('every award is positive — reversals are written by Points.reverse', () => {
+  test('every award is positive — a reversal is a settle to a lower figure', () => {
     for (const [reason, award] of Object.entries(POINT_AWARDS)) {
       expect({ reason, points: award.points }).toEqual({ reason, points: expect.any(Number) });
       expect(award.points).toBeGreaterThan(0);

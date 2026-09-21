@@ -19,6 +19,11 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   so the admin user search still answered a different question than the one typed. Nothing
   was injectable; a search for `%` was still a full table scan.
 - **Validate `:id` params with `requireIdParam`.** `parseInt('44.map')` is `44`.
+- **A vocabulary the schema owns gets exactly one copy in the code.** `Job.STATUSES` and
+  `Moderation.SUBJECT_TYPES` mirror ENUMs, and a unit test compares each against its own
+  migration file. The job statuses were written out by hand in three places before that —
+  the employer's form, the route validating what it posts, and the admin filter — which is
+  how a status gets added to a dropdown and silently rejected behind it.
 - **SAP Hub owns its database.** It does not share a schema with any other application.
   `scripts/migrate.js` refuses to run when the target database already has tables but no
   migration history, because that means DB_NAME points somewhere else — and the bare
@@ -159,8 +164,12 @@ moved back. Settling is idempotent (a repeat computes a difference of zero), app
 and not farmable — the net is pinned to the intended amount however many times somebody
 flips, so each swing costs a ledger row and never a point.
 
-`Points.award` and `Points.reverse` remain for one-shot events that cannot be undone and
-re-done (posting, replying). Anything that can be toggled goes through `settleTo`.
+**`settleTo` is the only writer.** There was an `award`/`reverse` pair beside it for
+one-shot events, and two writers with two key schemes in one ledger is a trap rather than a
+convenience: an award writes `post:12`, a settle reconciles over `post:12#%`, and the settle
+cannot see the award. The community paid for a post and the moderation screen took nothing
+back when it was hidden — each half correct on its own. Everything that can be paid can also
+be taken back by a moderator, so everything settles.
 
 **Accepting your own answer marks the reply and pays nothing.** Self-answering is
 legitimate and useful, so the reply is still the solution; paying 25 points for it — the
@@ -266,6 +275,61 @@ handler refuses every delivery instead of trusting the body.
 row at the moment it is issued. An invoice that re-reads the user table is an invoice that
 rewrites itself when somebody moves office, which is the one thing a receipt must not do.
 Same reasoning as a quote's stored breakdown.
+
+## Admin and moderation
+
+`routes/admin.js` applies `isAuthenticated, isAdmin` once, at the top, and the narrower
+screens add `isSuperadmin` on top of that. Per-route guards on a surface this size is how
+one route ends up without one.
+
+**Superadmin is not decoration.** It gates the three things an ordinary admin account
+should not be able to do alone: change anybody's roles or active state, read contributed
+rates next to the people who gave them, and flip the switches that close registration or
+freeze the community. `/admin/rates` carries the narrowest guard in the application because
+everywhere else a rate is only ever seen inside an aggregate over at least three people,
+and that screen deliberately sets it aside.
+
+**The tab strip hides what the account cannot open.** A tab that answers 403 teaches people
+to ignore the navigation.
+
+**Neither the roles form nor the deactivate button will act on your own account.** An
+administrator who removes their own last privileged role locks themselves out of the only
+screen that could undo it.
+
+**Content is HIDDEN, never deleted, and `models/Moderation.js` is the only module that
+touches those columns.** Three things move with the flag on a reply — `posts.reply_count`,
+the accepted-answer mark, and the points — so a bare UPDATE anywhere else would look like
+it worked. Restoring gives back the writing points but NOT the solution mark: whether it is
+still the best answer is the asker's call, not a side effect of an administrator undoing a
+removal.
+
+**Moderation settles points, it does not reverse them.** The reference keys each adjustment
+on a fresh moderation event, which it has to, because with `award`/`reverse` a key derived
+from the content is consumed after one cycle. It works, and it makes the balance a function
+of the SEQUENCE of decisions rather than of the current state. Here hiding settles the
+content's own subject to zero and restoring settles it back, so hide → restore → hide
+leaves the author exactly one award down however many times the flag moved, and a reversal
+of something that was never awarded cannot happen. A test drives three half-cycles.
+
+**A rate submission is VOIDED, never hidden, and there is no "correct the value" path.**
+The wording is the decision: hiding is about speech, voiding is about arithmetic. An
+aggregate whose inputs an administrator can retype is an aggregate nobody should trust.
+Re-submitting under a voided row is allowed by the unique key and the flash says so —
+telling somebody their figure "counts towards this month" when it is excluded from every
+published bucket is the one answer that path must not give.
+
+**`POST /admin/payments/:id/refunded` records a refund; it does not issue one.** The refund
+is made in Stripe by a person. A button here that moved money would make this a second
+system of record, and when two systems of record disagree about a refund the one that is
+wrong is never the payment processor.
+
+**The error purge validates its window against a fixed set.** `INTERVAL ? DAY` with a zero
+deletes everything, and it is the one action on the admin surface that cannot be undone.
+
+**In `/admin/analytics`, GROUP BY the expression, not the alias.** `GROUP BY period` looks
+equivalent and is not: MySQL resolves the name against the table's real columns first, and
+`rate_submissions.period` exists — it holds the rate's own period. That one series would
+group by the wrong column and then fail `only_full_group_by`.
 
 ## Auth and roles
 

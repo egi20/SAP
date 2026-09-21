@@ -1,0 +1,35 @@
+<%
+  /*
+   * The admin tab strip.
+   *
+   * `current` is the path segment, e.g. 'users'. The superadmin-only screens are not
+   * rendered for an ordinary admin at all — a tab that answers 403 is a tab that teaches
+   * people to ignore the navigation.
+   */
+  const adminTabs = [
+    { href: '/admin', key: '', label: 'Overview', icon: 'bi-speedometer2', super: false },
+    { href: '/admin/users', key: 'users', label: 'Users', icon: 'bi-people', super: false },
+    { href: '/admin/jobs', key: 'jobs', label: 'Jobs', icon: 'bi-briefcase', super: false },
+    { href: '/admin/moderation', key: 'moderation', label: 'Moderation', icon: 'bi-shield-check', super: false },
+    { href: '/admin/payments', key: 'payments', label: 'Payments', icon: 'bi-credit-card', super: false },
+    { href: '/admin/analytics', key: 'analytics', label: 'Analytics', icon: 'bi-graph-up', super: false },
+    { href: '/admin/errors', key: 'errors', label: 'Errors', icon: 'bi-bug', super: false },
+    { href: '/admin/rates', key: 'rates', label: 'Rates', icon: 'bi-cash-coin', super: true },
+    { href: '/admin/settings', key: 'settings', label: 'Settings', icon: 'bi-sliders', super: true }
+  ];
+  const isSuper = Boolean(currentUser && currentUser.isSuperadmin);
+%>
+<nav class="admin-tabs mb-4" aria-label="Admin sections">
+  <ul class="nav nav-pills flex-wrap gap-1">
+    <% adminTabs.filter(function (t) { return isSuper || !t.super; }).forEach(function (t) { %>
+      <li class="nav-item">
+        <a class="nav-link <%= t.key === current ? 'active' : '' %>" href="<%= t.href %>"
+           <%= t.key === current ? 'aria-current="page"' : '' %>>
+          <i class="bi <%= t.icon %>"></i> <%= t.label %><% if (t.super) { %>
+            <span class="badge rounded-pill text-bg-dark ms-1" title="Superadmin only">S</span>
+          <% } %>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+</nav>

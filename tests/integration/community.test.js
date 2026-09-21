@@ -125,8 +125,10 @@ maybe()('asking, answering and accepting', () => {
 
   test('the same award cannot pay twice, however many times it is emitted', async () => {
     const before = await Points.totalFor(askerId);
-    await Points.award(askerId, 'post_created', `post:${postId}`);
-    await Points.award(askerId, 'post_created', `post:${postId}`);
+    // Settling to the figure the subject has already paid computes a difference of zero
+    // and writes nothing, so a retried request or a re-run emitter cannot pay again.
+    await Points.settleTo(askerId, 'post_created', `post:${postId}`, POINT_AWARDS.post_created.points);
+    await Points.settleTo(askerId, 'post_created', `post:${postId}`, POINT_AWARDS.post_created.points);
     expect(await Points.totalFor(askerId)).toBe(before);
   });
 
@@ -251,7 +253,7 @@ maybe()('accepting an answer', () => {
     /*
      * The reference clears `is_solution` on the previous reply and stops there, so both
      * answerers keep 25 points and the question has paid for two solutions while displaying
-     * one. Points.reverse exists for exactly this and nothing called it.
+     * one.
      */
     const firstBefore = await Points.totalFor(answererId);
     const secondBefore = await Points.totalFor(otherId);

@@ -1,0 +1,91 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-speedometer2',
+  heading: 'Admin',
+  sub: 'What is on the site, and what needs a person.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: '' }) %>
+  <%- include('../partials/flash') %>
+
+  <%
+    /*
+     * The queues come first and the vanity numbers second, deliberately. Everything in
+     * this first row is something somebody has to DO; everything below it is context.
+     */
+    const queues = [
+      { label: 'Refunds to issue', value: counts.refunds_due, href: '/admin/payments', icon: 'bi-arrow-counterclockwise', tone: counts.refunds_due > 0 ? 'icon-amber' : 'icon-navy' },
+      { label: 'Errors, last 7 days', value: counts.recent_errors, href: '/admin/errors', icon: 'bi-bug', tone: counts.recent_errors > 0 ? 'icon-amber' : 'icon-navy' }
+    ];
+    const stats = [
+      { label: 'Accounts', value: counts.users, sub: `${counts.active_users} active · ${counts.verified_users} verified`, icon: 'bi-people' },
+      { label: 'Consultants listed', value: counts.public_consultants, sub: 'public profiles', icon: 'bi-person-badge' },
+      { label: 'Companies', value: counts.companies, sub: 'with a profile', icon: 'bi-building' },
+      { label: 'Jobs', value: counts.jobs, sub: `${counts.open_jobs} open`, icon: 'bi-briefcase' },
+      { label: 'Applications', value: counts.applications, sub: 'all time', icon: 'bi-send' },
+      { label: 'Quotes', value: counts.quotes, sub: 'estimates stored', icon: 'bi-file-earmark-text' },
+      { label: 'Community posts', value: counts.posts, sub: 'visible', icon: 'bi-chat-square-text' },
+      { label: 'Rate contributors', value: rateContributors, sub: 'people, not submissions', icon: 'bi-cash-coin' }
+    ];
+  %>
+
+  <div class="row g-3 mb-4">
+    <% queues.forEach(function (q) { %>
+      <div class="col-sm-6">
+        <a class="glass-card h-100 text-decoration-none d-block" href="<%= q.href %>">
+          <div class="card-body d-flex align-items-center gap-3">
+            <span class="icon-tile <%= q.tone %>"><i class="bi <%= q.icon %>"></i></span>
+            <div>
+              <p class="stat-value mb-0"><%= q.value %></p>
+              <p class="text-muted-2 small mb-0"><%= q.label %></p>
+            </div>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="row g-3">
+    <% stats.forEach(function (s) { %>
+      <div class="col-6 col-lg-3">
+        <div class="glass-card h-100">
+          <div class="card-body">
+            <span class="icon-tile icon-navy mb-2"><i class="bi <%= s.icon %>"></i></span>
+            <p class="stat-value mb-0"><%= s.value %></p>
+            <p class="mb-0"><%= s.label %></p>
+            <p class="text-muted-2 small mb-0"><%= s.sub %></p>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="glass-card mt-4">
+    <div class="card-body">
+      <h2 class="h5">Where visitors came from, last 30 days</h2>
+      <% if (!geo.length) { %>
+        <p class="text-muted-2 mb-0">Nothing recorded yet.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th scope="col">Country</th><th scope="col" class="text-end">Visits</th></tr></thead>
+            <tbody>
+              <% geo.forEach(function (row) { %>
+                <tr>
+                  <td><%= row.country || 'Unknown' %></td>
+                  <td class="text-end"><%= row.visits %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

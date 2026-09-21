@@ -241,6 +241,33 @@ class Payment {
     return rows[0] || null;
   }
 
+  /**
+   * Record that a refund was actually issued, and take the payment out of the queue.
+   *
+   * It clears the flag and appends an event. It does NOT call Stripe: the refund is made
+   * in Stripe, by a person, and this records that it happened. A button here that moved
+   * money would make this a second system of record for the same fact — and when two
+   * systems of record disagree about a refund, the one that is wrong is always the one
+   * that is not the payment processor.
+   *
+   * Guarded on `needs_refund = 1` so it reports honestly rather than silently succeeding
+   * against a payment that was never in the queue.
+   */
+  static async clearRefundFlag(id, { actorUserId = null, note = null } = {}) {
+    const [result] = await promisePool.query(
+      'UPDATE payments SET needs_refund = 0 WHERE id = ? AND needs_refund = 1',
+      [id]
+    );
+    if (result.affectedRows !== 1) return false;
+
+    await Payment.recordEvent({
+      paymentId: id,
+      eventType: 'refund_recorded',
+      detail: `refunded outside the app by user ${actorUserId || 'unknown'}${note ? ` — ${note}` : ''}`
+    });
+    return true;
+  }
+
   /** The admin queue: paid money that could not be fulfilled. */
   static async listNeedingRefund({ limit = 50 } = {}) {
     const [rows] = await promisePool.query(

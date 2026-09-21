@@ -229,7 +229,7 @@ function communityProblems() {
   }
   for (const [reason, award] of Object.entries(POINT_AWARDS)) {
     if (!Number.isInteger(award.points)) problems.push(`award "${reason}" has a non-integer value`);
-    if (award.points <= 0) problems.push(`award "${reason}" is not positive — reversals are written by Points.reverse`);
+    if (award.points <= 0) problems.push(`award "${reason}" is not positive — a reversal is a settle to a lower figure, never a negative award`);
   }
   for (let i = 1; i < LEVELS.length; i += 1) {
     if (LEVELS[i].from <= LEVELS[i - 1].from) {

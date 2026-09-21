@@ -4,11 +4,13 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 
 const RateSubmission = require('../models/RateSubmission');
+const Points = require('../models/Points');
 const { isAuthenticated, isConsultant, isEmailVerified } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ROLE_CATEGORIES, ROLE_SLUGS, isRole, baseDayRate } = require('../config/roleTaxonomy');
 const { MIN_SAMPLE } = require('../utils/rateAggregation');
+const { POINT_AWARDS } = require('../config/community');
 const countries = require('../config/all-countries.json');
 const config = require('../config/config');
 const router = express.Router();
@@ -99,7 +101,7 @@ router.post(
       });
     }
 
-    await RateSubmission.submit(req.session.user.id, {
+    const submission = await RateSubmission.submit(req.session.user.id, {
       role: req.body.role,
       seniority: req.body.seniority,
       engagementType: req.body.engagement_type,
@@ -109,9 +111,31 @@ router.post(
       currency: req.body.currency
     });
 
+    /*
+     * `rate_contributed` was declared in config/community.js with nothing paying it — the
+     * same shape this codebase keeps finding: a capability nothing reaches. It matters
+     * here rather than merely being tidy, because the moderation screen settles this
+     * subject back to nothing when a figure is voided, and a reversal of an award that
+     * was never made would take points off somebody for a contribution they were never
+     * paid for.
+     *
+     * Settled rather than awarded, and against the SUBMISSION, so a correction within the
+     * month computes a difference of zero and pays nothing twice.
+     */
+    if (submission.id) {
+      await Points.settleTo(
+        req.session.user.id,
+        'rate_contributed',
+        `rate:${submission.id}`,
+        submission.voided ? 0 : POINT_AWARDS.rate_contributed.points
+      );
+    }
+
     req.flash(
       'success',
-      `Thank you. Your figure counts towards this month, and no bucket is published until at least ${config.rates.minSampleSize} people have contributed to it.`
+      submission.voided
+        ? 'Your figure has been saved, but this submission is currently voided and is not counted in any published bucket. Contact us if you think that is wrong.'
+        : `Thank you. Your figure counts towards this month, and no bucket is published until at least ${config.rates.minSampleSize} people have contributed to it.`
     );
     return res.redirect(`/rates?role=${encodeURIComponent(req.body.role)}`);
   })

@@ -252,6 +252,7 @@ app.use('/payments', require('./routes/payments'));
 app.use('/messages', require('./routes/messages'));
 app.use('/rates', require('./routes/rates'));
 app.use('/notifications', require('./routes/notifications'));
+app.use('/admin', require('./routes/admin'));
 
 app.use(notFound);
 app.use(errorHandler);

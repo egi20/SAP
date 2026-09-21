@@ -268,7 +268,7 @@ router.post(
   isCompany,
   writeLimiter,
   asyncHandler(async (req, res) => {
-    const allowed = ['open', 'paused', 'filled', 'closed', 'draft'];
+    const allowed = Job.STATUSES;
     if (!allowed.includes(req.body.status)) {
       req.flash('error', 'Unknown status.');
       return res.redirect(returnTo(req, `/jobs/${req.params.slug}`));
@@ -376,6 +376,7 @@ router.get(
       saved,
       match,
       featuredUntil,
+      jobStatuses: Job.STATUSES,
       jobFeatureDays: JOB_FEATURE_DAYS,
       jobFeaturePrice: formatMinor(JOB_FEATURE_PRICE_MINOR),
       jsonLd: jobPostingJsonLd(job)

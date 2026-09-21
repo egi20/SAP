@@ -105,7 +105,22 @@ class Post {
         [categoryId, authorUserId, kind, title, slug, body]
       );
 
-      await Points.award(authorUserId, 'post_created', `post:${result.insertId}`, { connection: conn });
+      /*
+       * Settled, not awarded, even though a post is created exactly once.
+       *
+       * The subject has to be settle-able because moderation can later take the post down
+       * and put it back, and `Points.settleTo` only reconciles rows written under its own
+       * `subject#n` key scheme — a plain `award` here writes `post:12`, which a later
+       * settle over `post:12#%` does not see, so hiding the post would take nothing away
+       * and the author would keep the points for content nobody can read.
+       */
+      await Points.settleTo(
+        authorUserId,
+        'post_created',
+        `post:${result.insertId}`,
+        POINT_AWARDS.post_created.points,
+        { connection: conn }
+      );
       return { id: result.insertId, slug };
     });
   }
@@ -134,6 +149,12 @@ class Post {
     const [rows] = await promisePool.query(
       `SELECT p.id, p.kind, p.title, p.slug, p.body, p.vote_score, p.reply_count, p.view_count,
               p.is_solved, p.is_pinned, p.created_at, p.last_activity_at,
+              -- Selected for the ONE caller that passes include_hidden. Without it the
+              -- opt-in returns hidden and visible rows that look identical, so the
+              -- moderation list offers "Hide" on a post that is already hidden and the
+              -- action reports back that there was nothing to do. Always NULL everywhere
+              -- else, because every other caller filters it out in the builder.
+              p.hidden_at,
               c.slug AS category_slug, c.name AS category_name, c.icon AS category_icon,
               ${AUTHOR_SELECT}
          FROM posts p
@@ -234,7 +255,15 @@ class Post {
       );
       await conn.query('UPDATE posts SET reply_count = reply_count + 1, last_activity_at = NOW() WHERE id = ?', [postId]);
 
-      await Points.award(authorUserId, 'reply_created', `reply:${result.insertId}`, { connection: conn });
+      // Settled for the same reason as a post: a reply can be hidden and restored, and
+      // only a settled subject reconciles. See Post.create.
+      await Points.settleTo(
+        authorUserId,
+        'reply_created',
+        `reply:${result.insertId}`,
+        POINT_AWARDS.reply_created.points,
+        { connection: conn }
+      );
 
       return { replyId: result.insertId, post };
     });
@@ -350,11 +379,9 @@ class Post {
        *
        * The reference clears `is_solution` on the previous reply and stops there, so both
        * answerers keep their 25 points and the question has paid for two solutions while
-       * displaying one. Points.reverse exists precisely for this — its own comment says
-       * "un-accepting an answer or removing an upvote must leave both the award and its
-       * reversal visible" — and nothing called it.
+       * displaying one.
        *
-       * Reversed inside the same transaction as the swap, so the ledger can never show one
+       * Settled inside the same transaction as the swap, so the ledger can never show one
        * without the other.
        */
       if (post.solution_reply_id) {

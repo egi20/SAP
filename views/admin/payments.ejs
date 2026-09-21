@@ -1,0 +1,134 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-credit-card',
+  heading: 'Payments',
+  sub: 'What was taken, and what has to be given back.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'payments' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="glass-card h-100"><div class="card-body">
+        <p class="stat-value mb-0"><%= formatMinor(totals.paid_minor) %></p>
+        <p class="mb-0">Taken</p>
+        <p class="small text-muted-2 mb-0"><%= totals.paid_count %> payments</p>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="glass-card h-100"><div class="card-body">
+        <p class="stat-value mb-0"><%= totals.invoices %></p>
+        <p class="mb-0">Invoices issued</p>
+        <p class="small text-muted-2 mb-0">one per fulfilled payment</p>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="glass-card h-100"><div class="card-body">
+        <p class="stat-value mb-0"><%= totals.pending_count %></p>
+        <p class="mb-0">Started, not settled</p>
+        <p class="small text-muted-2 mb-0">abandoned checkouts</p>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="glass-card h-100"><div class="card-body">
+        <p class="stat-value mb-0"><%= totals.refund_count %></p>
+        <p class="mb-0">Refunds to issue</p>
+        <p class="small text-muted-2 mb-0">money we could not fulfil</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <h2 class="h5">Refund queue</h2>
+      <p class="small text-muted-2">
+        A payment lands here when money arrived and its subject had already been settled by
+        another payment — two checkout tabs open against one quote, almost always. Nothing
+        is reversed automatically: a refund is a decision with a person on the other end,
+        and a webhook handler issuing one has neither the context nor the accountability.
+        Issue the refund in Stripe, then record it here.
+      </p>
+
+      <% if (!refunds.length) { %>
+        <p class="text-muted-2 mb-0">Nothing owed. </p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Reference</th>
+                <th scope="col">Who</th>
+                <th scope="col" class="text-end">Amount</th>
+                <th scope="col">Taken</th>
+                <th scope="col" class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% refunds.forEach(function (p) { %>
+                <tr>
+                  <td class="font-monospace small"><%= p.reference %></td>
+                  <td class="small"><%= p.email %></td>
+                  <td class="text-end"><%= formatMinor(p.amount_minor) %></td>
+                  <td class="small text-muted-2"><%= new Date(p.created_at).toLocaleDateString('en-GB') %></td>
+                  <td class="text-end">
+                    <% if (currentUser && currentUser.isSuperadmin) { %>
+                      <form class="d-flex gap-1 justify-content-end" method="post" action="/admin/payments/<%= p.id %>/refunded">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input class="form-control form-control-sm" type="text" name="note"
+                               placeholder="Stripe refund id" maxlength="120" style="max-width: 12rem;">
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">Mark refunded</button>
+                      </form>
+                    <% } else { %>
+                      <span class="small text-muted-2">superadmin only</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Reference</th>
+            <th scope="col">Who</th>
+            <th scope="col">What for</th>
+            <th scope="col" class="text-end">Amount</th>
+            <th scope="col">Status</th>
+            <th scope="col">Invoice</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% payments.forEach(function (p) { %>
+            <tr>
+              <td class="font-monospace small"><%= p.reference %></td>
+              <td class="small"><%= p.email %></td>
+              <td class="small"><%= p.description %></td>
+              <td class="text-end"><%= formatMinor(p.amount_minor) %></td>
+              <td>
+                <span class="badge text-bg-<%= p.status === 'paid' ? 'success' : (p.status === 'pending' ? 'secondary' : 'danger') %>"><%= p.status %></span>
+                <% if (p.needs_refund) { %><span class="badge text-bg-warning">refund due</span><% } %>
+              </td>
+              <td class="small text-muted-2"><%= p.invoice_number || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%- include('../partials/pagination') %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

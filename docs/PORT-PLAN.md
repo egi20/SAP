@@ -72,7 +72,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Community, feed, points | 9 | 9 | **done** |
 | Payments: featured placements, deposits, invoices | 7 | 7 | **done** |
 | In-site assistant | 1 | 1 | after the core |
-| Admin: users, jobs, moderation, analytics, settings | 33 | ~18 | after the core |
+| Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
 | Referrals & commissions | 4 | 4 | after the core |
 | LinkedIn confirmation | 3 | 3 | after the core |
 | AI drafting, every draft verified | — | — | after the core |
@@ -298,6 +298,55 @@ partial view of the world.
 This area also closed three promises the earlier commits left open: the paid placement the
 job board's `is_featured` ordering was written for but nothing could buy, the CSRF `exempt`
 predicate that had no exempt route to justify it, and the Stripe block in `config/config.js`.
+
+## Admin and moderation
+
+Eighteen handlers of the reference's thirty-three. The missing fifteen are not missing: they
+are the admin halves of referrals, tax advisory, stories, reviews and assistant usage, and
+each will arrive with its own area rather than as an empty screen now.
+
+**Moderation closes three promises earlier areas left open**, all of the same shape — a
+guard whose columns existed but which nothing could operate. `posts.hidden_at` and
+`post_replies.hidden_at` were filtered on by `Post.buildFilter` from its first query,
+`rate_submissions.voided_at` by every query in `RateSubmission`, and `payments.needs_refund`
+was set by the fulfilment path with no queue to work it. Migration 011 adds the one thing
+that was actually absent: the record of who decided and why.
+
+**Points are settled here, not reversed, and that is a real difference.** The reference has
+only `award`/`reverse`, so a key derived from the content is consumed after one cycle and
+hide → restore → hide would take the points away once and never give them back. It works
+around that by keying each adjustment on a fresh moderation event — correct, but it makes an
+author's balance a function of the SEQUENCE of decisions rather than of the current state,
+so a reverse for content that was never awarded still deducts. `Points.settleTo` computes
+the difference between what a subject has paid and what it should pay now, so the balance
+follows the state. A test drives three half-cycles and checks the author is exactly one
+award down.
+
+That change then removed `award`/`reverse` entirely, which was the real find: two writers
+with two key schemes in one ledger is a trap. An award writes `post:12`, a settle reconciles
+over `post:12#%`, and the settle cannot see the award — so the community would pay for a
+post and the moderation screen would take nothing back when it was hidden, each half
+perfectly correct in isolation. One scheme now, and nothing that can pay outside it.
+
+**Two awards had been declared with nothing paying them.** `rate_contributed` and
+`profile_completed` sat in `config/community.js` unreachable — and `rate_contributed`
+mattered, because the void path settles that subject back to nothing and a reversal of an
+award that was never made takes points off somebody for a contribution they were never paid
+for. Both are now settled at their one choke point: the rate submit route, and
+`ConsultantProfile.recomputeCompleteness`, which every edit already goes through.
+
+**Three more things the screens found, none of which a mocked test would have.**
+`Post.browse` accepted `include_hidden` and did not SELECT `hidden_at`, so the moderation
+list could not tell a hidden post from a visible one and offered "Hide" on both.
+`Job.browse` does not select `created_at`, and `published_at` is NULL for a draft, so the
+obvious `new Date(j.published_at || j.created_at)` rendered every unpublished advert as
+01/01/1970 on the one tab where they all are. And the void columns are `voided_by`, not
+`voided_by_user_id` — a 500 on one screen, found by opening it.
+
+**`Job.STATUSES` now has one home.** The five-item list was written out by hand in the
+employer's status form, in the route that validates what that form posts, and in the admin
+filter, against an ENUM in migration 003 that is the actual authority. A unit test compares
+it — and `Moderation.SUBJECT_TYPES` — against the migration file itself.
 
 ## What the core build actually found
 

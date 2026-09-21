@@ -125,6 +125,10 @@
               <li><a class="dropdown-item" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a></li>
               <li><a class="dropdown-item" href="/payments/history"><i class="bi bi-receipt"></i> Payments &amp; invoices</a></li>
               <li><a class="dropdown-item" href="/profile/settings"><i class="bi bi-gear"></i> Settings</a></li>
+              <% if (currentUser.isAdmin) { %>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin"><i class="bi bi-shield-lock"></i> Admin</a></li>
+              <% } %>
               <li><hr class="dropdown-divider"></li>
               <li>
                 <form method="post" action="/auth/logout" class="px-3 py-1">

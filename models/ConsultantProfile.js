@@ -5,6 +5,8 @@ const { containsPattern } = require('../utils/likePattern');
 const { isRole } = require('../config/roleTaxonomy');
 const { isModule } = require('../config/sapProducts');
 const { isCertificationCode, OTHER_CODE, certByCode } = require('../config/certifications');
+const Points = require('./Points');
+const { POINT_AWARDS } = require('../config/community');
 
 /**
  * Fields that count towards profile completeness, with their weights.
@@ -258,6 +260,25 @@ class ConsultantProfile {
       stayPublic,
       userId
     ]);
+
+    /*
+     * `profile_completed` is the other award config/community.js declared with nothing
+     * paying it. This is the one choke point every edit already goes through, so it is
+     * the only place it can be paid without a second definition of "complete".
+     *
+     * Settled rather than awarded, because completeness moves in both directions: a
+     * consultant who deletes their certifications drops below the floor and is
+     * un-published two lines above, and a ledger that paid for a profile the directory no
+     * longer shows would be paying for nothing. A repeat call computes a difference of
+     * zero, so the ordinary case of an unrelated edit writes no row at all.
+     */
+    await Points.settleTo(
+      userId,
+      'profile_completed',
+      `profile:${userId}`,
+      completeness >= MIN_COMPLETENESS_TO_PUBLISH ? POINT_AWARDS.profile_completed.points : 0
+    );
+
     return completeness;
   }
 

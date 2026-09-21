@@ -141,8 +141,24 @@ function buildFilter(filters = {}) {
   return { clause: where.join(' AND '), params };
 }
 
+/** Mirrors the ENUM in scripts/migrations/003_jobs.sql, in lifecycle order. */
+const STATUSES = Object.freeze(['draft', 'open', 'paused', 'filled', 'closed']);
+
 class Job {
   static buildFilter = buildFilter;
+
+  /**
+   * The advert lifecycle, in the order a status filter should offer it.
+   *
+   * Here because it was written out by hand in three places — the employer's status form,
+   * the route that validates what that form posts, and now the admin list — against an
+   * ENUM in migration 003 that is the actual authority. Three copies of a five-item list
+   * is how a status gets added to a dropdown and silently rejected by the validator behind
+   * it. Changing the list is a migration, not an edit here.
+   */
+  static get STATUSES() {
+    return STATUSES;
+  }
 
   /**
    * Re-exported from `config/activatePhases.js` so existing call sites keep working.

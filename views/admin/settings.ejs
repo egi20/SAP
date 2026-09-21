@@ -1,0 +1,66 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-sliders',
+  heading: 'Settings',
+  sub: 'Operational switches. Not catalogue values.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'settings' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card">
+        <div class="card-body">
+          <form method="post" action="/admin/settings">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <% Object.entries(definitions).forEach(function ([key, def]) { %>
+              <div class="mb-4">
+                <% if (def.type === 'boolean') { %>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="<%= key %>" name="<%= key %>" <%= values[key] ? 'checked' : '' %>>
+                    <label class="form-check-label" for="<%= key %>"><%= def.label %></label>
+                  </div>
+                <% } else { %>
+                  <label class="form-label" for="<%= key %>"><%= def.label %></label>
+                  <input class="form-control" type="text" id="<%= key %>" name="<%= key %>"
+                         value="<%= values[key] %>" maxlength="<%= def.maxLength || 255 %>">
+                <% } %>
+                <p class="form-text mb-0"><%= def.help %></p>
+              </div>
+            <% }) %>
+
+            <button class="btn btn-primary" type="submit">Save settings</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card h-100">
+        <div class="card-body">
+          <h2 class="h5">What is not here</h2>
+          <p class="small text-muted-2">
+            Roles, modules, effort baselines and day rates are not settings. They live in
+            <span class="font-monospace">config/*.js</span> under version control, where a
+            change has an author, a diff and a review — and where the boot assertions can
+            refuse an inconsistent one before anybody sees a wrong number.
+          </p>
+          <p class="small text-muted-2 mb-0">
+            The minimum sample for the rate index is an environment variable for the same
+            reason: lowering it makes a sparse index look fuller, so it should take a
+            deployment with a diff behind it, not a checkbox.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

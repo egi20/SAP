@@ -1,0 +1,56 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-graph-up',
+  heading: 'Analytics',
+  sub: 'Twelve months, counted per calendar month.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'analytics' }) %>
+  <%- include('../partials/flash') %>
+
+  <% if (!periods.length) { %>
+    <div class="glass-card"><div class="card-body text-center py-5">
+      <p class="text-muted-2 mb-0">Nothing to count yet.</p>
+    </div></div>
+  <% } else { %>
+    <div class="glass-card">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <% series.forEach(function (s) { %>
+                <th scope="col" class="text-end"><%= s.label %></th>
+              <% }) %>
+            </tr>
+          </thead>
+          <tbody>
+            <%
+              // Newest month first: the question this page answers is "how is it going",
+              // and the answer is at the bottom of a chronological table.
+              periods.slice().reverse().forEach(function (period) {
+            %>
+              <tr>
+                <th scope="row" class="fw-normal"><%= period %></th>
+                <% series.forEach(function (s) { %>
+                  <td class="text-end"><%= s.byPeriod[period] || 0 %></td>
+                <% }) %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="small text-muted-2 mt-3 mb-0">
+      Community posts exclude hidden ones and rate contributions exclude voided ones, so
+      these columns agree with what the site itself shows rather than with the raw tables.
+    </p>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>
