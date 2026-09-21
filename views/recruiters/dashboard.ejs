@@ -1,0 +1,85 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-person-rolodex',
+  heading: 'Recruiter dashboard',
+  sub: 'Your roles, your applicants, and how your agency looks in the directory.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (!profile) { %>
+    <%
+      /*
+       * No row is created by opening this page. The reference self-heals here with
+       * `createForUser`, which turns every dashboard view into an INSERT.
+       */
+    %>
+    <div class="glass-card mb-4"><div class="card-body p-4">
+      <h2 class="h5 mb-2">Set up your agency profile</h2>
+      <p class="text-muted-2">
+        Nothing has been saved yet. Your profile is what appears in the agency directory,
+        and it stays hidden until you publish it.
+      </p>
+      <a class="btn btn-primary" href="/recruiters/profile">Create the profile</a>
+    </div></div>
+  <% } %>
+
+  <div class="row g-3 mb-4">
+    <% [
+      ['Roles posted', stats.jobs_total], ['Open now', stats.jobs_open],
+      ['Applications', stats.applications_total], ['New applications', stats.applications_new]
+    ].forEach(function (t) { %>
+      <div class="col-6 col-lg-3">
+        <div class="stat-tile"><div class="value"><%= t[1] %></div><div class="label"><%= t[0] %></div></div>
+      </div>
+    <% }); %>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 mb-3">Your listing</h2>
+        <% if (!profile) { %>
+          <p class="small text-muted-2 mb-0">Nothing to show yet.</p>
+        <% } else if (profile.is_public) { %>
+          <p class="small mb-3">
+            Listed as <strong><%= profile.agency_name %></strong>.
+            <a href="/recruiters/<%= profile.slug %>">See it as a visitor does</a>.
+          </p>
+          <a class="btn btn-outline-primary btn-sm" href="/recruiters/profile">Edit</a>
+        <% } else { %>
+          <p class="small mb-3">
+            Your profile is saved but not listed.
+            <% if (missing.length) { %>
+              Still needed: <strong><%= missing.join(', ').replace(/_/g, ' ') %></strong>.
+            <% } %>
+          </p>
+          <a class="btn btn-outline-primary btn-sm" href="/recruiters/profile">Finish and publish</a>
+        <% } %>
+      </div></div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 mb-3">What you can do</h2>
+        <div class="list-group list-group-flush">
+          <a class="list-group-item list-group-item-action" href="/jobs/new">Post a role</a>
+          <a class="list-group-item list-group-item-action" href="/dashboard/jobs">Your roles and applicants</a>
+          <a class="list-group-item list-group-item-action" href="/consultants">Search the consultant directory</a>
+          <a class="list-group-item list-group-item-action" href="/messages">Messages</a>
+        </div>
+        <p class="small text-muted-2 mt-3 mb-0">
+          Candidate shortlists and placement tracking are not built. The reference promises
+          both in a comment and ships neither, and an empty table for an undesigned feature
+          is one somebody later writes a query against.
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

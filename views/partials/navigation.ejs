@@ -32,7 +32,7 @@
         const isConsultantArea = startsWith('/jobs') || startsWith('/rates')
           || (currentUser && startsWith('/profile/consultant'));
         const isCompanyArea = startsWith('/consultants') || startsWith('/companies')
-          || (currentUser && startsWith('/quotes'));
+          || startsWith('/recruiters') || (currentUser && startsWith('/quotes'));
       %>
 
       <ul class="navbar-nav me-auto align-items-lg-center">
@@ -82,9 +82,15 @@
           <ul class="dropdown-menu shadow-sm">
             <li><a class="dropdown-item" href="/consultants"><i class="bi bi-people"></i> Find consultants</a></li>
             <li><a class="dropdown-item" href="/companies"><i class="bi bi-buildings"></i> Companies</a></li>
+            <li><a class="dropdown-item" href="/recruiters"><i class="bi bi-person-rolodex"></i> Agencies</a></li>
             <% if (currentUser) { %>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/quotes"><i class="bi bi-calculator"></i> Scope estimates</a></li>
+            <% } %>
+            <% if (currentUser && currentUser.isRecruiter) { %>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/recruiters/dashboard"><i class="bi bi-person-rolodex"></i> Agency dashboard</a></li>
+              <li><a class="dropdown-item" href="/recruiters/profile"><i class="bi bi-pencil-square"></i> Agency profile</a></li>
             <% } %>
             <% if (currentUser && currentUser.isCompany) { %>
               <li><hr class="dropdown-divider"></li>

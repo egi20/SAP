@@ -296,6 +296,7 @@ app.use('/assistant', require('./routes/assistant'));
 app.use('/referrals', require('./routes/referrals'));
 app.use('/linkedin', require('./routes/linkedin'));
 app.use('/search', require('./routes/search'));
+app.use('/recruiters', require('./routes/recruiters'));
 
 app.use(notFound);
 app.use(errorHandler);

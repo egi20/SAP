@@ -1,0 +1,52 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-person-rolodex', heading: profile.agency_name, sub: profile.tagline || null }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card"><div class="card-body p-4">
+        <h2 class="h6 mb-3">About</h2>
+        <p class="mb-0" style="white-space:pre-wrap"><%= profile.about || 'No description yet.' %></p>
+      </div></div>
+    </div>
+    <div class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 mb-3">Details</h2>
+        <ul class="list-unstyled small mb-0">
+          <% if (profile.contact_name) { %><li class="mb-1"><i class="bi bi-person"></i> <%= profile.contact_name %></li><% } %>
+          <% if (profile.city || profile.country) { %>
+            <li class="mb-1"><i class="bi bi-geo-alt"></i> <%= [profile.city, profile.country].filter(Boolean).join(', ') %></li>
+          <% } %>
+          <%
+            /*
+             * Both links are stored only after parsing as an absolute http(s) URL, so a
+             * bare `example.com` cannot render as a relative link that keeps the visitor
+             * on this site, and a `javascript:` value never reaches the column at all.
+             */
+          %>
+          <% if (profile.website) { %>
+            <li class="mb-1"><i class="bi bi-globe"></i> <a href="<%= profile.website %>" rel="nofollow noopener" target="_blank">Website</a></li>
+          <% } %>
+          <% if (profile.linkedin_url) { %>
+            <li class="mb-1"><i class="bi bi-linkedin"></i> <a href="<%= profile.linkedin_url %>" rel="nofollow noopener" target="_blank">LinkedIn</a></li>
+          <% } %>
+          <% if (profile.phone) { %><li class="mb-1"><i class="bi bi-telephone"></i> <%= profile.phone %></li><% } %>
+        </ul>
+      </div></div>
+
+      <% if (profile.specialisms.length) { %>
+        <div class="glass-card"><div class="card-body">
+          <h2 class="h6 mb-3">Recruits for</h2>
+          <% profile.specialisms.forEach(function (s) { %>
+            <span class="badge-hub"><%= lineLabel(s) %></span>
+          <% }); %>
+        </div></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

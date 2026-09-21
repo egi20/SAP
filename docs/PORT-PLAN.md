@@ -77,7 +77,8 @@ sound go-live fails — and it is a line item on real statements of work.
 | LinkedIn confirmation | 3 | 3 | **done** |
 | AI drafting, every draft verified | — | — | after the core |
 | Search across everything | 1 | 1 | **done** — four sources; agencies join with that area |
-| Recruiters, stories, reviews | 16 | ~16 | after the core |
+| Recruiters (agencies) | 6 | 6 | **done** |
+| Success stories, reviews | 10 | ~10 | after the core |
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
 | Tax advisory — the introduction only | 3 | 3 | after the core |
@@ -487,6 +488,32 @@ stylesheet has carried a `.nav-search` rule since the design system landed, with
 to apply it to, and all four list routes already accepted a `q` parameter — so "see all"
 works because those pages were built to be linked to this way, not because anything was
 changed to accommodate search.
+
+## Agencies
+
+Six handlers: a public directory, an agency's dashboard and profile form, the save, the
+visibility switch, and one public page by slug. The reference had already fixed most of
+what DynamicsHub got wrong here, and its two corrections are the ones worth restating —
+the dashboard no longer self-heals with an INSERT on a GET, and the profile route's
+validation is actually executed rather than declared and forgotten.
+
+**Specialisms became product lines.** The reference filters agencies by Salesforce cloud
+family; the SAP equivalent at module level is fifty-seven entries, which is a form nobody
+completes honestly. Eight product lines from `config/sapProducts.js` is a set of tick boxes
+somebody actually fills in, and it keeps the directory speaking the same vocabulary as the
+job board, the estimator and the community categories.
+
+**And the MySQL-8-versus-MariaDB caveat finally bit.** Every area so far has carried the
+note that this application is written for MySQL 8 and tested against MariaDB 10.11 with no
+divergence found. `CAST(? AS JSON)` is the first: MariaDB rejects it outright with a parse
+error, because its `JSON` type is an alias for LONGTEXT with a `json_valid()` CHECK and
+there is no JSON cast target to cast to. Binding the serialised string works on both. Found
+by running the save against a real database — the query reads perfectly well.
+
+Two more readers-without-writers closed with this area: `ImageBlob` has declared a
+`recruiter_logos` bucket since the core build, and the `isRecruiter` guard has existed in
+`middleware/auth.js` with nothing behind it. Search gained its fifth source, which the
+sources list was written to take.
 
 ## What the core build actually found
 

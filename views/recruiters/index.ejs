@@ -1,0 +1,85 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-person-rolodex',
+  heading: 'Recruitment agencies',
+  sub: 'Agencies and headhunters placing SAP people. Listed only if their owner published them.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <form class="glass-card mb-4" method="get" action="/recruiters">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label" for="f-q">Agency name</label>
+          <input class="form-control form-control-sm" id="f-q" name="q" value="<%= filters.q %>" maxlength="120">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="f-specialism">Specialism</label>
+          <select class="form-select form-select-sm" id="f-specialism" name="specialism">
+            <option value="">Any product line</option>
+            <% specialisms.forEach(function (s) { %>
+              <option value="<%= s.value %>" <%= filters.specialism === s.value ? 'selected' : '' %>><%= s.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="f-country">Country</label>
+          <select class="form-select form-select-sm" id="f-country" name="country">
+            <option value="">Anywhere</option>
+            <% countries.forEach(function (c) { %>
+              <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-primary btn-sm w-100" type="submit">Filter</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <% if (!recruiters.length) { %>
+    <div class="glass-card"><div class="card-body">
+      <p class="text-muted-2 mb-0">No agencies match. The directory is new — it fills up as agencies publish their profiles.</p>
+    </div></div>
+  <% } else { %>
+    <div class="row g-3">
+      <% recruiters.forEach(function (r) { %>
+        <div class="col-md-6 col-lg-4">
+          <div class="glass-card h-100"><div class="card-body">
+            <div class="d-flex gap-3 align-items-start mb-2">
+              <% if (r.logo) { %>
+                <img class="avatar" style="width:44px;height:44px" src="<%= r.logo %>" alt="">
+              <% } else { %>
+                <span class="icon-tile icon-navy"><i class="bi bi-person-rolodex"></i></span>
+              <% } %>
+              <div class="min-w-0">
+                <h2 class="h6 mb-1"><a href="/recruiters/<%= r.slug %>"><%= r.agency_name %></a></h2>
+                <p class="small text-muted-2 mb-0">
+                  <%= [r.city, r.country].filter(Boolean).join(', ') || 'Location not given' %>
+                </p>
+              </div>
+            </div>
+            <% if (r.tagline) { %><p class="small mb-2"><%= r.tagline %></p><% } %>
+            <% if (r.specialisms.length) { %>
+              <p class="mb-2">
+                <% r.specialisms.slice(0, 4).forEach(function (s) { %>
+                  <span class="badge-hub"><%= lineLabel(s) %></span>
+                <% }); %>
+              </p>
+            <% } %>
+            <p class="small text-muted-2 mb-0"><%= r.open_jobs %> open role<%= Number(r.open_jobs) === 1 ? '' : 's' %></p>
+          </div></div>
+        </div>
+      <% }); %>
+    </div>
+    <%- include('../partials/pagination', { pagination, pageUrl }) %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

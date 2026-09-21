@@ -1,0 +1,132 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-building-gear', heading: 'Agency profile' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <%- include('../partials/flash') %>
+
+      <% if (profile) { %>
+        <div class="glass-card mb-4"><div class="card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+              <h2 class="h6 mb-1">
+                Directory listing
+                <span class="badge-hub <%= profile.is_public ? '' : 'muted' %>">
+                  <%= profile.is_public ? 'listed' : 'hidden' %>
+                </span>
+              </h2>
+              <p class="small text-muted-2 mb-0">
+                <% if (missing.length) { %>
+                  Needed before listing: <strong><%= missing.join(', ').replace(/_/g, ' ') %></strong>.
+                <% } else { %>
+                  Everything needed is filled in.
+                <% } %>
+              </p>
+            </div>
+            <form method="post" action="/recruiters/profile/visibility" class="mb-0">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="is_public" value="<%= profile.is_public ? 'false' : 'true' %>">
+              <button class="btn btn-sm <%= profile.is_public ? 'btn-outline-secondary' : 'btn-primary' %>" type="submit">
+                <%= profile.is_public ? 'Hide from the directory' : 'List my agency' %>
+              </button>
+            </form>
+          </div>
+        </div></div>
+      <% } %>
+
+      <div class="glass-card"><div class="card-body p-4">
+        <form method="post" action="/recruiters/profile">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="mb-3">
+            <label class="form-label" for="agency_name">Agency name</label>
+            <input class="form-control" id="agency_name" name="agency_name" required
+                   maxlength="<%= limits.agencyName %>" value="<%= profile ? profile.agency_name : '' %>">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="contact_name">Main contact</label>
+              <input class="form-control" id="contact_name" name="contact_name"
+                     maxlength="<%= limits.contactName %>" value="<%= profile && profile.contact_name ? profile.contact_name : '' %>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="phone">Phone</label>
+              <input class="form-control" id="phone" name="phone" type="tel"
+                     maxlength="<%= limits.phone %>" value="<%= profile && profile.phone ? profile.phone : '' %>">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="tagline">One line about the agency</label>
+            <input class="form-control" id="tagline" name="tagline"
+                   maxlength="<%= limits.tagline %>" value="<%= profile && profile.tagline ? profile.tagline : '' %>">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="about">About</label>
+            <textarea class="form-control" id="about" name="about" rows="6"
+                      maxlength="<%= limits.about %>"><%= profile && profile.about ? profile.about : '' %></textarea>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="country">Country</label>
+              <select class="form-select" id="country" name="country">
+                <option value="">Choose</option>
+                <% countries.forEach(function (c) { %>
+                  <option value="<%= c.code %>" <%= profile && profile.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="city">City</label>
+              <input class="form-control" id="city" name="city"
+                     maxlength="<%= limits.city %>" value="<%= profile && profile.city ? profile.city : '' %>">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="website">Website</label>
+              <input class="form-control" id="website" name="website" type="url" placeholder="https://"
+                     maxlength="<%= limits.url %>" value="<%= profile && profile.website ? profile.website : '' %>">
+              <div class="form-text">Must be a full address. A bare domain is dropped rather than stored as a link back to this site.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="linkedin_url">LinkedIn</label>
+              <input class="form-control" id="linkedin_url" name="linkedin_url" type="url" placeholder="https://"
+                     maxlength="<%= limits.url %>" value="<%= profile && profile.linkedin_url ? profile.linkedin_url : '' %>">
+            </div>
+          </div>
+
+          <fieldset class="mb-4">
+            <legend class="form-label">Product lines you recruit for</legend>
+            <div class="row g-1">
+              <% specialisms.forEach(function (s) { %>
+                <div class="col-md-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="specialisms" value="<%= s.value %>"
+                           id="sp-<%= s.value %>"
+                           <%= profile && profile.specialisms.includes(s.value) ? 'checked' : '' %>>
+                    <label class="form-check-label small" for="sp-<%= s.value %>"><%= s.label %></label>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+            <div class="form-text">These are what the directory filters on, so they are a fixed list rather than free text.</div>
+          </fieldset>
+
+          <button class="btn btn-primary" type="submit">Save profile</button>
+          <a class="btn btn-link" href="/recruiters/dashboard">Back to dashboard</a>
+        </form>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

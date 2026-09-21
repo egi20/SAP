@@ -32,11 +32,12 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | In-site assistant, with a spend cap, a ledger and no stored transcripts | built |
 | Referrals: first-touch attribution, a commission ledger, payouts and reversals | built |
 | LinkedIn confirmation — the account, not the profile link, and it says so | built |
-| Search: one box over jobs, consultants, companies and the community | built |
+| Search: one box over jobs, consultants, companies, agencies and the community | built |
+| Agencies: a public directory, profiles gated on completeness, product-line filters | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: recruiters, the sales CRM and
-finance. See
+Not built yet, and listed so nobody mistakes the scope: success stories and reviews, the
+sales CRM and finance. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 

@@ -206,7 +206,7 @@ maybe()('the page itself', () => {
   test('it is public, and answers with no query at all', async () => {
     const res = await request(app).get('/search');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('One box, four places');
+    expect(res.text).toContain('One box, five places');
   });
 
   test('a short query is refused on the page rather than run', async () => {

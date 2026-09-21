@@ -3,10 +3,11 @@
 const Job = require('../models/Job');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
+const RecruiterProfile = require('../models/RecruiterProfile');
 const Post = require('../models/Post');
 
 /**
- * One box, four sources.
+ * One box, five sources.
  *
  * THE RULE, and it is the security argument as much as a tidiness one: **search adds no
  * filter of its own.** Every source calls the same `browse` its own list view calls, with
@@ -79,6 +80,18 @@ const SOURCES = Object.freeze([
     empty: 'No companies mention that.',
     async search(q, limit) {
       return CompanyProfile.browse({ q }, { limit, offset: 0 });
+    }
+  },
+  {
+    key: 'recruiters',
+    label: 'Agencies',
+    icon: 'bi-person-rolodex',
+    href: (q) => `/recruiters?q=${encodeURIComponent(q)}`,
+    empty: 'No agencies mention that.',
+    async search(q, limit) {
+      // Same as every other source: `is_public = 1` and `u.is_active = 1` are fixed
+      // fragments inside the browse, so an unpublished agency cannot be reached here.
+      return RecruiterProfile.browse({ q }, { limit, offset: 0 });
     }
   },
   {

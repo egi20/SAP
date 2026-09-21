@@ -477,6 +477,42 @@ with a reason.
 crawl space, every query string a distinct URL; a meta tag only stops it being indexed
 after it has already been fetched.
 
+## Agencies
+
+**The guard is `isRecruiter` from `middleware/auth.js` and nowhere else.** This is the file
+that rule was written about: DynamicsHub declared a private copy inside
+`routes/recruiters.js`, and it answered a background fetch with a redirect to a login page
+because a route-local guard does not know about `Sec-Fetch-Dest`.
+
+**No page render writes.** The reference's dashboard and profile handlers both do
+`if (!recruiter) createForUser(...)`, so opening a page is an INSERT. A read that writes
+cannot be retried safely and creates rows for anybody who merely looked; here a missing
+profile renders a prompt and the POST creates it.
+
+**Validation is applied, not declared.** The reference puts express-validator rules on the
+profile route and never calls `validationResult`, so every rule is decorative and a
+10,000-character agency name reaches the column. Everything goes through
+`RecruiterProfile.normaliseProfile`, which is pure and tested.
+
+**A country is refused, never truncated.** `text(input.country, 2)` turns `DEU` into `DE`
+and `AUT` into `AU` — Austria silently becomes Australia. The field is bounded generously
+and then pattern-checked, so a wrong value is visible instead of being wrong forever.
+
+**Specialisms are PRODUCT LINES from `config/sapProducts.js`**, not modules and not free
+text. Eight tick boxes get filled in honestly; fifty-seven do not. The directory filters
+with `JSON_CONTAINS` + `JSON_QUOTE`, not a LIKE over the serialised array — `LIKE
+'%s4hana%'` would match `s4hana-supply-chain` when only `s4hana-finance` was asked for.
+
+**`CAST(? AS JSON)` is MySQL-only.** MariaDB rejects it with a parse error: its `JSON` is
+an alias for LONGTEXT with a `json_valid()` CHECK and there is no JSON cast target. Bind
+the serialised string directly — MySQL parses it into the column, MariaDB stores it and the
+CHECK accepts it. Every read path hydrates through one `parseSpecialisms`, so no caller has
+to know what the driver returned.
+
+**An agency is hidden until its owner lists it, and listing is gated on a completeness
+floor that NAMES what is missing.** "Complete your profile" with no list is the message
+people bounce off.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:
