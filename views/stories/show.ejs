@@ -1,0 +1,61 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-stars',
+  heading: story.title,
+  sub: [story.subject_name, story.subject_role].filter(Boolean).join(' · ') || null
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <% if (embedUrl) { %>
+        <%
+          /*
+           * `embedUrl` comes from utils/videoEmbed.js, which produces a URL only for
+           * YouTube and Vimeo shapes it recognises and returns null for everything else.
+           * The two hosts are also what server.js puts in frame-src, from the same
+           * constant — so the policy and the allowlist cannot drift apart.
+           */
+        %>
+        <div class="ratio ratio-16x9 mb-4 rounded overflow-hidden">
+          <iframe src="<%= embedUrl %>" title="Video" loading="lazy"
+                  allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                  referrerpolicy="no-referrer" allowfullscreen></iframe>
+        </div>
+      <% } else if (story.photo) { %>
+        <img class="w-100 rounded mb-4" src="<%= story.photo %>" alt="">
+      <% } %>
+
+      <% if (story.quote) { %>
+        <blockquote class="glass-card mb-4"><div class="card-body p-4">
+          <p class="h5 fst-italic mb-2">&ldquo;<%= story.quote %>&rdquo;</p>
+          <% if (story.quote_author) { %>
+            <footer class="small text-muted-2">— <%= story.quote_author %></footer>
+          <% } %>
+        </div></blockquote>
+      <% } %>
+
+      <div class="glass-card"><div class="card-body p-4">
+        <% if (story.family) { %><span class="badge-hub mb-3"><%= lineLabel(story.family) %></span><% } %>
+        <%
+          /*
+           * The one unescaped output on this page. The body reached it through
+           * `sanitizeRichText` in SuccessStory.normalise, which is the only thing this
+           * codebase ever renders without escaping.
+           */
+        %>
+        <div class="rich-text"><%- story.body %></div>
+      </div></div>
+
+      <p class="mt-4 mb-0">
+        <a href="/success-stories"><i class="bi bi-arrow-left"></i> All stories</a>
+      </p>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

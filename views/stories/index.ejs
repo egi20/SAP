@@ -1,0 +1,107 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-stars',
+  heading: 'Success stories',
+  sub: 'What people actually delivered. No before-and-after pay figures — the Hub does not publish those.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <% if (summary.total) { %>
+    <div class="glass-card mb-4"><div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+          <h2 class="h6 mb-1"><%= summary.average %> out of 5</h2>
+          <p class="small text-muted-2 mb-0">
+            From <%= summary.total %> approved review<%= summary.total === 1 ? '' : 's' %> by members.
+          </p>
+        </div>
+        <a class="btn btn-outline-primary btn-sm" href="/success-stories/reviews">Read them all</a>
+      </div>
+    </div></div>
+  <% } %>
+
+  <form class="glass-card mb-4" method="get" action="/success-stories">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-7">
+          <label class="form-label" for="f-q">Search</label>
+          <input class="form-control form-control-sm" id="f-q" name="q" value="<%= filters.q %>" maxlength="120">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="f-family">Product line</label>
+          <select class="form-select form-select-sm" id="f-family" name="family">
+            <option value="">Any</option>
+            <% families.forEach(function (f) { %>
+              <option value="<%= f.value %>" <%= filters.family === f.value ? 'selected' : '' %>><%= f.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-primary btn-sm w-100" type="submit">Filter</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <% if (!stories.length) { %>
+    <div class="glass-card"><div class="card-body">
+      <p class="text-muted-2 mb-0">No stories yet. They are written by the team, so this page fills slowly and on purpose.</p>
+    </div></div>
+  <% } else { %>
+    <div class="row g-4">
+      <% stories.forEach(function (s) { %>
+        <div class="col-md-6">
+          <div class="glass-card h-100"><div class="card-body">
+            <% if (s.photo) { %>
+              <img class="w-100 rounded mb-3" style="aspect-ratio:16/9;object-fit:cover" src="<%= s.photo %>" alt="" loading="lazy">
+            <% } %>
+            <% if (s.family) { %><span class="badge-hub mb-2"><%= lineLabel(s.family) %></span><% } %>
+            <h2 class="h6 mb-2"><a href="/success-stories/<%= s.slug %>"><%= s.title %></a></h2>
+            <% if (s.summary) { %><p class="small mb-2"><%= s.summary %></p><% } %>
+            <% if (s.quote) { %>
+              <blockquote class="small fst-italic text-muted-2 border-start ps-3 mb-2">
+                <%= s.quote %>
+                <% if (s.quote_author) { %><footer class="fst-normal">— <%= s.quote_author %></footer><% } %>
+              </blockquote>
+            <% } %>
+            <p class="small text-muted-2 mb-0">
+              <%= [s.subject_name, s.subject_role].filter(Boolean).join(' · ') %>
+              <% if (s.embedUrl) { %><span class="ms-1"><i class="bi bi-play-circle"></i> video</span><% } %>
+            </p>
+          </div></div>
+        </div>
+      <% }); %>
+    </div>
+    <%- include('../partials/pagination', { pagination, pageUrl }) %>
+  <% } %>
+
+  <% if (reviews.length) { %>
+    <h2 class="h5 mt-5 mb-3">Recent reviews</h2>
+    <div class="row g-3">
+      <% reviews.forEach(function (r) { %>
+        <div class="col-md-4">
+          <div class="glass-card h-100"><div class="card-body">
+            <p class="mb-2" aria-label="<%= r.rating %> out of 5">
+              <% for (var i = 1; i <= 5; i++) { %><i class="bi <%= i <= r.rating ? 'bi-star-fill' : 'bi-star' %>"></i><% } %>
+            </p>
+            <p class="small mb-2" style="white-space:pre-wrap"><%= r.body %></p>
+            <p class="small text-muted-2 mb-0">
+              <%= r.author_name %><% if (r.author_role) { %> · <%= r.author_role %><% } %>
+            </p>
+          </div></div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <div class="text-center mt-4">
+    <a class="btn btn-outline-primary" href="/success-stories/reviews">Leave your own review</a>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

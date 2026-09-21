@@ -1,0 +1,94 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-chat-quote',
+  heading: 'Member reviews',
+  sub: 'Approve, withdraw approval, or hide. Nothing on this page deletes anything.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'reviews' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile"><div class="value"><%= pending %></div><div class="label">Waiting</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile"><div class="value"><%= summary.total %></div><div class="label">Published</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-tile"><div class="value"><%= summary.average === null ? '—' : summary.average %></div><div class="label">Average</div></div>
+    </div>
+  </div>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6">What these buttons do</h2>
+    <ul class="small text-muted-2 mb-0">
+      <li><strong>Approve</strong> publishes it. Withdrawing approval takes it down without hiding it.</li>
+      <li><strong>Hide</strong> is for abuse. A hidden review stays hidden even if its author edits it.</li>
+      <li>Editing a review clears its approval automatically — an approval whose text can be
+          swapped afterwards means nothing.</li>
+      <li>There is no delete here, and the reference has one: a hard DELETE reachable from a
+          bulk action. After it runs, nobody can say what was removed or by whom.</li>
+    </ul>
+  </div></div>
+
+  <ul class="nav nav-pills mb-3">
+    <% [['pending','Waiting'],['approved','Published'],['hidden','Hidden']].forEach(function (t) { %>
+      <li class="nav-item">
+        <a class="nav-link <%= status === t[0] ? 'active' : '' %>" href="/admin/reviews?status=<%= t[0] %>"><%= t[1] %></a>
+      </li>
+    <% }); %>
+  </ul>
+
+  <% if (!reviews.length) { %>
+    <div class="glass-card"><div class="card-body"><p class="text-muted-2 mb-0">Nothing here.</p></div></div>
+  <% } %>
+
+  <% reviews.forEach(function (r) { %>
+    <div class="glass-card mb-3"><div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
+        <div>
+          <p class="mb-1" aria-label="<%= r.rating %> out of 5">
+            <% for (var i = 1; i <= 5; i++) { %><i class="bi <%= i <= r.rating ? 'bi-star-fill' : 'bi-star' %>"></i><% } %>
+            <% if (r.hidden_at) { %><span class="badge-hub muted ms-2">hidden</span>
+            <% } else if (r.approved_at) { %><span class="badge-hub ok ms-2">published</span>
+            <% } else { %><span class="badge-hub ms-2">waiting</span><% } %>
+          </p>
+          <p class="small text-muted-2 mb-0">
+            <a href="/admin/users?search=<%= r.user_id %>"><%= r.author_name %></a>
+            <% if (r.author_role) { %> · <%= r.author_role %><% } %>
+            · <%= new Date(r.created_at).toISOString().slice(0, 10) %>
+          </p>
+        </div>
+      </div>
+
+      <p class="mb-3" style="white-space:pre-wrap"><%= r.body %></p>
+
+      <div class="d-flex flex-wrap gap-2">
+        <form method="post" action="/admin/reviews/<%= r.id %>/state" class="mb-0">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="approved">
+          <input type="hidden" name="value" value="<%= r.approved_at ? 'false' : 'true' %>">
+          <button class="btn btn-sm <%= r.approved_at ? 'btn-outline-secondary' : 'btn-primary' %>" type="submit">
+            <%= r.approved_at ? 'Withdraw approval' : 'Approve' %>
+          </button>
+        </form>
+
+        <form method="post" action="/admin/reviews/<%= r.id %>/state" class="mb-0">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="hidden">
+          <input type="hidden" name="value" value="<%= r.hidden_at ? 'false' : 'true' %>">
+          <button class="btn btn-sm btn-outline-danger" type="submit"><%= r.hidden_at ? 'Restore' : 'Hide' %></button>
+        </form>
+      </div>
+    </div></div>
+  <% }); %>
+
+  <%- include('../partials/pagination', { pagination, pageUrl }) %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

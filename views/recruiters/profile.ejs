@@ -35,6 +35,27 @@
             </form>
           </div>
         </div></div>
+
+        <div class="glass-card mb-4"><div class="card-body">
+          <h2 class="h6 mb-3">Logo</h2>
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <img class="logo-tile" src="<%= profile.logo || '/images/logo-placeholder.svg' %>" alt="" width="64" height="64">
+            <%#
+              A separate form because it is multipart. The image is re-encoded server-side
+              to a bounded WebP, which is also what rejects anything that is not an image.
+            %>
+            <form class="d-flex gap-2 align-items-center flex-wrap" method="post"
+                  action="/recruiters/profile/logo" enctype="multipart/form-data">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input class="form-control form-control-sm" type="file" name="logo"
+                     accept="image/png,image/jpeg,image/webp" style="max-width: 18rem;">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Upload</button>
+            </form>
+          </div>
+          <p class="small text-muted-2 mb-0 mt-2">
+            Square works best. It is resized and re-encoded here, so anything large is fine.
+          </p>
+        </div></div>
       <% } %>
 
       <div class="glass-card"><div class="card-body p-4">

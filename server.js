@@ -22,6 +22,7 @@ const assistantConfig = require('./config/assistant');
 const { assertReferralIntegrity } = require('./config/referrals');
 const linkedinConfig = require('./config/linkedin');
 const { assertLinkedInIntegrity } = linkedinConfig;
+const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -107,10 +108,16 @@ app.use(
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'"],
         formAction: ["'self'"],
-        // No embeds anywhere yet. The reference allows two video hosts for its success
-        // stories; when that feature lands the allowlist comes from the one module that
-        // can build an embed URL, so the policy and the allowlist cannot drift apart.
-        frameSrc: ["'self'"],
+        /*
+         * The two video hosts a success story may embed, and they come from the ONE
+         * module that can build an embed URL — so the policy and the allowlist cannot
+         * drift apart. The same reason WEBHOOK_PATH is shared between here and
+         * config/payments.js rather than written out twice. A test asserts this exact
+         * shape, because a host added to utils/videoEmbed.js and not here produces an
+         * embed that is silently blocked, and one added here and not there widens the
+         * policy for nothing.
+         */
+        frameSrc: ["'self'", ...EMBED_HOSTS],
         frameAncestors: ["'none'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"]
@@ -297,6 +304,7 @@ app.use('/referrals', require('./routes/referrals'));
 app.use('/linkedin', require('./routes/linkedin'));
 app.use('/search', require('./routes/search'));
 app.use('/recruiters', require('./routes/recruiters'));
+app.use('/success-stories', require('./routes/stories'));
 
 app.use(notFound);
 app.use(errorHandler);

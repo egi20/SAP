@@ -1,0 +1,102 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-chat-quote',
+  heading: 'What members say',
+  sub: 'Reviews from people with an account here. Every one is attached to a real member.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <% if (summary.total) { %>
+        <div class="glass-card mb-3"><div class="card-body">
+          <div class="d-flex align-items-baseline gap-2">
+            <span class="display-6 fw-semibold"><%= summary.average %></span>
+            <span class="text-muted-2">out of 5, from <%= summary.total %> review<%= summary.total === 1 ? '' : 's' %></span>
+          </div>
+        </div></div>
+      <% } %>
+
+      <% if (!reviews.length) { %>
+        <div class="glass-card"><div class="card-body">
+          <p class="text-muted-2 mb-0">No approved reviews yet.</p>
+        </div></div>
+      <% } %>
+
+      <% reviews.forEach(function (r) { %>
+        <div class="glass-card mb-3"><div class="card-body">
+          <p class="mb-2" aria-label="<%= r.rating %> out of 5">
+            <% for (var i = 1; i <= 5; i++) { %><i class="bi <%= i <= r.rating ? 'bi-star-fill' : 'bi-star' %>"></i><% } %>
+          </p>
+          <p class="mb-2" style="white-space:pre-wrap"><%= r.body %></p>
+          <p class="small text-muted-2 mb-0">
+            <%= r.author_name %><% if (r.author_role) { %> · <%= r.author_role %><% } %>
+          </p>
+        </div></div>
+      <% }); %>
+
+      <%- include('../partials/pagination', { pagination, pageUrl }) %>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card"><div class="card-body p-4">
+        <h2 class="h6 mb-3"><%= own ? 'Your review' : 'Leave a review' %></h2>
+
+        <% if (!currentUser) { %>
+          <p class="small text-muted-2">
+            You need an account to leave a review. That is deliberate: a testimonial nobody
+            can attribute is not a testimonial.
+          </p>
+          <a class="btn btn-primary btn-sm" href="/auth/login">Sign in</a>
+
+        <% } else { %>
+          <% if (own) { %>
+            <p class="small text-muted-2 mb-3">
+              <% if (own.hidden_at) { %>
+                Your review has been hidden by a moderator.
+              <% } else if (own.approved_at) { %>
+                Approved and showing. Editing it sends it back for approval.
+              <% } else { %>
+                Waiting for approval.
+              <% } %>
+            </p>
+          <% } %>
+
+          <form method="post" action="/success-stories/reviews">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <fieldset class="mb-3">
+              <legend class="form-label">Rating</legend>
+              <% [5,4,3,2,1].forEach(function (n) { %>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="rating" value="<%= n %>" id="rt-<%= n %>"
+                         required <%= own && own.rating === n ? 'checked' : '' %>>
+                  <label class="form-check-label" for="rt-<%= n %>"><%= n %> out of 5</label>
+                </div>
+              <% }); %>
+            </fieldset>
+
+            <div class="mb-3">
+              <label class="form-label" for="body">What would you tell somebody considering it?</label>
+              <textarea class="form-control" id="body" name="body" rows="6" required
+                        minlength="<%= minBody %>" maxlength="<%= maxBody %>"><%= own ? own.body : '' %></textarea>
+              <div class="form-text">
+                At least <%= minBody %> characters. Your name and role come from your account —
+                there is no box to type a title into.
+              </div>
+            </div>
+
+            <button class="btn btn-primary" type="submit"><%= own ? 'Update my review' : 'Submit' %></button>
+          </form>
+        <% } %>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

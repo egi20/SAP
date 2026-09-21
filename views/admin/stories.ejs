@@ -1,0 +1,159 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-stars',
+  heading: 'Success stories',
+  sub: 'Case studies the team writes. Drafts stay invisible until you publish them.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'stories' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6">Two switches, and neither deletes</h2>
+    <ul class="small text-muted-2 mb-0">
+      <li><strong>Publish</strong> makes a finished story live. Unpublishing means "not finished".</li>
+      <li><strong>Hide</strong> takes down something that WAS live. The difference matters: a
+          retraction is the one somebody asks about later.</li>
+      <li>There is no delete. A hide is reversible and the row survives, so nothing pointing at it breaks.</li>
+      <li>Money is not a field. A story saying "we shipped in nine weeks" is evidence; one
+          quoting somebody's pay before and after is a financial claim the Hub cannot stand behind.</li>
+    </ul>
+  </div></div>
+
+  <div class="glass-card mb-4"><div class="card-body p-4">
+    <h2 class="h6 mb-3"><%= editing ? 'Edit story' : 'New story' %></h2>
+    <form method="post" action="<%= editing ? '/admin/stories/' + editing.id : '/admin/stories' %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="mb-3">
+        <label class="form-label" for="title">Title</label>
+        <input class="form-control" id="title" name="title" required maxlength="<%= limits.title %>"
+               value="<%= editing ? editing.title : '' %>">
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label" for="subject_name">Who it is about</label>
+          <input class="form-control" id="subject_name" name="subject_name" maxlength="<%= limits.subject %>"
+                 value="<%= editing && editing.subject_name ? editing.subject_name : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="subject_role">Their role</label>
+          <input class="form-control" id="subject_role" name="subject_role" maxlength="<%= limits.subject %>"
+                 value="<%= editing && editing.subject_role ? editing.subject_role : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="family">Product line</label>
+          <select class="form-select" id="family" name="family">
+            <option value="">None</option>
+            <% families.forEach(function (f) { %>
+              <option value="<%= f.value %>" <%= editing && editing.family === f.value ? 'selected' : '' %>><%= f.label %></option>
+            <% }); %>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="summary">One-paragraph summary</label>
+        <input class="form-control" id="summary" name="summary" maxlength="<%= limits.summary %>"
+               value="<%= editing && editing.summary ? editing.summary : '' %>">
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-8">
+          <label class="form-label" for="quote">Pull quote</label>
+          <input class="form-control" id="quote" name="quote" maxlength="<%= limits.quote %>"
+                 value="<%= editing && editing.quote ? editing.quote : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="quote_author">Said by</label>
+          <input class="form-control" id="quote_author" name="quote_author" maxlength="<%= limits.subject %>"
+                 value="<%= editing && editing.quote_author ? editing.quote_author : '' %>">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="video_url">Video URL</label>
+        <input class="form-control" id="video_url" name="video_url" maxlength="<%= limits.videoUrl %>"
+               value="<%= editing && editing.video_url ? editing.video_url : '' %>">
+        <div class="form-text">
+          YouTube or Vimeo only. Anything else is stored but never framed — the embed is
+          derived at render time from an allowlist, so an unusable link is visibly absent
+          rather than silently trusted.
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="body">Body</label>
+        <textarea class="form-control" id="body" name="body" rows="12" required
+                  maxlength="<%= limits.body %>"><%= editing ? editing.body : '' %></textarea>
+        <div class="form-text">Sanitised before storage. Only sanitised output is ever rendered unescaped.</div>
+      </div>
+
+      <button class="btn btn-primary" type="submit"><%= editing ? 'Save story' : 'Create draft' %></button>
+      <% if (editing) { %><a class="btn btn-link" href="/admin/stories">Cancel</a><% } %>
+    </form>
+  </div></div>
+
+  <% if (!stories.length) { %>
+    <div class="glass-card"><div class="card-body"><p class="text-muted-2 mb-0">No stories yet.</p></div></div>
+  <% } %>
+
+  <% stories.forEach(function (s) { %>
+    <div class="glass-card mb-3"><div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
+        <div>
+          <h2 class="h6 mb-1">
+            <%= s.title %>
+            <% if (s.hidden_at) { %><span class="badge-hub muted">hidden</span>
+            <% } else if (s.published_at) { %><span class="badge-hub ok">published</span>
+            <% } else { %><span class="badge-hub">draft</span><% } %>
+          </h2>
+          <p class="small text-muted-2 mb-0">
+            <code><%= s.slug %></code>
+            <% if (s.family) { %> · <%= lineLabel(s.family) %><% } %>
+            <% if (s.subject_name) { %> · <%= s.subject_name %><% } %>
+          </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-primary btn-sm" href="/admin/stories?edit=<%= s.id %>">Edit</a>
+          <% if (s.published_at && !s.hidden_at) { %>
+            <a class="btn btn-link btn-sm" href="/success-stories/<%= s.slug %>">View</a>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-end">
+        <form method="post" action="/admin/stories/<%= s.id %>/state" class="mb-0">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="published">
+          <input type="hidden" name="value" value="<%= s.published_at ? 'false' : 'true' %>">
+          <button class="btn btn-sm btn-outline-secondary" type="submit"><%= s.published_at ? 'Unpublish' : 'Publish' %></button>
+        </form>
+
+        <form method="post" action="/admin/stories/<%= s.id %>/state" class="mb-0">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="hidden">
+          <input type="hidden" name="value" value="<%= s.hidden_at ? 'false' : 'true' %>">
+          <button class="btn btn-sm btn-outline-danger" type="submit"><%= s.hidden_at ? 'Restore' : 'Hide' %></button>
+        </form>
+
+        <form method="post" action="/admin/stories/<%= s.id %>/photo" enctype="multipart/form-data"
+              class="d-flex gap-2 align-items-center mb-0">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input class="form-control form-control-sm" type="file" name="photo" accept="image/*" id="photo-<%= s.id %>"
+                 aria-label="Story photo">
+          <button class="btn btn-sm btn-outline-primary" type="submit">Upload</button>
+        </form>
+      </div>
+    </div></div>
+  <% }); %>
+
+  <%- include('../partials/pagination', { pagination, pageUrl }) %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

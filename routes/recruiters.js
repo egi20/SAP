@@ -4,11 +4,14 @@ const express = require('express');
 
 const countries = require('../config/all-countries.json');
 const RecruiterProfile = require('../models/RecruiterProfile');
+const ImageBlob = require('../models/ImageBlob');
 const { isAuthenticated, isRecruiter } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
+const { singleImage } = require('../middleware/fileUpload');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { returnTo } = require('../utils/returnTo');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
+const { requireIdParam } = require('../utils/ids');
 
 const router = express.Router();
 
@@ -150,6 +153,76 @@ router.post(
       req.flash('error', err.message);
     }
     return res.redirect(returnTo(req, '/recruiters/profile'));
+  })
+);
+
+/**
+ * POST /recruiters/profile/logo — the agency logo.
+ *
+ * `RecruiterProfile.setLogo` and the `recruiter_logos` bucket in `models/ImageBlob.js`
+ * have both existed since the agency area landed, with no table behind them and nothing
+ * calling them. Migration 016 adds the table and this adds the caller.
+ *
+ * Same pipeline as every other image here: multer holds it in memory, sharp re-encodes it
+ * to a bounded WebP — which is the real sanitiser, since anything that is not an image
+ * fails to decode — and the bytes go to a side table, never to the disk and never to a
+ * column on a row the directory does `SELECT` over.
+ */
+router.post(
+  '/profile/logo',
+  isAuthenticated,
+  isRecruiter,
+  writeLimiter,
+  singleImage('logo'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      req.flash('error', 'Please choose an image.');
+      return res.redirect('/recruiters/profile');
+    }
+    // Only for an agency that has actually saved a profile: the blob is keyed on the
+    // user, but a logo with no row to point at is an orphan nothing will ever clean up.
+    if (!(await RecruiterProfile.findByUserId(req.session.user.id))) {
+      req.flash('error', 'Save your agency profile first, then add a logo.');
+      return res.redirect('/recruiters/profile');
+    }
+
+    try {
+      await ImageBlob.put('recruiter_logos', req.session.user.id, req.file.buffer, { size: 512 });
+      await RecruiterProfile.setLogo(
+        req.session.user.id,
+        ImageBlob.pointerUrl('/recruiters/logo', req.session.user.id)
+      );
+      req.flash('success', 'Logo updated.');
+    } catch (err) {
+      req.flash('error', 'That file could not be read as an image.');
+    }
+    return res.redirect('/recruiters/profile');
+  })
+);
+
+/**
+ * GET /recruiters/logo/:id — serve it.
+ *
+ * Before `/:slug`, or the slug route would swallow it. Answers a conditional request from
+ * the ETag without loading the bytes, and falls back to the placeholder rather than a 404
+ * so a missing logo is a blank tile and not a broken image.
+ */
+router.get(
+  '/logo/:id',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const etag = await ImageBlob.getEtag('recruiter_logos', req.params.id);
+    if (!etag) return res.redirect('/images/logo-placeholder.svg');
+
+    res.set('ETag', `"${etag}"`);
+    res.set('Cache-Control', 'public, max-age=86400');
+    if (req.get('if-none-match') === `"${etag}"`) return res.status(304).end();
+
+    const blob = await ImageBlob.get('recruiter_logos', req.params.id);
+    if (!blob) return res.redirect('/images/logo-placeholder.svg');
+
+    res.type(blob.content_type);
+    return res.send(blob.bytes);
   })
 );
 

@@ -11,12 +11,17 @@ const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
 const AppSetting = require('../models/AppSetting');
 const Referral = require('../models/Referral');
+const SuccessStory = require('../models/SuccessStory');
+const SiteReview = require('../models/SiteReview');
+const ImageBlob = require('../models/ImageBlob');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
 const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
 const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
 const { PAYOUT_METHODS, MIN_PAYOUT_MINOR, DEFAULT_RATE_BPS } = require('../config/referrals');
+const { PRODUCT_LINES } = require('../config/sapProducts');
+const { singleImage } = require('../middleware/fileUpload');
 const { roleLabel } = require('../config/roleTaxonomy');
 const { returnTo } = require('../utils/returnTo');
 const { promisePool } = require('../config/database');
@@ -628,6 +633,167 @@ router.post(
     const removed = await ErrorLog.purgeOlderThan(days);
     req.flash('success', `Removed ${removed} entries older than ${days} days.`);
     return res.redirect('/admin/errors');
+  })
+);
+
+/* ------------------------------------------------- stories and reviews */
+
+/**
+ * GET /admin/stories — write and manage case studies.
+ *
+ * Admin, not superadmin: a story is marketing copy about work that was done, not a screen
+ * showing somebody's private circumstances.
+ */
+router.get(
+  '/stories',
+  asyncHandler(async (req, res) => {
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 20 });
+    const { rows, total } = await SuccessStory.list({ include_unpublished: true }, { limit, offset });
+
+    res.render('admin/stories', {
+      title: 'Success stories',
+      stories: rows,
+      families: PRODUCT_LINES,
+      limits: SuccessStory.LIMITS,
+      editing: req.query.edit ? await SuccessStory.findById(parseInt(req.query.edit, 10) || 0) : null,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/admin/stories', req.query, p)
+    });
+  })
+);
+
+router.post(
+  '/stories',
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    try {
+      const { slug } = await SuccessStory.create(req.body, { actorUserId: req.session.user.id });
+      req.flash('success', `Story created as a draft. Publish it when you are ready (${slug}).`);
+    } catch (err) {
+      if (!['TITLE_REQUIRED', 'BODY_REQUIRED'].includes(err.code)) throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect('/admin/stories');
+  })
+);
+
+router.post(
+  '/stories/:id',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    try {
+      await SuccessStory.update(req.params.id, req.body);
+      req.flash('success', 'Story saved.');
+    } catch (err) {
+      if (!['TITLE_REQUIRED', 'BODY_REQUIRED', 'NOT_FOUND'].includes(err.code)) throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect(returnTo(req, '/admin/stories'));
+  })
+);
+
+/**
+ * Publish and hide are separate switches, and neither is a delete.
+ *
+ * Unpublished means "not finished"; hidden means "was live and should not be". Collapsing
+ * them into one flag loses the difference between a draft and a retraction, and the
+ * retraction is the one somebody will ask about later.
+ */
+router.post(
+  '/stories/:id/state',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    if (req.body.field === 'published') {
+      await SuccessStory.setPublished(req.params.id, req.body.value === 'true');
+      req.flash('success', req.body.value === 'true' ? 'Story published.' : 'Story unpublished.');
+    } else if (req.body.field === 'hidden') {
+      await SuccessStory.setHidden(req.params.id, req.body.value === 'true');
+      req.flash('success', req.body.value === 'true' ? 'Story hidden. Nothing was deleted.' : 'Story restored.');
+    } else {
+      req.flash('error', 'Unknown field.');
+    }
+    return res.redirect(returnTo(req, '/admin/stories'));
+  })
+);
+
+/**
+ * The story photo. Same pipeline as every other image here: multer keeps it in memory,
+ * sharp re-encodes it to a bounded WebP — which is also the real sanitiser, since anything
+ * that is not an image fails to decode — and the bytes go to a side table, never the disk
+ * and never a column on a row that gets SELECT *'d.
+ */
+router.post(
+  '/stories/:id/photo',
+  requireIdParam('id'),
+  writeLimiter,
+  singleImage('photo'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      req.flash('error', 'Choose an image first.');
+      return res.redirect(returnTo(req, '/admin/stories'));
+    }
+    await ImageBlob.put('story_photos', req.params.id, req.file.buffer, { size: 1200 });
+    await SuccessStory.setPhoto(req.params.id, ImageBlob.pointerUrl('/success-stories/photo', req.params.id));
+    req.flash('success', 'Photo saved.');
+    return res.redirect(returnTo(req, '/admin/stories'));
+  })
+);
+
+/**
+ * GET /admin/reviews — the approval queue.
+ *
+ * Three actions and none of them is delete. The reference's bulk action calls
+ * `SiteReview.delete`, a hard DELETE from a list view; after it runs nobody can say what
+ * was removed or by whom.
+ */
+router.get(
+  '/reviews',
+  asyncHandler(async (req, res) => {
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
+    const status = ['pending', 'hidden', 'approved'].includes(req.query.status) ? req.query.status : 'pending';
+
+    const filters =
+      status === 'approved'
+        ? {}
+        : { include_pending: true, include_hidden: true, status };
+
+    const [{ rows, total }, summary, pending] = await Promise.all([
+      SiteReview.list(filters, { limit, offset }),
+      SiteReview.summary(),
+      SiteReview.pendingCount()
+    ]);
+
+    res.render('admin/reviews', {
+      title: 'Member reviews',
+      reviews: rows,
+      status,
+      summary,
+      pending,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/admin/reviews', req.query, p)
+    });
+  })
+);
+
+router.post(
+  '/reviews/:id/state',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    if (req.body.field === 'approved') {
+      await SiteReview.setApproved(req.params.id, req.body.value === 'true', {
+        actorUserId: req.session.user.id
+      });
+      req.flash('success', req.body.value === 'true' ? 'Review approved.' : 'Approval withdrawn.');
+    } else if (req.body.field === 'hidden') {
+      await SiteReview.setHidden(req.params.id, req.body.value === 'true');
+      req.flash('success', req.body.value === 'true' ? 'Review hidden. The row is kept.' : 'Review restored.');
+    } else {
+      req.flash('error', 'Unknown field.');
+    }
+    return res.redirect(returnTo(req, '/admin/reviews'));
   })
 );
 

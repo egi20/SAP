@@ -78,7 +78,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | AI drafting, every draft verified | — | — | after the core |
 | Search across everything | 1 | 1 | **done** — four sources; agencies join with that area |
 | Recruiters (agencies) | 6 | 6 | **done** |
-| Success stories, reviews | 10 | ~10 | after the core |
+| Success stories, reviews | 10 | 11 | **done** |
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
 | Tax advisory — the introduction only | 3 | 3 | after the core |
@@ -514,6 +514,31 @@ Two more readers-without-writers closed with this area: `ImageBlob` has declared
 `recruiter_logos` bucket since the core build, and the `isRecruiter` guard has existed in
 `middleware/auth.js` with nothing behind it. Search gained its fifth source, which the
 sources list was written to take.
+
+## Stories and reviews
+
+Eleven handlers: the public list, one story, the story photo, the review list and the
+submission, plus six in admin. The reference had already made the two decisions that
+matter — reviews require an account and derive the author's role from the session, and
+content is hidden rather than deleted — and both are restatements of rules this codebase
+applies everywhere else, so they came across unchanged.
+
+The area's own refusal came with it and is now pinned twice. DynamicsHub's success stories
+carry `gross_before`, `net_before`, `gross_after` and `net_after`, and its tax page renders
+the difference as a monthly saving: that is the savings calculator this port refuses,
+wearing a different hat. The columns are absent, the normaliser drops them, and a test
+scans both the migration file and the model output for anything saving-shaped.
+
+**Two things the CSP and the blob store had been waiting for.** `server.js` has carried a
+`frameSrc: ["'self'"]` with a written note saying the video allowlist would come from the
+one module that can build an embed URL — it now does, shared as `EMBED_HOSTS`, and a test
+pins the exact shape so the policy and the allowlist cannot drift. And `models/ImageBlob.js`
+has declared a `story_photos` bucket since the core build with no table behind it.
+
+**It also finishes the agency area.** `ImageBlob` declared a `recruiter_logos` bucket and
+`RecruiterProfile.setLogo` existed with no table and no caller — the reference groups that
+table into this migration, and the upload and serving handlers are added with it. That is
+the fourth reader-without-writer this port has closed.
 
 ## What the core build actually found
 

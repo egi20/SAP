@@ -513,6 +513,45 @@ to know what the driver returned.
 floor that NAMES what is missing.** "Complete your profile" with no list is the message
 people bounce off.
 
+## Stories and reviews
+
+**A story is written by an administrator; a review is written by a member and approved
+before anybody sees it.** Both are HIDDEN, never deleted. DynamicsHub's `SiteReview.delete`
+is a hard DELETE reachable from a bulk action on a list view, and after it runs nobody can
+say what was removed or by whom.
+
+**Published and hidden are separate switches.** Unpublished means "not finished"; hidden
+means "was live and should not be". Collapsing them loses the retraction, which is the one
+somebody asks about later.
+
+**A review requires an account, and the role beside it is DERIVED from the session.** The
+reference takes a name and a role from the form, so "SAP Mentor" is a claim the page then
+renders as fact. An anonymous write endpoint is also a testimonial farm with a text box:
+nothing links the words to anybody who used the site. One account holds one review, and
+editing it clears the approval — an approved review whose text can be swapped afterwards
+is an approval that means nothing.
+
+**A story carries NO money fields, and a test enforces it.** `gross_before`, `net_after`,
+`savings_monthly` — DynamicsHub carries all of them and renders the difference as a monthly
+saving, which is the refused savings calculator wearing a different hat. "We shipped in
+nine weeks" is evidence; "I went from 3,400 to 5,700 a month" is a financial claim the Hub
+cannot stand behind. The test scans both the schema and the normaliser for anything
+saving-shaped.
+
+**`utils/videoEmbed.js` is an allowlist, and it runs at RENDER time.** Only URL shapes it
+recognises produce an embed; everything else is null, YouTube goes through the no-cookie
+host, and query strings are dropped so an embed cannot inherit `?autoplay=1`. Nothing
+derived is stored: a stored embed URL looks trustworthy because of a check made once, in
+the past, by code that may since have changed.
+
+**`EMBED_HOSTS` is shared between that module and the CSP in `server.js`.** A host added to
+one and not the other is either an embed that is silently blocked or a policy widened for
+nothing. Same reason `WEBHOOK_PATH` is shared rather than written twice, and a test pins
+the exact shape.
+
+**A draft's photo is refused, not just its page.** Otherwise an unpublished story's image
+can be enumerated before the story goes live.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

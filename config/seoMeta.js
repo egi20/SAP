@@ -40,6 +40,10 @@ const PAGE_META = {
     title: 'Contact SAP Hub',
     description: 'How to reach a person about an account, a payment, a quote or a job.'
   },
+  '/success-stories': {
+    title: 'SAP success stories',
+    description: 'Case studies from real SAP engagements, and what members say about the Hub.'
+  },
   '/rates': {
     title: 'SAP day rate index',
     description:
@@ -56,7 +60,7 @@ const PAGE_META = {
 };
 
 /** Paths that may appear in the sitemap and carry a canonical URL. */
-const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates', '/community', '/contact', '/legal/privacy', '/legal/terms'];
+const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates', '/community', '/success-stories', '/contact', '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {
   const clean = String(path || '/').split('?')[0];
