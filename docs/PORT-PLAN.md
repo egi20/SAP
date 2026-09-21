@@ -82,7 +82,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
 | Tax advisory — the introduction only | 3 | 3 | after the core |
-| Daily challenge, graded on the server | 3 | 3 | after the core |
+| Daily challenge, graded on the server | 3 | 3 | **done** — one game, not nine |
 
 ## Excluded, at the owner's instruction — the same list as Salesforce Hub
 
@@ -539,6 +539,40 @@ has declared a `story_photos` bucket since the core build with no table behind i
 `RecruiterProfile.setLogo` existed with no table and no caller — the reference groups that
 table into this migration, and the upload and serving handlers are added with it. That is
 the fourth reader-without-writer this port has closed.
+
+## The daily challenge
+
+Three handlers, and the refusal recorded at the start of this port is the feature.
+DynamicsHub ships nine browser-scored games: `routes/games.js` reads `{ score, gameDate }`
+from the request body and writes both to a leaderboard, and 2,467 lines of
+`views/partials/games-section.ejs` ship every question together with the index of its
+correct answer. Anybody signed in can post a perfect score for any date; anybody curious
+can read the answers in view-source. That output feeds a points summary, so a browser can
+mint points — and in this codebase the ledger is append-only precisely so that a total can
+always be explained.
+
+So: one game, graded on the server. The answer key never leaves the process, the browser
+posts the options it chose, the date comes from the server clock, and one attempt per
+person per day is a unique key rather than a check. The streak is derived from attempt
+dates instead of being posted by a check-in endpoint. The other eight games are the same
+shape wearing different UI, and porting them would be porting the bug eight more times.
+
+**The question bank is written from scratch**, which is the real SAP work here — the
+reference's twenty questions are all Apex, SOQL and sharing rules. Twenty-four SAP
+questions, each tagged with a community category slug so a weak area points at a category
+that actually exists, and each carrying an explanation, which is the part that makes the
+quiz worth playing rather than a slot machine.
+
+**Two things changed from the reference.** Points are settled once per attempt rather than
+awarded once per correct answer — `Points.award` no longer exists here, and the attempt is
+the honest subject anyway. And a closed attempt is now re-graded on reload:
+`Challenge.replay` rebuilds the result from the date and the stored choices, so a refresh
+no longer throws away the explanations, and the recomputed score is compared with the
+stored one so an edit to the bank under a played day is logged rather than silent. A test
+found that gap by asserting the wrong thing and being right about the symptom.
+
+**And the MariaDB divergence appeared a second time.** `CAST(? AS JSON)` again, in the
+attempt insert. Found the same way as the first: by running it.
 
 ## What the core build actually found
 

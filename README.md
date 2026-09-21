@@ -35,10 +35,11 @@ Server-rendered Express + EJS on MySQL 8. No SPA, no ORM, no build step for serv
 | Search: one box over jobs, consultants, companies, agencies and the community | built |
 | Agencies: a public directory, profiles gated on completeness, product-line filters | built |
 | Success stories and member reviews, moderated, with an embed allowlist | built |
+| Daily challenge: twenty-four SAP questions, graded on the server, one attempt a day | built |
 | SEO: canonicals, JobPosting JSON-LD, sitemap generated from the robots allowlist | built |
 
-Not built yet, and listed so nobody mistakes the scope: the sales CRM, finance, the daily
-challenge and the tax advisory introduction. See
+Not built yet, and listed so nobody mistakes the scope: the sales CRM, finance and the tax
+advisory introduction. See
 [`docs/PORT-PLAN.md`](docs/PORT-PLAN.md), which says for each one what it will and will not
 carry over.
 

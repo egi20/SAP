@@ -552,6 +552,57 @@ the exact shape.
 **A draft's photo is refused, not just its page.** Otherwise an unpublished story's image
 can be enumerated before the story goes live.
 
+## The daily challenge
+
+**The answer key never leaves this process.** `dailySetFor()` returns the full question
+including `answer`; every path out of `routes/challenges.js` maps it through
+`publicFormOf` first, which strips `answer` AND `explain` — an explanation names the right
+option in prose, so handing it over early is handing over the key. A test asserts the
+route module cannot render a raw question.
+
+**The browser posts the options it CHOSE; the server decides the score.** There is no
+`score` field and no date field to read. DynamicsHub reads `{ score, gameDate }` out of
+`req.body`, writes both to a leaderboard, and ships every question with the index of its
+correct answer — so anybody signed in can post a perfect score for any date, and that
+output feeds a points summary. A client-authored score destroys the auditability of every
+total on the site, not just the cheat's.
+
+**The date comes from the server clock, in UTC.** One leaderboard needs one definition of
+"today", or somebody in Auckland plays tomorrow's challenge before somebody in Lisbon has
+finished today's.
+
+**The daily set is derived deterministically from the date**, options included. Everybody
+gets the same five in the same order, a reload does not reshuffle, and a disputed score can
+be reconstructed exactly — which is what makes `Challenge.replay` possible.
+
+**A closed attempt is re-graded on reload, not re-rendered from memory.** The reference
+sends the explanations only in the response to the POST, so a refresh throws away the
+reason to have played. `replay` rebuilds them from the date and the stored choices, and
+compares the recomputed score with the stored one — a disagreement means the bank was
+edited under a played day, and it is logged rather than hidden.
+
+**One attempt per person per day, enforced by a unique key**, not by a check. It is also
+the condition that makes showing the key safe: the answers are only ever rendered for an
+attempt the database has already closed.
+
+**`duration_ms` is stored and only ever displayed.** It is client-reported, so it is
+exactly the kind of number that must not decide a position.
+
+**Points are settled once per attempt**, keyed on the attempt, to what the grader said —
+not one award per correct answer, which would be a second key scheme for the same fact.
+The challenge is gated by `communityWritable` like every other write to the ledger: a gate
+written into three of four write paths is a gate that is off.
+
+**A question's `topic` is a community category slug**, product line or cross-cutting, and
+the boot assertion checks it. A topic nothing else on the site knows is a dead end for
+somebody told to go and read about it.
+
+**One game, not nine.** The other eight in DynamicsHub — match, flashcard, typing, word
+search, bug hunter, scenario, code quiz, streak check-in — are the same
+client-authoritative shape wearing different UI; porting them would be porting the bug
+eight more times. The streak is kept and DERIVED from attempt dates, rather than posted by
+a check-in endpoint the browser can call as often as it likes.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

@@ -1,0 +1,180 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-lightning-charge',
+  heading: 'Daily challenge',
+  sub: 'Five SAP questions. Everybody gets the same five, and everybody gets one attempt.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+
+      <% if (results) { %>
+        <%
+          /*
+           * The only place an answer key reaches a browser, and it is after the attempt is
+           * closed by the unique key on (user_id, challenge_date). The explanations are the
+           * reason to play; a redirect would have thrown them away, which is why the POST
+           * renders rather than redirects.
+           */
+        %>
+        <div class="glass-card mb-4"><div class="card-body p-4 text-center">
+          <div class="display-5 fw-semibold mb-1"><%= results.score %> / <%= results.total %></div>
+          <p class="text-muted-2 mb-0">
+            <% if (results.points > 0) { %>
+              <%= results.points %> point<%= results.points === 1 ? '' : 's' %> added to your standing.
+            <% } else { %>
+              No points this time. The explanations below are the useful half anyway.
+            <% } %>
+          </p>
+        </div></div>
+
+        <% results.results.forEach(function (r, i) { %>
+          <div class="glass-card mb-3"><div class="card-body p-4">
+            <div class="d-flex gap-2 align-items-start mb-2">
+              <i class="bi <%= r.correct ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' %> flex-shrink-0 mt-1"></i>
+              <h2 class="h6 mb-0"><%= i + 1 %>. <%= r.prompt %></h2>
+            </div>
+            <ul class="list-unstyled small mb-3 ms-4">
+              <% r.options.forEach(function (option, index) { %>
+                <li class="<%= index === r.answer ? 'fw-semibold' : '' %>">
+                  <%= option %>
+                  <% if (index === r.answer) { %><span class="badge-hub ms-1">correct</span><% } %>
+                  <% if (index === r.chosen && index !== r.answer) { %><span class="badge-hub muted ms-1">you chose this</span><% } %>
+                </li>
+              <% }); %>
+              <% if (r.chosen === null) { %><li class="text-muted-2">You did not answer this one.</li><% } %>
+            </ul>
+            <p class="small text-muted-2 mb-0 ms-4"><%= r.explain %></p>
+          </div></div>
+        <% }); %>
+
+      <% } else if (attempt) { %>
+        <div class="glass-card"><div class="card-body p-4 text-center">
+          <div class="display-6 fw-semibold mb-1"><%= attempt.score %> / <%= attempt.total %></div>
+          <p class="text-muted-2 mb-0">
+            You played today's challenge. A new set of five arrives tomorrow.
+          </p>
+        </div></div>
+
+      <% } else { %>
+        <form method="post" action="/challenges" id="challengeForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="duration_ms" id="durationMs" value="">
+
+          <% questions.forEach(function (q, i) { %>
+            <div class="glass-card mb-3"><div class="card-body p-4">
+              <fieldset>
+                <legend class="h6 mb-3"><%= i + 1 %>. <%= q.prompt %></legend>
+                <%
+                  /*
+                   * The input NAME carries the QUESTION ID and the VALUE is the option
+                   * index. Keyed on the id rather than the position because `qs` compacts
+                   * a sparse numeric object, which would grade a partial submission
+                   * against the wrong questions.
+                   *
+                   * No answer, no score and no date is posted, because none of the three
+                   * is the browser's to decide — the reference reads all three out of the
+                   * request body.
+                   */
+                %>
+                <% q.options.forEach(function (option, index) { %>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" required
+                           name="answers[<%= q.id %>]" value="<%= index %>"
+                           id="q<%= i %>o<%= index %>">
+                    <label class="form-check-label" for="q<%= i %>o<%= index %>"><%= option %></label>
+                  </div>
+                <% }); %>
+              </fieldset>
+            </div></div>
+          <% }); %>
+
+          <button class="btn btn-primary btn-lg w-100" type="submit">Submit my answers</button>
+          <p class="small text-muted-2 text-center mt-3 mb-0">
+            One attempt per day. Answers are marked on the server — the page you are looking
+            at does not know which option is correct.
+          </p>
+        </form>
+      <% } %>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 mb-3">Your streak</h2>
+        <div class="d-flex align-items-baseline gap-2 mb-2">
+          <span class="display-6 fw-semibold"><%= streak.days %></span>
+          <span class="text-muted-2">day<%= streak.days === 1 ? '' : 's' %></span>
+        </div>
+        <p class="small text-muted-2 mb-0">
+          Counted from your attempts, not from a button you press. Miss today and yesterday
+          and it goes back to zero.
+        </p>
+      </div></div>
+
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 mb-3">Your record</h2>
+        <ul class="list-unstyled small mb-0">
+          <li class="d-flex justify-content-between"><span class="text-muted-2">Days played</span><span><%= stats.days_played %></span></li>
+          <li class="d-flex justify-content-between"><span class="text-muted-2">Correct</span><span><%= stats.correct %> of <%= stats.asked %></span></li>
+          <li class="d-flex justify-content-between"><span class="text-muted-2">Best day</span><span><%= stats.best %> / <%= questionsPerDay %></span></li>
+        </ul>
+      </div></div>
+
+      <div class="glass-card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h6 mb-0">Today</h2>
+          <a class="small" href="/challenges/leaderboard">Full board</a>
+        </div>
+        <% if (!daily.length) { %>
+          <p class="small text-muted-2 mb-0">Nobody has played yet today.</p>
+        <% } else { %>
+          <ol class="list-unstyled small mb-0">
+            <% daily.forEach(function (row, i) { %>
+              <li class="d-flex justify-content-between">
+                <span class="text-truncate me-2"><%= i + 1 %>. <%= row.name %></span>
+                <span class="text-nowrap"><%= row.score %>/<%= row.total %></span>
+              </li>
+            <% }); %>
+          </ol>
+        <% } %>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6 mb-2">How it works</h2>
+        <p class="small text-muted-2 mb-0">
+          The five questions come from a bank of <%= bankSize %>, chosen by the date — so the
+          set is the same for everyone and the same on a reload. Each correct answer is worth
+          <%= pointsPerCorrect %> point, deliberately the smallest award on the site: a
+          challenge should nudge your standing, not build it.
+        </p>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<script>
+  /*
+   * Records how long the attempt took, for display only. It is stored but never ranked on
+   * — a client-reported duration is exactly the kind of number that should not decide a
+   * leaderboard position, and the model says so.
+   *
+   * Progressive enhancement: with scripting off the field posts empty and the attempt is
+   * graded exactly the same.
+   */
+  (function () {
+    var form = document.getElementById('challengeForm');
+    if (!form) return;
+    var started = Date.now();
+    form.addEventListener('submit', function () {
+      document.getElementById('durationMs').value = String(Date.now() - started);
+    });
+  })();
+</script>
+
+<%- include('../partials/layout-end') %>

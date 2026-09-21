@@ -1,0 +1,84 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-trophy',
+  heading: 'Challenge leaderboard',
+  sub: 'Scores are graded on the server. Nothing here was reported by a browser.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body p-4">
+        <h2 class="h6 mb-1">Today</h2>
+        <p class="small text-muted-2 mb-3"><%= date %> — everybody answered the same five questions.</p>
+
+        <% if (!daily.length) { %>
+          <p class="text-muted-2 mb-0">Nobody has played yet.</p>
+        <% } else { %>
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr><th scope="col" style="width:3rem">#</th><th scope="col">Member</th><th scope="col" class="text-end">Score</th></tr>
+            </thead>
+            <tbody>
+              <% daily.forEach(function (row, i) { %>
+                <tr>
+                  <td class="text-muted-2"><%= i + 1 %></td>
+                  <td><%= row.name %></td>
+                  <td class="text-end"><%= row.score %> / <%= row.total %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+          <p class="small text-muted-2 mt-3 mb-0">
+            Ties break on who answered earlier, not on how fast they clicked. The page does
+            report how long an attempt took, but that number comes from the browser and is
+            never ranked on.
+          </p>
+        <% } %>
+      </div></div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body p-4">
+        <h2 class="h6 mb-1">Last 30 days</h2>
+        <p class="small text-muted-2 mb-3">Total correct answers, and how many days were played.</p>
+
+        <% if (!allTime.length) { %>
+          <p class="text-muted-2 mb-0">Nothing yet.</p>
+        <% } else { %>
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th scope="col" style="width:3rem">#</th>
+                <th scope="col">Member</th>
+                <th scope="col" class="text-end">Correct</th>
+                <th scope="col" class="text-end">Days</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% allTime.forEach(function (row, i) { %>
+                <tr>
+                  <td class="text-muted-2"><%= i + 1 %></td>
+                  <td><%= row.name %></td>
+                  <td class="text-end"><%= row.total_score %></td>
+                  <td class="text-end text-muted-2"><%= row.days_played %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="text-center mt-4">
+    <a class="btn btn-primary" href="/challenges"><i class="bi bi-lightning-charge"></i> Today's challenge</a>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

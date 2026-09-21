@@ -23,6 +23,7 @@ const { assertReferralIntegrity } = require('./config/referrals');
 const linkedinConfig = require('./config/linkedin');
 const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
+const { assertChallengeIntegrity } = require('./config/challenges');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -79,6 +80,12 @@ assertReferralIntegrity();
  * already granted access.
  */
 assertLinkedInIntegrity();
+/*
+ * And the challenge bank: a question whose answer index is outside its own options, or a
+ * bank smaller than a day's set, is a quiz nobody can win — and it fails at the moment
+ * somebody plays rather than at the moment somebody could fix it.
+ */
+assertChallengeIntegrity();
 
 const app = express();
 
@@ -305,6 +312,7 @@ app.use('/linkedin', require('./routes/linkedin'));
 app.use('/search', require('./routes/search'));
 app.use('/recruiters', require('./routes/recruiters'));
 app.use('/success-stories', require('./routes/stories'));
+app.use('/challenges', require('./routes/challenges'));
 
 app.use(notFound);
 app.use(errorHandler);

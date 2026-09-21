@@ -163,7 +163,8 @@ const POINT_AWARDS = {
   post_upvoted: { points: 2, label: 'Post upvoted' },
   reply_upvoted: { points: 1, label: 'Reply upvoted' },
   profile_completed: { points: 20, label: 'Profile completed' },
-  rate_contributed: { points: 10, label: 'Contributed a rate' }
+  rate_contributed: { points: 10, label: 'Contributed a rate' },
+  challenge_completed: { points: 1, label: 'Daily challenge' }
 };
 
 /**
