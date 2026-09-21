@@ -475,6 +475,53 @@ Role escalation is one-directional and this is a security boundary, not a UI nic
   untouched.
 - `User.adminSetRoles` is the only path that removes a role or grants a privileged one.
 
+## LinkedIn confirmation
+
+**LINKING ONLY. NEVER A SIGN-IN METHOD.** Both routes require an authenticated session and
+there is no path here that creates an account. An OAuth provider that can also sign you in
+has to decide what to do when the provider's email matches an existing account, and every
+answer to that is a documented account-takeover pattern. Requiring an existing session
+removes the question.
+
+**What the badge may claim is the whole feature.** LinkedIn's userinfo response carries
+`sub`, `name`, `email` and a picture — and no vanity URL, no headline, no positions, no
+employer, under any scope an ordinary application can request. So the badge says exactly
+one thing: this person controls a LinkedIn account, and here is the name on it. DynamicsHub
+asked for a `linkedin.com/in/...` URL, ran the flow, and set `linkedin_verified` without
+ever comparing the two — because there is nothing to compare. The URL stays a claim and is
+labelled as one on the profile, next to the SAP Community link, which is the same kind of
+claim.
+
+**`ExternalIdentity` is the single writer of `consultant_profiles.linkedin_verified`**, and
+it moves the identity row and the flag in ONE transaction, in both directions. The flag is
+denormalised because five readers score or render it — the ranking expression, the
+consultant card, the profile page, the settings panel and `Application.js`. That is safe
+here and is not safe for a featured-job window, and the difference is why: a window
+EXPIRES, so a cached boolean needs something to come round and unset it, whereas a
+verification only ever changes when the member acts. `unlink` clears the flag even when
+there was no identity row, because a badge outliving its proof is the one impossible
+outcome.
+
+**The name comparison is recorded, never enforced.** It is the only cross-check available,
+and it is loose on purpose — a middle name, a married name, a dropped diacritic, a reversed
+order. A mismatch is shown to the member and shown on the profile; refusing on it would
+reject real people to catch a case a name comparison cannot catch anyway.
+
+**Nothing from the provider is stored beyond the opaque subject, the display name and the
+date.** No access token — the token is used for one request and dropped, because this
+application never posts to LinkedIn and holding a credential that can act as the member
+would be a liability with no purpose. No profile blob, no provider email. The table has no
+column that could take one, and a test asserts that.
+
+**`state` is the CSRF defence on a GET that arrives from a third party.** Compared in
+constant time, expiring, and consumed on the way in whatever happens next — a state that
+survives a failed attempt is a state that can be replayed. `req.session.save()` is awaited
+explicitly before redirecting away, or the callback can arrive before the state has landed
+and a legitimate flow fails as "security verification failed".
+
+**One provider account confirms one Hub account.** A second attempt is refused rather than
+moved, and the message never names the other account.
+
 ## CSRF
 
 Every mutating form needs `<input type="hidden" name="_csrf" value="<%= csrfToken %>">`.

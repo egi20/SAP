@@ -74,7 +74,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | In-site assistant | 1 | 1 | **done** |
 | Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
 | Referrals & commissions | 4 | 4 | **done** |
-| LinkedIn confirmation | 3 | 3 | after the core |
+| LinkedIn confirmation | 3 | 3 | **done** |
 | AI drafting, every draft verified | — | — | after the core |
 | Search across everything | 1 | 1 | after the core |
 | Recruiters, stories, reviews | 16 | ~16 | after the core |
@@ -432,6 +432,33 @@ the first place.
 Also closed here: the two hooks earlier commits left as comments rather than stubs, in
 `routes/auth.js` and `services/paymentFulfilment.js`. Both said where the call would go
 and why it could not go anywhere else; both now have the call, at exactly that point.
+
+## LinkedIn confirmation
+
+Three handlers, and the design is the reference's — which had already thrown away most of
+DynamicsHub's version and kept the part that was true. What it verifies, and what it is
+therefore allowed to say, is the entire feature: LinkedIn's userinfo response has no vanity
+URL, no headline and no employer under any scope an ordinary application can request, so a
+badge next to a `linkedin.com/in/...` link cannot mean that link was checked. DynamicsHub
+set `linkedin_verified` having compared nothing at all.
+
+What this area actually closes here is a flag with five readers and no writer.
+`consultant_profiles.linkedin_verified` has existed since migration 002: the talent
+directory's ranking expression scores it three points, the consultant card renders a badge
+from it, the profile page renders another, the settings page reserved a slot for it in
+writing, and `Application.js` selects it. Nothing could set it. That is the same shape as
+`voided_at` on rate submissions and `hidden_at` on posts, and the third time this port has
+found it.
+
+Two small things went with it. The consultant profile page now shows the name that was
+actually confirmed when it differs from the name on the profile — without that, the
+sentence the member is shown at verification ("people reading your profile will see both")
+is simply untrue. And `sap_community_url` is now labelled "(link provided by the member)"
+exactly as the LinkedIn URL already was: the two are the same kind of claim, and only one
+of them said so.
+
+Also found in passing: `routes/consultants.js` built its page title with the fallback
+"Salesforce consultant".
 
 ## What the core build actually found
 

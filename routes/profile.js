@@ -5,6 +5,8 @@ const { body, validationResult } = require('express-validator');
 
 const User = require('../models/User');
 const ConsultantProfile = require('../models/ConsultantProfile');
+const ExternalIdentity = require('../models/ExternalIdentity');
+const linkedinConfig = require('../config/linkedin');
 const CompanyProfile = require('../models/CompanyProfile');
 const ImageBlob = require('../models/ImageBlob');
 const Skill = require('../models/Skill');
@@ -30,7 +32,15 @@ router.get(
   '/settings',
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.session.user.id);
-    res.render('profile/settings', { title: 'Account settings', user, errors: [] });
+    res.render('profile/settings', {
+      title: 'Account settings',
+      user,
+      // The identity row, not the mirrored flag: the panel shows WHAT was confirmed —
+      // the name and the date — and a boolean cannot say either.
+      linkedInIdentity: await ExternalIdentity.find(ExternalIdentity.LINKEDIN, req.session.user.id),
+      linkedInEnabled: linkedinConfig.isConfigured(),
+      errors: []
+    });
   })
 );
 

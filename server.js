@@ -20,6 +20,8 @@ const { assertCommunityIntegrity } = require('./config/community');
 const { assertPaymentIntegrity, WEBHOOK_PATH } = require('./config/payments');
 const assistantConfig = require('./config/assistant');
 const { assertReferralIntegrity } = require('./config/referrals');
+const linkedinConfig = require('./config/linkedin');
+const { assertLinkedInIntegrity } = linkedinConfig;
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -70,6 +72,12 @@ assistantConfig.assertAssistantIntegrity();
  * have not been paid.
  */
 assertReferralIntegrity();
+/*
+ * And LinkedIn: one credential set without the other is worse than neither, because the
+ * button appears, the member is sent to LinkedIn, and the failure lands after they have
+ * already granted access.
+ */
+assertLinkedInIntegrity();
 
 const app = express();
 
@@ -248,6 +256,9 @@ app.use((req, res, next) => {
    */
   res.locals.assistantReady = assistantConfig.isConfigured();
   res.locals.assistantMaxChars = assistantConfig.MAX_MESSAGE_CHARS;
+  // Same rule as the assistant widget: a button that leads to "not switched on here" is
+  // worse than no button.
+  res.locals.linkedinReady = linkedinConfig.isConfigured();
   res.locals.supportEmail = config.app.supportEmail;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;
@@ -283,6 +294,7 @@ app.use('/notifications', require('./routes/notifications'));
 app.use('/admin', require('./routes/admin'));
 app.use('/assistant', require('./routes/assistant'));
 app.use('/referrals', require('./routes/referrals'));
+app.use('/linkedin', require('./routes/linkedin'));
 
 app.use(notFound);
 app.use(errorHandler);

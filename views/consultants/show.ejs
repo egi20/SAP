@@ -36,7 +36,16 @@
                 %>
                 <% if (profile.linkedin_verified) { %>
                   <span class="badge-hub ok" title="This member signed in to LinkedIn to confirm they control a LinkedIn account. It does not verify the profile link, their job title or their employer.">
-                    <i class="bi bi-patch-check"></i> LinkedIn confirmed
+                    <i class="bi bi-patch-check"></i> LinkedIn confirmed<%
+                      /*
+                       * The name that was actually confirmed, shown when it differs from
+                       * the name on this profile. Both are legitimate — a middle name, a
+                       * married name, a different spelling — and hiding the difference
+                       * would let the badge imply it had checked something it had not.
+                       */
+                    %><% if (linkedInIdentity && linkedInIdentity.display_name && !linkedInIdentity.name_matched) { %>
+                      as <%= linkedInIdentity.display_name %>
+                    <% } %>
                   </span>
                 <% } %>
               </div>
@@ -107,7 +116,14 @@
                 <span class="small text-muted-2">(link provided by the member)</span>
               </p>
             <% } %>
-            <% if (profile.sap_community_url) { %><p class="mb-0"><a href="<%= profile.sap_community_url %>" rel="nofollow noopener noreferrer" target="_blank">SAP Community profile</a></p><% } %>
+            <% if (profile.sap_community_url) { %>
+              <%# The same kind of claim as the LinkedIn link above, and labelled the same
+                  way: the member typed it and nothing here can confirm it is theirs. %>
+              <p class="mb-0">
+                <a href="<%= profile.sap_community_url %>" rel="nofollow noopener noreferrer" target="_blank">SAP Community profile</a>
+                <span class="small text-muted-2">(link provided by the member)</span>
+              </p>
+            <% } %>
           <% } else if (!isSelf) { %>
             <hr>
             <p class="small text-muted-2 mb-2">Contact details are shown to signed-in hiring accounts.</p>

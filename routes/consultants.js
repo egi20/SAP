@@ -3,6 +3,7 @@
 const express = require('express');
 
 const ConsultantProfile = require('../models/ConsultantProfile');
+const ExternalIdentity = require('../models/ExternalIdentity');
 const ImageBlob = require('../models/ImageBlob');
 const Skill = require('../models/Skill');
 const Job = require('../models/Job');
@@ -101,10 +102,18 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const [skills, certifications, experiences] = await Promise.all([
+    const [skills, certifications, experiences, linkedInIdentity] = await Promise.all([
       Skill.forConsultant(profile.user_id),
       ConsultantProfile.listCertifications(profile.user_id),
-      ConsultantProfile.listExperiences(profile.user_id)
+      ConsultantProfile.listExperiences(profile.user_id),
+      /*
+       * The identity row, not just the mirrored flag, and only on this one-row page.
+       * The badge says an account was confirmed; a reader deserves to see WHICH — the
+       * name LinkedIn returned, and whether it agreed with the name on this profile.
+       * Without it, the message the member is shown at verification ("people reading
+       * your profile will see both") is simply untrue.
+       */
+      ExternalIdentity.find(ExternalIdentity.LINKEDIN, req.params.id)
     ]);
 
     // A conversation is always anchored to a role, so an employer can only approach this
@@ -115,11 +124,12 @@ router.get(
         : [];
 
     return res.render('consultants/show', {
-      title: `${profile.name} — ${profile.headline || 'Salesforce consultant'}`,
+      title: `${profile.name} — ${profile.headline || 'SAP consultant'}`,
       profile,
       skills,
       certifications,
       experiences,
+      linkedInIdentity,
       isSelf,
       hiringJobs,
       // Contact details are for signed-in companies only. An open directory of

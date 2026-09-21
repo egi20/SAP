@@ -85,6 +85,17 @@ const config = {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
   },
 
+  linkedin: {
+    /*
+     * LINKING ONLY, never a sign-in method — see config/linkedin.js. Both unset disables
+     * the feature: the button is not rendered and the routes say so plainly. Setting one
+     * without the other is refused at boot, because a half-configured OAuth flow fails
+     * after the member has already granted access.
+     */
+    clientId: process.env.LINKEDIN_CLIENT_ID || '',
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET || ''
+  },
+
   assistant: {
     /*
      * Unset disables the assistant the same way an unset Stripe key disables payments:
