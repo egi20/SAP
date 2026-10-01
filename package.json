@@ -17,8 +17,8 @@
     "create-admin": "node scripts/create-admin.js",
     "wait-for-db": "node scripts/wait-for-db.js",
     "validate-boot": "node scripts/validate-boot.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest tests/unit",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest tests/unit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,json,md}\"",
@@ -54,6 +54,7 @@
     "stripe": "^18.5.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "jest": "^30.2.0",
     "nodemon": "^3.0.2",

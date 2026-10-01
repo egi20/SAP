@@ -574,6 +574,25 @@ found that gap by asserting the wrong thing and being right about the symptom.
 **And the MariaDB divergence appeared a second time.** `CAST(? AS JSON)` again, in the
 attempt insert. Found the same way as the first: by running it.
 
+## What running it on Windows found
+
+The project is developed in a Linux container and every check had passed there for sixteen
+commits. The first clone onto a Windows machine failed on the first command that matters:
+
+```
+npm test
+> NODE_OPTIONS=--experimental-vm-modules jest
+'NODE_OPTIONS' is not recognized as an internal or external command
+```
+
+`VAR=value cmd` is POSIX shell syntax. Neither cmd nor PowerShell understands it, so the
+test suite could not be run at all on Windows — not a wrong result, no result. Fixed with
+`cross-env`, which is now also a ground rule in CLAUDE.md: an npm script here has to run on
+Windows, because nothing in CI or on a developer's machine will catch it otherwise.
+
+Worth recording beside the MySQL 8 caveat, because it is the same shape of gap — a claim
+("the suite passes") that is true only on the one platform anybody has tried.
+
 ## What the core build actually found
 
 Four things, and they are the argument for doing this as a port rather than a copy.

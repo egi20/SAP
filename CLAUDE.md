@@ -34,6 +34,10 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   Writing a second status line throws ERR_HTTP_HEADERS_SENT and buries the original error.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
+- **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use
+  `cross-env`), no `&&` chains that assume a POSIX shell, no `rm`/`cp`. The whole project
+  is developed on Linux, so nothing catches this except somebody on Windows failing to run
+  it — which is exactly how the `NODE_OPTIONS` prefix in `npm test` was found.
 
 ## The catalogues, and why they are asserted at boot
 
@@ -745,6 +749,12 @@ where a change has an author, a diff and a review.
 **Run `npm test`, not `npx jest`.** The script sets `NODE_OPTIONS=--experimental-vm-modules`,
 and pptxgenjs lazily `import()`s node built-ins from inside a CJS bundle — without the flag
 every deck test fails inside Jest while the same code works perfectly from the command line.
+
+**It sets that variable through `cross-env`, and that is not decoration.** `VAR=value cmd`
+is POSIX shell syntax: on Windows, cmd and PowerShell answer `'NODE_OPTIONS' is not
+recognized as an internal or external command` and the test suite cannot be run at all.
+This was written in a Linux container and only found when somebody cloned it onto Windows.
+Any script here that needs an environment variable sets it the same way.
 
 `npm test` runs both suites. The integration suite needs a real MySQL 8 and SKIPS itself
 without one — the decision is made in `tests/globalSetup.js`, in the parent process, and
