@@ -312,6 +312,51 @@ row at the moment it is issued. An invoice that re-reads the user table is an in
 rewrites itself when somebody moves office, which is the one thing a receipt must not do.
 Same reasoning as a quote's stored breakdown.
 
+## Enquiries
+
+**A form needs three things, and it got all three at once.** `/contact` shipped as an
+address with a note saying a form needs somewhere to put what it collects, a spam defence,
+and somebody watching a queue — and that until all three exist, a form is the version that
+can silently drop a message while both sides believe it was sent. Migration 018 is the
+first, the limiter/honeypot/length floor is the second, `/admin/enquiries` is the third.
+None of them is worth anything alone, which is why they are one change.
+
+**ONE table and ONE queue for the contact form and the issue reporter.** They are the same
+thing — a person writing in and expecting an answer — differing only in which fields the
+form asked for. Two queues means a second one nobody opens, and "somebody is watching" is
+the whole justification.
+
+**The issue fields are NULL on a contact message, not defaulted.** "Not asked" and
+"answered with the first option" are different facts about the same column. The CHECK in
+018 holds it as well as the form and the model, because a rule enforced only by the handler
+that happens to be correct today is the shape this file keeps warning about.
+
+**No IP address column.** It would help with abuse and it is personal data this application
+has not told anybody it collects on a public form. The spam defence stores nothing: a
+per-IP rate limit, a honeypot and a length floor. A column added later is a migration; a
+column added now is a commitment made quietly.
+
+**A honeypot hit is accepted and discarded without saying so** — telling a bot it was
+caught is telling whoever wrote it what to change. It is the one case where these forms
+drop a message on purpose, which is why the field is hidden from sighted users by the
+stylesheet, from screen readers by `aria-hidden`, from the keyboard by `tabindex="-1"`, and
+from a helpful browser by `autocomplete="off"`. It is positioned off-screen rather than
+`display:none`, which is what a bot checks for.
+
+**Nothing is sent from the admin screen.** The reply is composed in the mailbox a person is
+already reading. A reply form here would make the Hub a second place the conversation
+partly lives, and the half that is missing is always the half somebody needs later. A test
+reads the route and the template and fails if either grows one.
+
+**An empty note box keeps the note that is there.** Same reason `AppSetting.setMany` writes
+every declared key: a form that submits a subset must not be read as a form that cleared
+the rest.
+
+**Testing consequence:** the enquiry limiter counts every POST, including the ones that 422
+or fail CSRF. A suite that exercises the limit spends the budget its other cases need, and
+the next test to be reordered then fails as a validation error for a reason that has
+nothing to do with validation. Assert the limiter's configuration from the source instead.
+
 ## Admin and moderation
 
 `routes/admin.js` applies `isAuthenticated, isAdmin` once, at the top, and the narrower

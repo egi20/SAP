@@ -1,0 +1,77 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-envelope',
+  heading: 'Enquiries',
+  sub: 'Contact messages and reported problems, in one queue.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'enquiries' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="glass-card mb-3"><div class="card-body">
+    <p class="mb-3">
+      <strong><%= openCount %></strong> waiting
+      <span class="text-muted-2">— new and open together.</span>
+    </p>
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="f-q">Search</label>
+        <input class="form-control" id="f-q" name="q" value="<%= filters.q %>" maxlength="120"
+               placeholder="Subject, body, name or email">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="f-status">Status</label>
+        <select class="form-select" id="f-status" name="status">
+          <option value="">Any</option>
+          <% statuses.forEach(function (st) { %>
+            <option value="<%= st %>" <%= filters.status === st ? 'selected' : '' %>><%= st %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="f-kind">Kind</label>
+        <select class="form-select" id="f-kind" name="kind">
+          <option value="">Any</option>
+          <% kinds.forEach(function (k) { %>
+            <option value="<%= k %>" <%= filters.kind === k ? 'selected' : '' %>><%= k %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Filter</button></div>
+    </form>
+  </div></div>
+
+  <% if (enquiries.length === 0) { %>
+    <div class="empty-state glass-card"><i class="bi bi-inbox"></i>Nothing matches that.</div>
+  <% } else { %>
+    <div class="glass-card"><div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Received</th><th>Kind</th><th>From</th><th>Subject</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% enquiries.forEach(function (e) { %>
+            <tr>
+              <td class="small text-muted-2"><%= new Date(e.created_at).toISOString().slice(0, 16).replace('T', ' ') %></td>
+              <td>
+                <span class="badge-hub <%= e.kind === 'issue' ? 'warn' : '' %>"><%= e.kind %></span>
+                <% if (e.severity === 'high') { %><span class="badge-hub err">high</span><% } %>
+              </td>
+              <td class="small"><%= e.name %><br><span class="text-muted-2"><%= e.email %></span></td>
+              <td><a href="/admin/enquiries/<%= e.id %>"><%= e.subject %></a></td>
+              <td><span class="badge-hub <%= e.status === 'closed' ? 'ok' : '' %>"><%= e.status %></span></td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/admin/enquiries/<%= e.id %>">Open</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div></div>
+    <%- include('../partials/pagination') %>
+  <% } %>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

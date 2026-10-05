@@ -991,6 +991,12 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 }
 .role-rate-link:hover { background: var(--glass-hover, rgba(127, 127, 127, 0.1)); }
 
+/*
+ * The spam honeypot. `display: none` is what a bot checks for, so it is moved off-screen
+ * instead — still unreachable for a person, still invisible, and less obviously a trap.
+ */
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
 .footer-blurb { max-width: 38ch; }
 
 /*

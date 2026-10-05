@@ -17,6 +17,10 @@ const ConsultantProfile = require('../models/ConsultantProfile');
 const config = require('../config/config');
 const legalVersions = require('../config/legal-versions');
 const { ENGAGEMENT_MODELS } = require('../config/engagementModels');
+const Enquiry = require('../models/Enquiry');
+const email = require('../utils/email');
+const { ipLimiter } = require('../middleware/rateLimit');
+const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
 
@@ -236,8 +240,171 @@ router.get('/legal/terms', (req, res) => {
  * that opens every path the assistant may name.
  */
 router.get('/contact', (req, res) => {
-  res.render('legal/contact', { title: 'Contact us' });
+  res.render('legal/contact', { title: 'Contact us', values: {}, errors: [] });
 });
+
+/*
+ * THE SPAM DEFENCE, which is one of the three things the note on /contact said a form
+ * needs before it is honest. The other two are the table (migration 018) and the queue
+ * (/admin/enquiries); none of the three is worth anything alone.
+ *
+ * Three cheap layers rather than one clever one:
+ *   - a per-IP limit, because the cost of a form is in volume;
+ *   - a honeypot field a person never sees and a bot fills in;
+ *   - a length floor, because "hi" is not an enquiry and is what a scripted post sends.
+ * No third-party captcha: it would put every visitor who needs help behind somebody else's
+ * judgement of whether they look human.
+ */
+const ENQUIRY_WINDOW_MS = 60 * 60 * 1000;
+const ENQUIRY_MAX_PER_WINDOW = 10;
+
+const enquiryLimiter = ipLimiter({
+  windowMs: ENQUIRY_WINDOW_MS,
+  // Ten an hour, not three. Both forms share the bucket, and somebody who has just found
+  // three things wrong in one sitting is the most useful person on the site that day — a
+  // limit tight enough to stop them is a limit that costs more than the spam it prevents.
+  max: ENQUIRY_MAX_PER_WINDOW,
+  message: 'You have sent a few messages already. Please give it an hour, or email us directly.'
+});
+
+/** The honeypot. Hidden from people, filled in by anything walking the DOM. */
+function looksAutomated(req) {
+  return Boolean(req.body.website && String(req.body.website).trim());
+}
+
+/**
+ * The fields both forms share. Lengths are generous and then enforced, rather than
+ * truncated: a message cut off at 2,000 characters arrives looking like the person
+ * stopped mid-sentence, and nobody can tell that we did it.
+ */
+const ENQUIRY_RULES = [
+  body('name').trim().isLength({ min: 2, max: 120 }).withMessage('Tell us what to call you.'),
+  body('email').trim().isEmail().isLength({ max: 190 }).withMessage('We need an address we can reply to.'),
+  body('subject').trim().isLength({ min: 3, max: 200 }).withMessage('A short subject line, please.'),
+  body('message').trim().isLength({ min: 20, max: 8000 })
+    .withMessage('Please say a little more — twenty characters at least, so the first reply can be useful.')
+];
+
+/**
+ * Tell whoever is on support that something arrived.
+ *
+ * Fire and forget, like every other send here: a failed notification must never fail the
+ * action that triggered it, and with no API key `utils/email.js` logs and resolves. The
+ * queue is the record; this is only the nudge towards it.
+ */
+function notifySupport(enquiry, kind) {
+  email.send({
+    to: config.app.supportEmail,
+    subject: `[${kind}] ${enquiry.subject}`,
+    template: 'enquiry-received',
+    locals: {
+      kind,
+      name: enquiry.name,
+      fromEmail: enquiry.email,
+      subject: enquiry.subject,
+      body: enquiry.body,
+      reviewUrl: `${config.app.baseUrl}/admin/enquiries/${enquiry.id}`
+    }
+  }).catch((err) => console.error(`Enquiry notification failed: ${err.message}`));
+}
+
+router.post(
+  '/contact',
+  enquiryLimiter,
+  ENQUIRY_RULES,
+  asyncHandler(async (req, res) => {
+    // Applied, not merely declared. The reference puts validator rules on a route and never
+    // calls validationResult, which makes every rule decorative.
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).render('legal/contact', {
+        title: 'Contact us',
+        values: req.body,
+        errors: errors.array()
+      });
+    }
+
+    /*
+     * A honeypot hit is accepted and discarded, without saying so. Telling a bot it was
+     * caught is telling whoever wrote it what to change. This is the one case where this
+     * form drops a message on purpose, and it is why the field is marked up so that no
+     * assistive technology will fill it in.
+     */
+    if (!looksAutomated(req)) {
+      const created = await Enquiry.create({
+        kind: 'contact',
+        userId: req.session.user ? req.session.user.id : null,
+        name: req.body.name.trim(),
+        email: req.body.email.trim(),
+        subject: req.body.subject.trim(),
+        body: req.body.message.trim()
+      });
+      notifySupport({ ...created, name: req.body.name, email: req.body.email, subject: req.body.subject, body: req.body.message }, 'contact');
+    }
+
+    req.flash('success', 'Thank you — that has reached us, and a person will reply to the address you gave.');
+    return res.redirect('/contact');
+  })
+);
+
+/**
+ * GET/POST /report-issue
+ *
+ * The same queue, with the three fields that make a bug report answerable: what kind of
+ * problem, how badly it bites, and which page it was on. `page_url` is prefilled from the
+ * link that brought somebody here, which is the difference between a report we can act on
+ * and one that begins "it was on the page with the table".
+ */
+router.get('/report-issue', (req, res) => {
+  res.render('legal/report-issue', {
+    title: 'Report a problem',
+    issueTypes: Enquiry.ISSUE_TYPES,
+    severities: Enquiry.SEVERITIES,
+    values: { page_url: typeof req.query.page === 'string' ? req.query.page.slice(0, 500) : '' },
+    errors: []
+  });
+});
+
+router.post(
+  '/report-issue',
+  enquiryLimiter,
+  [
+    ...ENQUIRY_RULES,
+    body('issue_type').isIn(Enquiry.ISSUE_TYPES).withMessage('Pick the kind of problem.'),
+    body('severity').isIn(Enquiry.SEVERITIES).withMessage('Pick how badly it affects you.'),
+    body('page_url').trim().isLength({ max: 500 })
+  ],
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).render('legal/report-issue', {
+        title: 'Report a problem',
+        issueTypes: Enquiry.ISSUE_TYPES,
+        severities: Enquiry.SEVERITIES,
+        values: req.body,
+        errors: errors.array()
+      });
+    }
+
+    if (!looksAutomated(req)) {
+      const created = await Enquiry.create({
+        kind: 'issue',
+        userId: req.session.user ? req.session.user.id : null,
+        name: req.body.name.trim(),
+        email: req.body.email.trim(),
+        subject: req.body.subject.trim(),
+        body: req.body.message.trim(),
+        issueType: req.body.issue_type,
+        severity: req.body.severity,
+        pageUrl: req.body.page_url ? req.body.page_url.trim() : null
+      });
+      notifySupport({ ...created, name: req.body.name, email: req.body.email, subject: req.body.subject, body: req.body.message }, 'issue');
+    }
+
+    req.flash('success', 'Thank you — that is in the queue, and a person works through it.');
+    return res.redirect('/report-issue');
+  })
+);
 
 /**
  * robots.txt and the sitemap are generated from the SAME allowlist, so the sitemap can

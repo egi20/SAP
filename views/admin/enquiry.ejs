@@ -1,0 +1,102 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-envelope-open',
+  heading: `Enquiry #${enquiry.id}`,
+  sub: enquiry.subject
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'enquiries' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="glass-card mb-3"><div class="card-body">
+        <%#
+          Escaped and kept verbatim, like a message body: the model never strips markup,
+          because then two places would decide what somebody said. The stylesheet keeps the
+          writer's newlines and breaks long tokens, or a pasted URL widens the page.
+        %>
+        <p class="message-body mb-0"><%= enquiry.body %></p>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">Move it</h2>
+        <form method="post" action="/admin/enquiries/<%= enquiry.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label" for="f-status">Status</label>
+              <select class="form-select" id="f-status" name="status">
+                <% statuses.forEach(function (st) { %>
+                  <option value="<%= st %>" <%= enquiry.status === st ? 'selected' : '' %>><%= st %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label" for="f-note">Internal note</label>
+              <textarea class="form-control" id="f-note" name="admin_note" rows="2"
+                        placeholder="Never shown to the person who wrote in."></textarea>
+              <%# Left blank, the existing note is kept rather than erased — the same reason
+                  AppSetting.setMany takes every declared key. %>
+              <p class="form-text">Leave empty to keep the note that is already there.</p>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-primary" type="submit">Save</button>
+              <a class="btn btn-outline-secondary" href="/admin/enquiries">Back to the queue</a>
+            </div>
+          </div>
+        </form>
+        <% if (enquiry.admin_note) { %>
+          <hr>
+          <h3 class="h6 text-uppercase text-muted-2" style="letter-spacing:.06em">Current note</h3>
+          <p class="message-body small mb-0"><%= enquiry.admin_note %></p>
+        <% } %>
+      </div></div>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Who wrote</h2>
+        <p class="mb-1"><strong><%= enquiry.name %></strong></p>
+        <p class="mb-2"><a href="mailto:<%= enquiry.email %>"><%= enquiry.email %></a></p>
+        <%#
+          The reply is composed in a mail client, not here. A reply form on this screen would
+          make the Hub a second place the conversation partly lives, and the half that is
+          missing is always the half somebody needs later.
+        %>
+        <p class="form-text mb-0">
+          Reply from the support mailbox. Nothing on this screen sends anything.
+        </p>
+        <% if (enquiry.user_id) { %>
+          <hr>
+          <a class="small" href="/admin/users?q=<%= encodeURIComponent(enquiry.email) %>">
+            They were signed in — find the account <i class="bi bi-arrow-right"></i>
+          </a>
+        <% } else { %>
+          <hr>
+          <p class="small text-muted-2 mb-0">Not signed in when they wrote.</p>
+        <% } %>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Details</h2>
+        <ul class="list-unstyled small mb-0">
+          <li><span class="text-muted-2">Kind</span> — <%= enquiry.kind %></li>
+          <% if (enquiry.issue_type) { %><li><span class="text-muted-2">Type</span> — <%= enquiry.issue_type %></li><% } %>
+          <% if (enquiry.severity) { %><li><span class="text-muted-2">Severity</span> — <%= enquiry.severity %></li><% } %>
+          <% if (enquiry.page_url) { %>
+            <li class="text-break"><span class="text-muted-2">Page</span> — <%= enquiry.page_url %></li>
+          <% } %>
+          <li><span class="text-muted-2">Received</span> — <%= new Date(enquiry.created_at).toISOString().slice(0, 16).replace('T', ' ') %></li>
+          <% if (enquiry.handler_name) { %>
+            <li><span class="text-muted-2">Last touched by</span> — <%= enquiry.handler_name %></li>
+          <% } %>
+        </ul>
+      </div></div>
+    </aside>
+  </div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

@@ -1,0 +1,21 @@
+<p>A new <%= kind === 'issue' ? 'issue report' : 'contact message' %> arrived on <%= appName %>.</p>
+<table style="font-size:14px;border-collapse:collapse">
+  <tr><td style="padding:2px 12px 2px 0;color:#6b7280">From</td><td><%= name %> &lt;<%= fromEmail %>&gt;</td></tr>
+  <tr><td style="padding:2px 12px 2px 0;color:#6b7280">Subject</td><td><%= subject %></td></tr>
+</table>
+<%#
+  The message itself is included so that somebody reading on a phone can triage without
+  opening anything. It is escaped like every other value here — a message body is plain
+  text, and the one thing it must never do is become markup in our own inbox.
+%>
+<p style="margin:16px 0;padding:12px;background:#f3f4f6;border-radius:8px;white-space:pre-wrap"><%= body %></p>
+<p style="margin:24px 0">
+  <a href="<%= reviewUrl %>"
+     style="background:#0b5cab;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+    Open it in the queue
+  </a>
+</p>
+<p style="font-size:13px;color:#6b7280">
+  Reply to the address above, not to this message. The queue is the record of what was
+  asked; this is only the nudge towards it.
+</p>

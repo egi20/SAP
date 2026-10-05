@@ -13,6 +13,7 @@ const AppSetting = require('../models/AppSetting');
 const Referral = require('../models/Referral');
 const SuccessStory = require('../models/SuccessStory');
 const SiteReview = require('../models/SiteReview');
+const Enquiry = require('../models/Enquiry');
 const ImageBlob = require('../models/ImageBlob');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
@@ -892,6 +893,85 @@ router.get(
         byPeriod: Object.fromEntries(s.rows.map((r) => [r.period, r.count]))
       }))
     });
+  })
+);
+
+/**
+ * THE ENQUIRY QUEUE.
+ *
+ * This screen is the reason /contact and /report-issue are allowed to be forms at all. The
+ * note on the contact page said a form needs somewhere to put what it collects, a spam
+ * defence and SOMEBODY WATCHING A QUEUE; the first two are a migration and three cheap
+ * checks, and this is the third. Without it the forms would be exactly what that note
+ * refused: a way to drop a message while both sides believe it was sent.
+ *
+ * Ordinary admin, not superadmin. Answering people who write in is the most routine work
+ * on this surface, and a queue only one or two accounts can open is a queue that waits for
+ * them to be back from holiday.
+ */
+router.get(
+  '/enquiries',
+  asyncHandler(async (req, res) => {
+    const filters = {
+      status: Enquiry.STATUSES.includes(req.query.status) ? req.query.status : '',
+      kind: Enquiry.KINDS.includes(req.query.kind) ? req.query.kind : '',
+      q: req.query.q ? String(req.query.q).slice(0, 120) : ''
+    };
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
+
+    const [{ rows, total }, openCount] = await Promise.all([
+      Enquiry.browse(filters, { limit, offset }),
+      Enquiry.openCount()
+    ]);
+
+    res.render('admin/enquiries', {
+      title: 'Enquiries',
+      enquiries: rows,
+      filters,
+      openCount,
+      kinds: Enquiry.KINDS,
+      statuses: Enquiry.STATUSES,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/admin/enquiries', req.query, p)
+    });
+  })
+);
+
+router.get(
+  '/enquiries/:id',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const enquiry = await Enquiry.find(req.params.id);
+    if (!enquiry) return res.status(404).render('errors/404', { title: 'Not found' });
+
+    return res.render('admin/enquiry', {
+      title: `Enquiry #${enquiry.id}`,
+      enquiry,
+      statuses: Enquiry.STATUSES
+    });
+  })
+);
+
+/**
+ * Move one through the queue, and optionally leave a note.
+ *
+ * No reply is sent from here. The answer goes to the address the person gave, from a
+ * mailbox a human is already reading — a reply composed on this screen would make the Hub
+ * a second place where the conversation partly lives, and the half that is missing is
+ * always the half somebody needs later.
+ */
+router.post(
+  '/enquiries/:id/status',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const moved = await Enquiry.setStatus(
+      req.params.id,
+      req.body.status,
+      req.session.user.id,
+      req.body.admin_note
+    );
+    req.flash(moved ? 'success' : 'error', moved ? 'Updated.' : 'That enquiry no longer exists.');
+    return res.redirect(returnTo(req, `/admin/enquiries/${req.params.id}`));
   })
 );
 

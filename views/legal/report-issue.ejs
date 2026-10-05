@@ -1,0 +1,80 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-bug',
+  heading: 'Report a problem',
+  sub: 'Something broken, confusing, or not behaving the way the page said it would.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <% if (errors.length) { %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <form method="post" action="/report-issue">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label" for="f-type">What kind of problem <span aria-hidden="true">*</span></label>
+            <select class="form-select" id="f-type" name="issue_type" required>
+              <option value="">Choose…</option>
+              <%# The options come from Enquiry.ISSUE_TYPES, which mirrors the ENUM in
+                  migration 018 — so an option added here cannot be rejected behind it. %>
+              <% issueTypes.forEach(function (t) { %>
+                <option value="<%= t %>" <%= values.issue_type === t ? 'selected' : '' %>>
+                  <%= { bug: 'Something is broken', question: 'I cannot work out how to do something',
+                        account: 'My account', billing: 'A payment or an invoice',
+                        abuse: 'Someone\'s behaviour or content', other: 'Something else' }[t] %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="f-severity">How badly does it affect you <span aria-hidden="true">*</span></label>
+            <select class="form-select" id="f-severity" name="severity" required>
+              <% severities.forEach(function (sv) { %>
+                <option value="<%= sv %>" <%= (values.severity || 'normal') === sv ? 'selected' : '' %>>
+                  <%= { low: 'Minor — I can work around it', normal: 'Normal — it is getting in the way',
+                        high: 'High — I cannot do what I came to do' }[sv] %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="f-page">Which page</label>
+            <input class="form-control" id="f-page" name="page_url" maxlength="500"
+                   value="<%= values.page_url || '' %>" placeholder="https://…">
+            <p class="form-text">
+              Paste the address from your browser. It is the difference between a report we
+              can act on and one that begins "it was the page with the table".
+            </p>
+          </div>
+        </div>
+
+        <%- include('../partials/enquiry-fields', { values }) %>
+        <button class="btn btn-primary mt-3" type="submit">Send report</button>
+      </form>
+    </div></div>
+
+    <div class="glass-card"><div class="card-body">
+      <h2 class="h5">What happens to it</h2>
+      <p class="mb-0 text-muted-2">
+        It goes into a queue a person works through, and the reply comes to the address you
+        gave. If it is about your account we may need you to confirm something from the
+        address the account uses — nothing here can look you up from a name. A security
+        problem is welcome and is read first; please describe it rather than demonstrating
+        it against somebody else's data.
+      </p>
+    </div></div>
+
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

@@ -13,10 +13,11 @@
         <a class="fs-5" href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
       </p>
       <%#
-        An address rather than a form, deliberately. A contact form needs somewhere to put
-        what it collects, a spam defence and somebody watching a queue; until all three
-        exist, a form is the version that can silently drop a message and let both sides
-        believe it was sent.
+        There is a form below now. It shipped as an address alone until all three of the
+        things that note demanded existed: somewhere to put what it collects (migration
+        018), a spam defence (a rate limit, a honeypot and a length floor) and somebody
+        watching a queue (/admin/enquiries). The address stays, because somebody writing
+        from their own client has a copy of what they sent and a form gives them nothing.
       %>
       <p class="text-muted-2 mb-0">
         We answer during UK working hours. Please include your account email if your
@@ -37,6 +38,22 @@
         <li><strong>Your data, or closing your account</strong> — say so plainly and we will
             handle it under the <a href="/legal/privacy">privacy policy</a>.</li>
       </ul>
+    </div></div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">Or write here</h2>
+      <% if (errors.length) { %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+          </ul>
+        </div>
+      <% } %>
+      <form method="post" action="/contact">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../partials/enquiry-fields', { values }) %>
+        <button class="btn btn-primary mt-3" type="submit">Send message</button>
+      </form>
     </div></div>
 
     <div class="glass-card"><div class="card-body">

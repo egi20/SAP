@@ -1,0 +1,43 @@
+<%
+  /* The four fields both forms share, in one partial: two copies would drift in their
+     labels, their lengths and — the one that matters — the honeypot. */
+  const v = values || {};
+%>
+<div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="f-name">Your name <span aria-hidden="true">*</span></label>
+    <input class="form-control" id="f-name" name="name" required maxlength="120"
+           value="<%= v.name || (currentUser ? currentUser.name : '') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="f-email">Email <span aria-hidden="true">*</span></label>
+    <input class="form-control" id="f-email" name="email" type="email" required maxlength="190"
+           value="<%= v.email || (currentUser ? currentUser.email : '') %>">
+    <p class="form-text">Where the reply goes.</p>
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="f-subject">Subject <span aria-hidden="true">*</span></label>
+    <input class="form-control" id="f-subject" name="subject" required maxlength="200"
+           value="<%= v.subject || '' %>">
+  </div>
+  <div class="col-12">
+    <label class="form-label" for="f-message">Message <span aria-hidden="true">*</span></label>
+    <textarea class="form-control" id="f-message" name="message" rows="8" required
+              minlength="20" maxlength="8000"><%= v.message || '' %></textarea>
+    <p class="form-text">Plain text. Include references — a payment starts <code>PAY-</code>, a quote <code>Q-</code>.</p>
+  </div>
+</div>
+
+<%#
+  The honeypot.
+
+  Hidden from sighted users by the stylesheet, from screen readers by aria-hidden, and from
+  the keyboard by tabindex="-1" — all three, because a field only ever filled in by
+  something walking the DOM has to be invisible to every legitimate way of filling a form.
+  autocomplete="off" stops a browser helpfully putting a URL in it, which would silently
+  discard a real person's message.
+%>
+<div class="hp-field" aria-hidden="true">
+  <label for="f-website">Leave this field empty</label>
+  <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" value="">
+</div>
