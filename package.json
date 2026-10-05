@@ -1,7 +1,7 @@
 {
   "name": "sap-hub",
   "version": "0.1.0",
-  "description": "SAP Hub — marketplace, job board and rate index for the SAP consulting ecosystem",
+  "description": "SAP Hub \u2014 marketplace, job board and rate index for the SAP consulting ecosystem",
   "main": "server.js",
   "license": "ISC",
   "engines": {
@@ -15,6 +15,7 @@
     "migrate:status": "node scripts/migrate.js status",
     "sync:catalogues": "node scripts/sync-catalogues.js",
     "create-admin": "node scripts/create-admin.js",
+    "create-user": "node scripts/create-user.js",
     "wait-for-db": "node scripts/wait-for-db.js",
     "validate-boot": "node scripts/validate-boot.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",

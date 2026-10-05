@@ -20,36 +20,14 @@
  * Usage:
  *   npm run create-admin -- you@example.com "Your Name"
  *
- * The password is not taken from the command line — it is generated here and printed once.
- * A password in an argument is a password in the shell history, in `ps` output while the
- * process runs, and in whatever ships those logs somewhere else.
+ * For an ordinary consultant, company or agency account — the ones you want in order to
+ * walk the site as a member — use `npm run create-user` instead. This script is the
+ * privileged one and grants superadmin.
  */
-
-const crypto = require('crypto');
 
 const User = require('../models/User');
+const { generatePassword } = require('../utils/initialPassword');
 const { promisePool } = require('../config/database');
-
-/**
- * Readable but not guessable: 24 characters from an alphabet with no look-alikes, so
- * somebody can retype it off a screen without wondering whether that is a 1 or an l.
- */
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-
-function generatePassword(length = 24) {
-  const bytes = crypto.randomBytes(length * 2);
-  let out = '';
-  for (let i = 0; out.length < length; i += 1) {
-    // Rejection sampling rather than a modulo: `% 55` over 0-255 biases the first
-    // characters of the alphabet, which is exactly the kind of quiet weakening nobody
-    // notices in a password generator.
-    const byte = bytes[i % bytes.length];
-    if (byte < Math.floor(256 / ALPHABET.length) * ALPHABET.length) {
-      out += ALPHABET[byte % ALPHABET.length];
-    }
-  }
-  return out;
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

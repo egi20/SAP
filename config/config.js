@@ -30,6 +30,17 @@ if (isProduction && sessionSecret === DEFAULT_SESSION_SECRET) {
   throw new Error('SESSION_SECRET must be set to a non-default value in production');
 }
 
+/*
+ * The support address is printed on a public page, so an unset one is not a missing
+ * setting — it is a wrong answer, given confidently, to the one question somebody asks
+ * when they are already stuck. The example value ships in `.env.example` and is therefore
+ * exactly what an install that skipped this step will carry.
+ */
+const PLACEHOLDER_SUPPORT_EMAIL = 'support@example.com';
+if (isProduction && (process.env.SUPPORT_EMAIL || PLACEHOLDER_SUPPORT_EMAIL) === PLACEHOLDER_SUPPORT_EMAIL) {
+  throw new Error('SUPPORT_EMAIL must be set to a real address in production');
+}
+
 const config = {
   env,
   isProduction,
@@ -37,7 +48,7 @@ const config = {
     name: process.env.APP_NAME || 'SAP Hub',
     port: parseInt(process.env.PORT, 10) || 3000,
     baseUrl: (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''),
-    supportEmail: process.env.SUPPORT_EMAIL || 'support@example.com'
+    supportEmail: process.env.SUPPORT_EMAIL || PLACEHOLDER_SUPPORT_EMAIL
   },
   database: {
     host: process.env.DB_HOST || 'localhost',
