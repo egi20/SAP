@@ -4,16 +4,18 @@
 /**
  * Create ONE superadmin, and nothing else.
  *
- * WHY THIS EXISTS SEPARATELY FROM `npm run seed`. The seed is development data: it creates
- * 30 jobs, 24 consultant profiles, 6 companies, 9 community posts — and 24 rate
- * submissions. On a real site that last one is not cosmetic. The rate index publishes
- * percentiles derived from what it holds, with a floor that counts PEOPLE; twenty-four
- * invented figures would put a published, real-looking benchmark in front of visitors that
- * nobody contributed to. The seeded consultant profiles are the same problem with faces on
- * them: a public directory of people who do not exist.
+ * WHY THERE IS NO SEED SCRIPT BESIDE IT. Both references ship one and it is the obvious
+ * thing to want: thirty jobs, a couple of dozen consultant profiles, some companies and
+ * posts, so that a fresh install has something to look at. The rate submissions are what
+ * make it unshippable. The rate index publishes percentiles over what it holds, with a
+ * floor that counts PEOPLE, so two dozen invented figures put a real-looking published
+ * benchmark in front of visitors that nobody contributed to — and seeded consultant
+ * profiles are the same problem with faces on them, a public directory of people who do
+ * not exist. A seed that leaves both out is a seed of an empty marketplace, which is what
+ * an install gets anyway.
  *
- * So a production install runs this instead, and ends up with an empty site and one
- * account that can administer it.
+ * So this is the whole of first-run setup: an empty site and one account that can
+ * administer it.
  *
  * Usage:
  *   npm run create-admin -- you@example.com "Your Name"
