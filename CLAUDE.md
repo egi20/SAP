@@ -197,6 +197,27 @@ already filters on `hidden_at IS NULL`; the reference adds the columns three mig
 later, so its community worked only because nothing had been hidden yet. Same argument as
 `voided_at` on `rate_submissions`.
 
+**Articles have their own page, and the kind is fixed rather than filtered.** A question is
+scanned and answered; an article is browsed and chosen. `/community/articles` sets `kind`
+and offers no control that could clear it, because clearing it would move the reader off
+the page they opened. It is the same `Post.browse` with no second builder and no SQL in the
+route. **No tag cloud** — the reference has one, and tags would be a fourth vocabulary
+beside the categories, the modules and the role taxonomy, with nothing asserting it and
+nobody owning it.
+
+**The author picker is built from the same filter, minus the author.** Otherwise it offers
+only the person already selected, and — the part that matters — a member whose single post
+is hidden would still be named in a dropdown beside a count of rows the list will not show.
+
+**`/community/author/:id` publishes nothing the feed does not.** Every post has carried its
+author's name in public since the community landed, so collecting one person's posts in one
+place reveals nothing new. It is NOT the consultant profile: no rate, no availability, and
+no message button — a button there would be the unanchored direct-message channel the
+messaging rules exist to refuse. It shows a points TOTAL and never the ledger, because a
+public breakdown of somebody's awards and reversals publishes a moderation history they did
+not ask to have read out. An inactive or missing account is a 404, never an empty page: a
+page that renders for any id confirms which ids exist.
+
 **`levelFor` must survive a negative total.** Reversals can take an account below zero, and
 the next level is the one above the CURRENT band — not the first threshold above the point
 total, which at -100 is level 1's own floor and renders as "100 points to level 1" at
@@ -847,6 +868,15 @@ without one — the decision is made in `tests/globalSetup.js`, in the parent pr
 so a flag set in a hook is still false when the suite decides whether to skip. The first
 version of that suite reported seven skipped tests against a database that was running,
 which is the worst outcome available — a green run that tested nothing.
+
+**Never assert on a global row count.** `SELECT COUNT(*) FROM users` before and after an
+action is green only while no other suite happens to write or delete one at that moment,
+and Jest runs suites in parallel — so it fails the day an unrelated suite is added, with a
+message blaming the feature under test. Scope the count to the rows the suite owns, or
+assert the claim structurally: the LinkedIn test now reads `routes/linkedin.js` and fails
+if it contains `User.create`, which proves "linking only, never a sign-in" where a count
+could only sample it. Same technique as the search sources test, same trap as an unscoped
+`LIMIT 1`.
 
 **Do not close the pool in a test file.** `tests/setup.js` registers a global `afterAll`
 that closes the pool and the session store, and a hook registered there runs BEFORE a

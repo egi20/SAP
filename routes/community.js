@@ -6,7 +6,7 @@ const { body, validationResult } = require('express-validator');
 const Post = require('../models/Post');
 const Points = require('../models/Points');
 const Notification = require('../models/Notification');
-const { isAuthenticated, isEmailVerified } = require('../middleware/auth');
+const { isAuthenticated, isEmailVerified, isNavigation } = require('../middleware/auth');
 const { writeLimiter, ipLimiter } = require('../middleware/rateLimit');
 const { communityWritable } = require('../middleware/settingsGates');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -22,11 +22,6 @@ const postLimiter = ipLimiter({
   max: 20,
   message: 'You have posted a lot recently. Please give it a few minutes.'
 });
-
-function wantsJson(req) {
-  const dest = req.get('sec-fetch-dest');
-  return (dest && dest !== 'document') || req.xhr;
-}
 
 function filtersFrom(query) {
   return {
@@ -121,6 +116,109 @@ router.post(
 
     req.flash('success', 'Posted.');
     return res.redirect(`/community/${created.slug}`);
+  })
+);
+
+/**
+ * GET /community/articles
+ *
+ * Articles have their own page because they are read differently from the rest of the
+ * community: a question is scanned and answered, an article is browsed and chosen. The
+ * kind is FIXED here rather than being a filter somebody can clear — clearing it would
+ * land them on a list that is no longer the page they opened.
+ *
+ * It is the same `Post.browse` the rest of the community calls, with `kind` set. There is
+ * no second builder and no SQL in this file.
+ *
+ * NO TAG CLOUD. The reference's version has one, and tags would be a fourth vocabulary
+ * beside the categories, the modules and the role taxonomy — with nothing asserting it and
+ * nobody owning it. The category tree already exists, is derived from the product lines,
+ * and is the same one the job board and the estimator speak.
+ */
+router.get(
+  '/articles',
+  asyncHandler(async (req, res) => {
+    const authorId = /^\d+$/.test(req.query.author || '') ? Number(req.query.author) : null;
+    const filters = {
+      ...filtersFrom(req.query),
+      kind: 'article',
+      author_user_id: authorId
+    };
+
+    const { page, perPage, limit, offset } = paginationFrom(req.query);
+    const sort = ['recent', 'newest', 'top', 'busiest'].includes(req.query.sort) ? req.query.sort : 'newest';
+
+    const [{ rows, total }, categories, authors] = await Promise.all([
+      Post.browse(filters, { limit, offset, sort }),
+      Post.listCategories(),
+      // The picker is built from the same filter minus the author, or it would only ever
+      // offer the person already selected.
+      Post.authorsIn({ ...filters, author_user_id: null })
+    ]);
+
+    res.render('community/articles', {
+      title: 'Articles',
+      posts: rows,
+      total,
+      categories,
+      authors,
+      authorId,
+      filters,
+      sort,
+      postKind,
+      toPlainText,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/community/articles', req.query, p)
+    });
+  })
+);
+
+/**
+ * GET /community/author/:id
+ *
+ * A public page for somebody's community writing. Declared before `/:slug`, like every
+ * other fixed path in this file.
+ *
+ * WHAT IT MAY SHOW is settled by what the community already shows: every post carries its
+ * author's name in public, so collecting one person's posts in one place reveals nothing
+ * the feed does not. It is NOT the consultant profile — no rate, no availability, no
+ * contact route — and it deliberately does not link an account to a directory listing
+ * beyond the name already on the posts.
+ *
+ * An inactive or missing account is a 404 rather than an empty page: a page that renders
+ * for any id confirms which ids exist.
+ */
+router.get(
+  '/author/:id',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const author = await Post.publicAuthor(req.params.id);
+    if (!author) {
+      return res.status(404).render('errors/404', { title: 'Not found' });
+    }
+
+    const { page, perPage, limit, offset } = paginationFrom(req.query);
+    const filters = { author_user_id: author.id };
+
+    const [{ rows, total }, counts, standing] = await Promise.all([
+      Post.browse(filters, { limit, offset, sort: 'newest' }),
+      Post.countsByKind(filters),
+      Points.standingFor(author.id)
+    ]);
+
+    return res.render('community/author', {
+      title: author.name,
+      author,
+      posts: rows,
+      total,
+      counts,
+      standing,
+      kinds: POST_KINDS,
+      postKind,
+      toPlainText,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl(`/community/author/${author.id}`, req.query, p)
+    });
   })
 );
 
@@ -253,10 +351,10 @@ router.post(
     const value = Number(req.body.value);
     try {
       const result = await Post.vote(targetType, req.params.id, req.session.user.id, value);
-      if (wantsJson(req)) return res.json({ success: true, ...result });
+      if (!isNavigation(req)) return res.json({ success: true, ...result });
     } catch (err) {
       if (['SELF_VOTE', 'NOT_FOUND'].includes(err.code)) {
-        if (wantsJson(req)) return res.status(400).json({ success: false, error: err.message });
+        if (!isNavigation(req)) return res.status(400).json({ success: false, error: err.message });
         req.flash('error', err.message);
       } else {
         throw err;

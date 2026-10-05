@@ -16,6 +16,8 @@
 process.env.LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID || 'test-client-id';
 process.env.LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || 'test-client-secret';
 
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const { promisePool } = require('../../config/database');
 const ExternalIdentity = require('../../models/ExternalIdentity');
@@ -115,10 +117,30 @@ maybe()('it is a linking flow, never a sign-in', () => {
     expect(res.headers.location).toMatch(/\/auth\/login/);
   });
 
-  test('no account is ever created by this flow', async () => {
-    const [[before]] = await promisePool.query('SELECT COUNT(*) AS n FROM users');
+  test('no account is ever created by this flow', () => {
+    /*
+     * Asserted against the SOURCE, not a row count.
+     *
+     * This used to be `SELECT COUNT(*) FROM users` before and after the callback, which was
+     * green only while no other suite happened to create or delete a user in the same
+     * moment. Jest runs suites in parallel, so it began failing the day an unrelated suite
+     * was added — reporting a LinkedIn account-creation bug that did not exist. Same trap
+     * as an unscoped LIMIT 1.
+     *
+     * The claim is structural anyway: there is no path here that creates a user, which is
+     * what makes "linking only, never a sign-in" true. A count could only ever have
+     * sampled it. This is the same technique the search sources test uses.
+     */
+    const source = fs.readFileSync(path.join(__dirname, '..', '..', 'routes', 'linkedin.js'), 'utf8');
+    expect(source).not.toMatch(/User\.create/);
+    expect(source).not.toMatch(/INSERT INTO users/i);
+  });
+
+  test('a callback without a session creates no identity row either', async () => {
+    const [[before]] = await promisePool.query('SELECT COUNT(*) AS n FROM external_identities');
     await request(app).get('/linkedin/callback?code=x&state=y');
-    const [[after]] = await promisePool.query('SELECT COUNT(*) AS n FROM users');
+    const [[after]] = await promisePool.query('SELECT COUNT(*) AS n FROM external_identities');
+    // Scoped by nothing but this table, which only this suite writes to.
     expect(after.n).toBe(before.n);
   });
 });

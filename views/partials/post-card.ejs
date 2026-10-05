@@ -20,11 +20,16 @@
       <a class="text-reset" href="/community/<%= post.slug %>"><%= post.title %></a>
     </h3>
 
+    <%#
+      The author's name has been printed here in public since the community landed; it is
+      now the link to the rest of what they have written, which reveals nothing the feed
+      does not already show one card at a time.
+    %>
     <div class="d-flex align-items-center gap-2 mb-2">
       <img class="avatar" style="width:28px;height:28px"
            src="<%= post.author_avatar || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
       <span class="small text-muted-2">
-        <%= post.author_name %>
+        <a class="text-reset" href="/community/author/<%= post.author_user_id %>"><%= post.author_name %></a>
         <% if (post.author_role) { %> · <%= roleLabel(post.author_role) %><% } %>
       </span>
     </div>

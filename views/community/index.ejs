@@ -18,9 +18,14 @@
           <%- include('../partials/kind-filters', {
             filterBase: typeof category !== 'undefined' && category ? '/community/category/' + category.slug : '/community'
           }) %>
-          <% if (currentUser) { %>
-            <a class="btn btn-primary btn-sm mb-3" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a>
-          <% } %>
+          <div class="d-flex gap-2 mb-3">
+            <a class="btn btn-outline-primary btn-sm" href="/community/articles">
+              <i class="bi bi-file-earmark-text"></i> Articles
+            </a>
+            <% if (currentUser) { %>
+              <a class="btn btn-primary btn-sm" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a>
+            <% } %>
+          </div>
         </div>
 
         <form class="glass-card p-3 mb-3" method="get">
@@ -62,6 +67,38 @@
       </div>
 
       <aside class="col-lg-4">
+        <%#
+          For a visitor, the slot a member uses to write. A community whose only call to
+          action is a button that bounces you to a login teaches people the page is not for
+          them.
+        %>
+        <% if (!currentUser) { %>
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Join in</h2>
+              <p class="small mb-3">
+                Reading is open to everybody. Asking, answering and voting need an account,
+                which is free.
+              </p>
+              <div class="d-flex gap-2">
+                <a class="btn btn-primary btn-sm" href="/auth/register">Create an account</a>
+                <a class="btn btn-outline-secondary btn-sm" href="/auth/login">Sign in</a>
+              </div>
+            </div>
+          </div>
+        <% } %>
+
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Daily challenge</h2>
+            <p class="small mb-3">
+              Five SAP questions, the same five for everybody, graded on the server. A new
+              set every day at midnight UTC.
+            </p>
+            <a class="btn btn-sm btn-navy" href="/challenges"><i class="bi bi-lightning"></i> Play today's</a>
+          </div>
+        </div>
+
         <div class="glass-card mb-3">
           <div class="card-body">
             <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">Categories</h2>

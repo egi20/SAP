@@ -1,0 +1,99 @@
+<%- include('../partials/layout-start') %>
+<section class="glass-section pt-5 pb-5">
+<div class="container">
+
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="/community">Community</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= author.name %></li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="glass-card mb-4"><div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <img class="avatar" style="width:64px;height:64px"
+               src="<%= author.avatar || '/images/avatar-placeholder.svg' %>" alt="">
+          <div>
+            <h1 class="h4 mb-1"><%= author.name %></h1>
+            <p class="text-muted-2 mb-0 small">
+              <% if (author.primary_role) { %><%= roleLabel(author.primary_role) %> · <% } %>
+              In the community since <%= new Date(author.created_at).toISOString().slice(0, 7) %>
+            </p>
+          </div>
+        </div>
+      </div></div>
+
+      <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">
+        <%= total %> post<%= total === 1 ? '' : 's' %>
+      </h2>
+
+      <% if (posts.length === 0) { %>
+        <div class="empty-state glass-card">
+          <i class="bi bi-chat-square-text"></i>
+          <p class="mb-0">Nothing published yet.</p>
+        </div>
+      <% } else { %>
+        <% posts.forEach(function (post) { %>
+          <%- include('../partials/post-card', { post: post }) %>
+        <% }) %>
+        <%- include('../partials/pagination') %>
+      <% } %>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="match-ring" style="--pct: <%= standing.progressPercent %>">
+            <span><%= standing.level %></span>
+          </div>
+          <div class="flex-grow-1">
+            <strong><%= standing.title %></strong>
+            <p class="small text-muted-2 mb-0 mt-1"><%= standing.points %> points</p>
+          </div>
+        </div>
+        <%#
+          A total, never the ledger. Every row in points_ledger names what was paid and
+          what for, and a public breakdown of somebody's awards and reversals would publish
+          a moderation history they did not ask to have read out.
+        %>
+        <p class="form-text mb-0 mt-2">
+          Points come from writing, from answers marked as the solution and from the daily
+          challenge.
+        </p>
+      </div></div>
+
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">What they write</h2>
+        <ul class="list-unstyled mb-0">
+          <% kinds.forEach(function (k) { %>
+            <li class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small"><i class="bi <%= k.icon %>"></i> <%= k.label %>s</span>
+              <span class="badge-hub"><%= counts[k.value] || 0 %></span>
+            </li>
+          <% }) %>
+        </ul>
+      </div></div>
+
+      <%#
+        No message button and no rate. Every conversation on this site is anchored to a
+        subject — an application, or an enquiry about a specific job — and a button here
+        would be the unanchored direct-message channel the messaging rules exist to refuse.
+      %>
+      <% if (author.is_consultant) { %>
+        <div class="glass-card"><div class="card-body">
+          <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Hiring?</h2>
+          <p class="small text-muted-2 mb-2">
+            This page is about what they have written. Availability, delivery history and
+            day rate live in the directory.
+          </p>
+          <a class="btn btn-sm btn-outline-primary" href="/consultants">Browse consultants</a>
+        </div></div>
+      <% } %>
+    </aside>
+  </div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

@@ -186,6 +186,52 @@ class Post {
     return Object.fromEntries(rows.map((r) => [r.kind, r.count]));
   }
 
+  /**
+   * The people who have written something matching this filter, for the author picker.
+   *
+   * It goes through `buildFilter` like every other query here, so a hidden post does not
+   * put its author in the list and a name cannot appear beside a count of rows the list
+   * will not show. `u.is_active = 1` is in the JOIN rather than the filter because an
+   * author list is a list of PEOPLE, and a deactivated account is not one of them any
+   * more — their posts stay, under the name, and this is only the picker.
+   */
+  static async authorsIn(filters = {}) {
+    const { clause, params } = buildFilter(filters);
+    const [rows] = await promisePool.query(
+      `SELECT u.id, u.name, COUNT(*) AS count
+         FROM posts p
+         JOIN post_categories c ON c.id = p.category_id
+         JOIN users u ON u.id = p.author_user_id AND u.is_active = 1
+        WHERE ${clause}
+        GROUP BY u.id, u.name
+        ORDER BY count DESC, u.name ASC
+        LIMIT 100`,
+      params
+    );
+    return rows;
+  }
+
+  /**
+   * A public author, for the community profile page. Returns null for an account that is
+   * inactive or does not exist — never a stub, because a page that renders for an id
+   * nobody holds is a page that confirms which ids exist.
+   */
+  static async publicAuthor(userId) {
+    const [rows] = await promisePool.query(
+      `SELECT u.id, u.name, u.created_at,
+              COALESCE(cp.profile_picture, comp.logo) AS avatar,
+              cp.primary_role AS primary_role,
+              u.is_consultant, u.is_company, u.is_recruiter,
+              (SELECT COALESCE(SUM(pl.points), 0) FROM points_ledger pl WHERE pl.user_id = u.id) AS points
+         FROM users u
+         LEFT JOIN consultant_profiles cp ON cp.user_id = u.id
+         LEFT JOIN company_profiles comp ON comp.user_id = u.id
+        WHERE u.id = ? AND u.is_active = 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
   static async incrementViews(postId) {
     try {
       await promisePool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = ?', [postId]);

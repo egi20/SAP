@@ -147,8 +147,15 @@ router.get('/terms', (req, res) => res.redirect(301, '/legal/terms'));
  * permanent redirect is cached by browsers in a way that is painful to take back.
  */
 router.get('/forum', (req, res) => res.redirect(302, '/community'));
+router.get('/forum/articles', (req, res) => {
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(302, `/community/articles${qs}`);
+});
 router.get('/forum/category/:slug', (req, res) => {
   res.redirect(302, `/community/category/${encodeURIComponent(req.params.slug)}`);
+});
+router.get('/forum/user/:id', (req, res) => {
+  res.redirect(302, `/community/author/${encodeURIComponent(req.params.id)}`);
 });
 
 /**
