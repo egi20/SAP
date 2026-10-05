@@ -1,0 +1,151 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-question-circle',
+  heading: 'Frequently asked questions',
+  sub: 'Every answer below links to the page that proves it.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+    <%#
+      One accordion, with the first panel open. Every answer is a statement about how the
+      code behaves and carries the link that demonstrates it, because an FAQ written from
+      intention rather than from the implementation becomes a second, competing description
+      of the system — and it is always the one that goes stale.
+    %>
+    <div class="accordion accordion-flush glass-card" id="faq">
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1"
+                  aria-expanded="true" aria-controls="faq1">
+            Does it cost anything to join?
+          </button>
+        </h2>
+        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faq">
+          <div class="accordion-body">
+            No. Creating an account, keeping a profile, applying for work, browsing
+            consultants and using the community are all free. Two optional things are paid —
+            featuring a job advert, and a deposit against an accepted quote — and both are
+            priced on the <a href="/payments">pricing page</a>, which is the only place on
+            the site that decides what anything costs.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2"
+                  aria-expanded="false" aria-controls="faq2">
+            How is the day-rate index built?
+          </button>
+        </h2>
+        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            From figures members contribute about their own work. A bucket — a role, a
+            seniority, a country — is published only once at least <%= minSample %> different
+            <em>people</em> have contributed to it; one person submitting five times is still
+            a sample of one. Below that, the <a href="/rates">index</a> shows the count and
+            withholds the numbers, and a period with too few contributors is shown as a gap
+            rather than filled in. You can <a href="/rates/submit">add your own figure</a>
+            once signed in, and it is never shown next to your name.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3"
+                  aria-expanded="false" aria-controls="faq3">
+            What does the scope estimator actually produce?
+          </button>
+        </h2>
+        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            A breakdown you can hand to a client: consultant-days per SAP Activate phase,
+            a resource plan by role, a calendar duration and a budget. The parts reconcile
+            against the headline — phase days and resource days each sum exactly to the
+            total, and every cost is days times a rate — and the
+            <a href="/quotes/new">estimator</a> refuses to show a figure that does not add
+            up rather than showing one that nearly does. You can export it as a document,
+            a workbook or a deck.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4"
+                  aria-expanded="false" aria-controls="faq4">
+            Why do consultant names not show until I sign in?
+          </button>
+        </h2>
+        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            Because people who are currently employed are the ones most worth talking to and
+            the ones with most to lose from a public listing. The
+            <a href="/consultants">directory</a> is fully searchable while signed out — the
+            experience, the modules delivered, the availability — and the name appears to an
+            account. Creating one is <a href="/auth/register">free</a>.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5"
+                  aria-expanded="false" aria-controls="faq5">
+            What does the LinkedIn badge on a profile mean?
+          </button>
+        </h2>
+        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            Exactly one thing: that the member signed in to a LinkedIn account, and the name
+            on it. It is not a sign-in method here and never creates an account. LinkedIn
+            does not hand over a job history, an employer or a profile URL to an ordinary
+            application, so the badge does not claim any of those — a LinkedIn address typed
+            on a profile stays a claim, and is labelled as one. Link or unlink it from
+            <a href="/profile/settings">your settings</a>.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6"
+                  aria-expanded="false" aria-controls="faq6">
+            Can anyone message me?
+          </button>
+        </h2>
+        <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            Only about something specific. Every conversation is anchored to a subject — an
+            application you made, or an enquiry about a job you advertised — so there is no
+            open inbox anybody can write into, and every thread has a subject line that is
+            true. Your threads are at <a href="/messages">messages</a>.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7"
+                  aria-expanded="false" aria-controls="faq7">
+            Something looks wrong, or I need help with my account.
+          </button>
+        </h2>
+        <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faq">
+          <div class="accordion-body">
+            Write to us — <a href="/contact">the contact page</a> says what to include so the
+            first reply is a useful one. Account questions have to come that way: nothing
+            automated on this site can look you up, and we cannot identify an account from a
+            name alone.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

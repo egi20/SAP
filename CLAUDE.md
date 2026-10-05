@@ -32,6 +32,17 @@ wrong produced a real bug, in this repository or in one of the two it was ported
 - **The error handler must never respond twice.** `middleware/errorHandler.js` checks
   `res.headersSent` and delegates to Express when the response has already started.
   Writing a second status line throws ERR_HTTP_HEADERS_SENT and buries the original error.
+- **Every link in the navigation and the footer points at a route that exists**, and
+  `tests/integration/navigation.test.js` reads both partials and opens each one. It reads
+  them as TEXT, not rendered: the signed-in half of each menu never renders for a
+  logged-out visitor, so walking the rendered page would check half the links and pass. A
+  redirect counts as alive and its destination is opened too. A dead link survives in a
+  chrome partial because nobody who works on the site ever clicks it — the menu is the
+  first thing a visitor tries.
+- **The Hub's own social accounts live in `config/social.js`**, one per environment
+  variable, host-pinned and asserted at boot, and an account that is not configured is not
+  rendered. The footer and the fixed rail read the same list, or the two drift the moment
+  an account is added.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
 - **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use

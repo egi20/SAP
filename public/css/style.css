@@ -985,6 +985,20 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 
 .footer-rule { border-color: rgba(255, 255, 255, 0.15); }
 .footer-blurb { max-width: 38ch; }
+
+/*
+ * The social row. A 44px target because these are the smallest things on the page and the
+ * most likely to be tapped with a thumb, and a visible focus ring because an icon with no
+ * text is impossible to locate by keyboard without one.
+ */
+.footer-social a {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); font-size: 1.1rem; line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.footer-social a:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.footer-social a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 /* The wordmark's accent half, on a dark ground where the gradient would disappear. */
 .brand-accent { color: var(--primary-blue-bright); }
 

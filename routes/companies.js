@@ -12,6 +12,20 @@ const countries = require('../config/all-countries.json');
 
 const router = express.Router();
 
+/*
+ * /companies/talent is the reference's name for the consultant directory, which lives at
+ * /consultants here. Declared BEFORE `/:slug`, or it is a company whose slug is "talent".
+ *
+ * The query string is carried across, because the links people share are filtered ones and
+ * an alias that drops the filters sends them somewhere that looks broken. 302, not 301:
+ * the walkthrough argues this path should become canonical and /consultants become a
+ * landing page, and that decision is not made yet.
+ */
+router.get('/talent', (req, res) => {
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(302, `/consultants${qs}`);
+});
+
 router.get(
   '/',
   asyncHandler(async (req, res) => {

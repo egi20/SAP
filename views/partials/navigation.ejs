@@ -23,16 +23,27 @@
          * showing them to a stranger and then bouncing them to a login is a worse
          * experience than not offering them.
          *
-         * EVERY ITEM HERE POINTS AT A ROUTE THAT EXISTS. The reference's menu carries the
-         * community, messages, quotes, agencies and the assistant; those are later areas,
-         * and a menu that offers a 404 is worse than a menu that is short.
+         * EVERY ITEM HERE POINTS AT A ROUTE THAT EXISTS, and a test walks both this file
+         * and the footer to prove it. A menu that offers a 404 is worse than a menu that is
+         * short: it is the first thing a visitor tries, and it teaches them that the
+         * navigation is decoration. The reference's menu names a CV generator, a document
+         * generator and a tax calculator; the first two are not built here yet and the
+         * third is not going to be, so none of them is listed.
          */
         const path = currentPath;
         const startsWith = (p) => path === p || path.startsWith(p + '/');
         const isConsultantArea = startsWith('/jobs') || startsWith('/rates')
           || (currentUser && startsWith('/profile/consultant'));
         const isCompanyArea = startsWith('/consultants') || startsWith('/companies')
-          || startsWith('/recruiters') || (currentUser && startsWith('/quotes'));
+          || startsWith('/recruiters');
+        /*
+         * Services is what the Hub DOES for you, as opposed to who it is for — the two
+         * hubs above are audiences, this one is tools. The estimator sits here rather than
+         * under Companies Hub because a consultant sizing their own piece of work is the
+         * other half of who opens it.
+         */
+        const isServicesArea = startsWith('/rates') || startsWith('/payments')
+          || (currentUser && startsWith('/quotes'));
       %>
 
       <ul class="navbar-nav me-auto align-items-lg-center">
@@ -65,6 +76,7 @@
           <ul class="dropdown-menu shadow-sm">
             <li><a class="dropdown-item" href="/jobs"><i class="bi bi-briefcase"></i> Find work</a></li>
             <li><a class="dropdown-item" href="/rates"><i class="bi bi-graph-up"></i> Rate index</a></li>
+            <li><a class="dropdown-item" href="/success-stories"><i class="bi bi-stars"></i> Success stories</a></li>
             <% if (currentUser && currentUser.isConsultant) { %>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/profile/consultant"><i class="bi bi-person-gear"></i> Build your profile</a></li>
@@ -100,6 +112,25 @@
               <li><a class="dropdown-item" href="/profile/company"><i class="bi bi-building-gear"></i> Company profile</a></li>
             <% } %>
           </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %>" href="#" role="button"
+             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+            <i class="bi bi-tools"></i> Services
+          </a>
+          <ul class="dropdown-menu shadow-sm">
+            <li><a class="dropdown-item" href="/rates"><i class="bi bi-graph-up"></i> Rate &amp; salary index</a></li>
+            <li><a class="dropdown-item" href="/payments"><i class="bi bi-tag"></i> Pricing</a></li>
+            <% if (currentUser) { %>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimator</a></li>
+              <li><a class="dropdown-item" href="/quotes"><i class="bi bi-folder2-open"></i> Your estimates</a></li>
+            <% } %>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link <%= startsWith('/about') ? 'active' : '' %>" href="/about">About</a>
         </li>
       </ul>
 
@@ -159,8 +190,13 @@
             </ul>
           </li>
         <% } else { %>
-          <li class="nav-item"><a class="nav-link" href="/auth/login">Sign in</a></li>
-          <li class="nav-item ms-lg-2"><a class="btn btn-primary btn-sm" href="/auth/register">Join free</a></li>
+          <%#
+            Two buttons, outline then filled. A plain text link beside a filled button reads
+            as the lesser of the two, and signing in is not a lesser action than signing up —
+            it is what every returning member came here to do.
+          %>
+          <li class="nav-item"><a class="btn btn-outline-light btn-sm" href="/auth/login">Sign in</a></li>
+          <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-primary btn-sm" href="/auth/register">Sign up</a></li>
         <% } %>
       </ul>
     </div>

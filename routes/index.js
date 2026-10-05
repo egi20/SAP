@@ -119,6 +119,57 @@ function greetingFor(now) {
   return 'Good evening';
 }
 
+/*
+ * SHORT ALIASES.
+ *
+ * Both are 301s and both exist because they are what people type and what other sites
+ * link to. The canonical paths stay under /legal, because that is where the versioned
+ * documents live and a policy URL that moves is a policy URL in somebody's contract that
+ * stops resolving.
+ */
+router.get('/privacy', (req, res) => res.redirect(301, '/legal/privacy'));
+router.get('/terms', (req, res) => res.redirect(301, '/legal/terms'));
+
+/*
+ * /forum is the reference's name for what is /community here. A 302 rather than a 301:
+ * which of the two is canonical is a decision this port has not finished making, and a
+ * permanent redirect is cached by browsers in a way that is painful to take back.
+ */
+router.get('/forum', (req, res) => res.redirect(302, '/community'));
+router.get('/forum/category/:slug', (req, res) => {
+  res.redirect(302, `/community/category/${encodeURIComponent(req.params.slug)}`);
+});
+
+/**
+ * GET /about
+ *
+ * What the Hub is, who it is for and what it deliberately does not do. The last part is
+ * the reason it is a page and not a paragraph on the home page: a marketplace that
+ * publishes day rates and prices programmes is asked the same three questions by everybody
+ * who lands on it for the first time, and answering them in public is cheaper than
+ * answering them one email at a time.
+ *
+ * NO NUMBERS THAT MOVE. No consultant count, no "average rate", no founder's photograph
+ * over a figure — the reference's about page carries several, and every one of them is a
+ * claim somebody has to remember to update. What is here is true on the day the site has
+ * no members at all.
+ */
+router.get('/about', (req, res) => {
+  res.render('legal/about', { title: `About ${config.app.name}` });
+});
+
+/**
+ * GET /faq
+ *
+ * Every answer here is a fact about how the code behaves, and each one links to the page
+ * that proves it. An FAQ whose answers were written from intention rather than from the
+ * implementation is a second description of the system, and it is always the one that
+ * goes stale.
+ */
+router.get('/faq', (req, res) => {
+  res.render('legal/faq', { title: 'Frequently asked questions', minSample: config.rates.minSampleSize });
+});
+
 router.get('/legal/privacy', (req, res) => {
   res.render('legal/privacy', { title: 'Privacy policy', version: legalVersions.PRIVACY_VERSION });
 });

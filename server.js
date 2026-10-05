@@ -24,6 +24,7 @@ const linkedinConfig = require('./config/linkedin');
 const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
+const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -86,6 +87,13 @@ assertLinkedInIntegrity();
  * somebody plays rather than at the moment somebody could fix it.
  */
 assertChallengeIntegrity();
+/*
+ * And the Hub's own social accounts: a link whose host carries a typo looks right in a
+ * diff and is wrong on every page of the site until somebody outside reports it.
+ */
+assertSocialIntegrity();
+// Read once. These come from the environment and cannot change while the process runs.
+const SOCIAL_LINKS = socialLinks();
 
 const app = express();
 
@@ -274,6 +282,7 @@ app.use((req, res, next) => {
   // worse than no button.
   res.locals.linkedinReady = linkedinConfig.isConfigured();
   res.locals.supportEmail = config.app.supportEmail;
+  res.locals.socialLinks = SOCIAL_LINKS;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;
   res.locals.query = req.query;

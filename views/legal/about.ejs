@@ -1,0 +1,97 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-info-circle',
+  heading: `About ${appName}`,
+  sub: 'A marketplace for the SAP ecosystem — and a short account of what it will not do.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">What this is</h2>
+      <p>
+        <%= appName %> is where SAP work and the people who do it find each other. Companies
+        and agencies advertise roles; consultants keep a profile describing what they have
+        actually delivered; and both sides can see what the work is worth before the
+        conversation about money starts.
+      </p>
+      <p class="mb-0">
+        It is built around SAP's own vocabulary rather than a generic one. Modules are SAP
+        modules, phases are <a href="/jobs">SAP Activate's</a>, and a role means what it
+        means on a programme. That sounds like a detail until you search for FI and are
+        shown everything containing the word "specific".
+      </p>
+    </div></div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">What you can do here</h2>
+      <ul class="mb-0">
+        <li><strong><a href="/jobs">Find work</a></strong> — filtered by module, Activate
+            phase, country and day rate, not by keyword alone.</li>
+        <li><strong><a href="/consultants">Find consultants</a></strong> — searchable by the
+            modules somebody has delivered on a real engagement, which is a different claim
+            from a module ticked on a skills list.</li>
+        <li><strong><a href="/rates">See what the work pays</a></strong> — an index built
+            from figures contributed by members, published only where enough people have
+            contributed to a bucket for it to mean anything.</li>
+        <li><strong><a href="/quotes/new">Size a programme</a></strong> — an estimator that
+            turns a scope into consultant-days, a phase plan and a budget you can hand to a
+            client, with every figure reconciling against the total.</li>
+        <li><strong><a href="/community">Ask the people who have done it</a></strong> — a
+            community organised by the same product lines as everything else.</li>
+      </ul>
+    </div></div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">What it deliberately does not do</h2>
+      <p>
+        These are decisions, not gaps, and they are listed because every one of them is
+        something a site like this is routinely expected to have.
+      </p>
+      <ul class="mb-0">
+        <li><strong>It does not calculate your tax savings.</strong> What you keep depends
+            on where you live, how you are engaged and what year it is. A number on a page
+            that does not know any of those is a financial claim we cannot stand behind.</li>
+        <li><strong>It does not publish a rate derived from one person.</strong> Below the
+            floor, the <a href="/rates">index</a> shows how many people contributed and
+            withholds the figures. A sparse bucket is reported as a gap, never as a zero and
+            never as a line drawn between two other points.</li>
+        <li><strong>It does not let a browser decide a score.</strong> The
+            <a href="/challenges">daily challenge</a> is graded on the server, from the
+            answers you chose, because a leaderboard anybody can post a perfect score to
+            devalues everybody else's.</li>
+        <li><strong>It does not delete what it moderates.</strong> A post taken down is
+            hidden, with who did it and why recorded, so the decision can be looked at
+            again — and reversed.</li>
+        <li><strong>It does not message anyone on your behalf.</strong> Nothing here sends
+            an introduction, a follow-up or a pitch unless a person pressed send.</li>
+      </ul>
+    </div></div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">About the figures</h2>
+      <p class="mb-0">
+        A quote keeps the breakdown it was priced with, and the version of the catalogue
+        behind it. If the underlying effort baselines later change, the quote is flagged as
+        priced under an older catalogue — never silently re-priced. What was said to a
+        client on a date stays what was said to them on that date. The
+        <a href="/rates">rate index</a> works the same way round: contributed figures are
+        never edited, only set aside, because an average whose inputs somebody can retype is
+        an average nobody should trust.
+      </p>
+    </div></div>
+
+    <div class="glass-card"><div class="card-body">
+      <h2 class="h5">Independent of SAP SE</h2>
+      <p class="mb-0">
+        <%= appName %> is not affiliated with, endorsed by or sponsored by SAP SE. SAP and
+        the product names used throughout the site are trademarks of SAP SE, used here to
+        describe the work. Questions go to <a href="/contact">a person</a>.
+      </p>
+    </div></div>
+
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>
