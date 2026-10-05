@@ -186,3 +186,107 @@
     wrap.appendChild(button);
   });
 }());
+
+/*
+ * The cookie notice.
+ *
+ * It is a NOTICE, not a consent gate, and the difference is the whole design. This site
+ * sets one cookie — the session — and sets it only because somebody asked to be signed in.
+ * There is no analytics cookie, no advertising cookie and no third party. So an
+ * "Accept all / Reject" pair would be theatre: "Reject" could not do anything, because
+ * there is nothing to refuse that would leave the site working. A button that pretends to
+ * give somebody a choice they do not have is worse than no button, and it is what trains
+ * people to click through every real one.
+ *
+ * Built here rather than rendered by the server so that somebody who has dismissed it
+ * never sees it flash on the next page. The disclosure itself does not depend on this: it
+ * is in the privacy policy, which is server-rendered and linked from every footer.
+ *
+ * The dismissal is remembered in localStorage and NOT in a cookie, which would be comic.
+ */
+(function cookieNotice() {
+  var KEY = 'saphub.cookieNotice';
+
+  var seen;
+  try {
+    seen = window.localStorage.getItem(KEY);
+  } catch (err) {
+    // Private browsing, or storage disabled. Showing it every time is the honest failure:
+    // we genuinely cannot tell whether this person has read it.
+    seen = null;
+  }
+  if (seen === 'dismissed') return;
+
+  var bar = document.createElement('div');
+  bar.className = 'cookie-notice';
+  bar.setAttribute('role', 'region');
+  bar.setAttribute('aria-label', 'Cookie notice');
+  bar.innerHTML =
+    '<p class="cookie-notice-text">' +
+      'This site uses <strong>one cookie</strong>, to keep you signed in. ' +
+      'No analytics, no advertising, no third parties — so there is nothing here to opt out of. ' +
+      '<a href="/legal/privacy#cookies">What we store</a>.' +
+    '</p>';
+
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn btn-primary btn-sm';
+  button.textContent = 'Got it';
+  button.addEventListener('click', function () {
+    try {
+      window.localStorage.setItem(KEY, 'dismissed');
+    } catch (err) {
+      // Nothing to do: it will appear again, which is the correct outcome.
+    }
+    bar.remove();
+  });
+
+  bar.appendChild(button);
+  document.body.appendChild(bar);
+}());
+
+/*
+ * Back to top.
+ *
+ * Appears after a screenful of scrolling and not before — a button offering to take
+ * somebody to the top of a page they have not left is noise. It is a real <button> so the
+ * keyboard reaches it, and it honours prefers-reduced-motion, because a smooth scroll
+ * through a long page is exactly the movement that setting exists to stop.
+ */
+(function backToTop() {
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'back-to-top';
+  button.setAttribute('aria-label', 'Back to top');
+  button.hidden = true;
+  button.innerHTML = '<i class="bi bi-arrow-up" aria-hidden="true"></i>';
+
+  button.addEventListener('click', function () {
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    // Focus follows the scroll, or a keyboard user is returned to the top of a page while
+    // their focus stays at the bottom of it.
+    var main = document.getElementById('main');
+    if (main) {
+      main.setAttribute('tabindex', '-1');
+      main.focus({ preventScroll: true });
+    }
+  });
+
+  document.body.appendChild(button);
+
+  var ticking = false;
+  function update() {
+    button.hidden = window.scrollY < window.innerHeight;
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    // One update per frame: a scroll handler that runs on every event is the cheapest way
+    // to make a long page feel broken on a phone.
+    if (!ticking) {
+      window.requestAnimationFrame(update);
+      ticking = true;
+    }
+  }, { passive: true });
+  update();
+}());

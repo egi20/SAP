@@ -9,6 +9,10 @@
  * corresponding document changes materially.
  */
 module.exports = {
-  PRIVACY_VERSION: '2026-09-01',
+  // 2026-10-05: added the Cookies section. Bumped because the document now describes
+  // something it did not describe before, and the stamp on an account is a record of what
+  // that person was shown — leaving it alone would quietly backdate the new text onto
+  // everybody who registered before it existed.
+  PRIVACY_VERSION: '2026-10-05',
   TERMS_VERSION: '2026-09-01'
 };

@@ -1009,6 +1009,41 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .password-field .password-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .password-field input { padding-right: 2.75rem; }
 
+/*
+ * The cookie notice and the back-to-top button.
+ *
+ * Both are appended to <body> by main.js, so neither exists until the script runs — which
+ * is why there is no server-rendered counterpart to keep in step.
+ */
+.cookie-notice {
+  position: fixed; left: 1rem; right: 1rem; bottom: 1rem; z-index: 1040;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem;
+  max-width: 56rem; margin: 0 auto; padding: 0.875rem 1rem;
+  border-radius: 0.75rem; border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+  background: var(--bs-body-bg, #fff); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.cookie-notice-text { margin: 0; flex: 1 1 18rem; font-size: 0.9rem; line-height: 1.45; }
+.cookie-notice .btn { flex: 0 0 auto; }
+
+.back-to-top {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 1030;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+  background: var(--bs-body-bg, #fff); color: inherit;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); cursor: pointer;
+}
+.back-to-top[hidden] { display: none; }
+.back-to-top:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* While the notice is up it would sit on the button. The notice goes away; this does not
+   need a script to coordinate them. */
+.cookie-notice ~ .back-to-top { bottom: 5.5rem; }
+
+@media print {
+  .cookie-notice, .back-to-top { display: none !important; }
+}
+
 .footer-blurb { max-width: 38ch; }
 
 /*

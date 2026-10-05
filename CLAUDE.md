@@ -878,6 +878,48 @@ and a legitimate flow fails as "security verification failed".
 **One provider account confirms one Hub account.** A second attempt is refused rather than
 moved, and the message never names the other account.
 
+## The cookie notice, and what it is not
+
+**It is a notice, not a consent gate, because there is nothing to refuse.** This site sets
+ONE cookie — `saphub.sid`, the session — and sets it only because somebody asked to be
+signed in. No analytics cookie, no advertising cookie, no third party, nothing loaded from
+a tracker. A strictly necessary cookie needs DISCLOSURE, not consent, so an
+"Accept all / Reject" pair would be theatre: "Reject" could not do anything that left the
+site working. A button offering a choice somebody does not have is worse than no button,
+and it is what trains people to click through every real one. A unit test fails if those
+words appear in the code.
+
+**The dismissal is remembered in `localStorage`, not in a cookie.** And both the read and
+the write are wrapped, because private browsing throws on access — in which case the notice
+appears again, which is the honest failure: we genuinely cannot tell whether that person
+has read it.
+
+**It is built by `public/js/main.js`, like the password toggle and the back-to-top button**,
+so somebody who dismissed it never sees it flash on the next page. The disclosure itself
+does not depend on the script: it is the Cookies section of the privacy policy, which is
+server-rendered and linked from every footer. The notice links to `#cookies`, and a test
+checks that anchor exists — a stale one lands somebody at the top of a long document with
+complete confidence they were taken to the right place.
+
+**Adding any other cookie changes three things at once**: that section, the notice's
+wording, and the notice's nature — at that point it becomes a consent gate, because then
+there would be something to refuse.
+
+**A material change to a policy bumps its version in `config/legal-versions.js`.** The
+stamp on an account records what that person was shown; leaving it alone backdates the new
+text onto everybody who registered before it existed.
+
+**The back-to-top button appears after one screenful and not before** — a button offering
+to take somebody to the top of a page they have not left is noise. It is a real `<button>`
+so the keyboard reaches it, it moves FOCUS to `#main` as well as the viewport (or a
+keyboard user is returned to the top while their focus stays at the bottom, and the next
+Tab takes them straight back down), it honours `prefers-reduced-motion`, and its scroll
+listener is passive and throttled to one update a frame.
+
+**Testing consequence:** a test that greps the source for a forbidden string also matches
+the comment explaining why the string is forbidden. Strip comments before asserting — the
+tempting fix is to delete the sentence.
+
 ## CSRF
 
 Every mutating form needs `<input type="hidden" name="_csrf" value="<%= csrfToken %>">`.
