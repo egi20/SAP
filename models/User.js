@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const { isSignupSource } = require('../config/signupSources');
 const { promisePool, withTransaction } = require('../config/database');
 const config = require('../config/config');
 const { containsPattern } = require('../utils/likePattern');
@@ -101,7 +102,7 @@ class User {
    * actually accepted. Admin creation, seeds and tests pass nothing, because consent
    * must never be fabricated on someone's behalf.
    */
-  static async create({ email, password, name, roles, consent = null, gender = null, dateOfBirth = null, signupIp = null, signupCountry = null }) {
+  static async create({ email, password, name, roles, consent = null, gender = null, dateOfBirth = null, signupIp = null, signupCountry = null, heardAbout = null }) {
     const normalisedEmail = normaliseEmail(email);
     const requestedRoles = unionRoles([], roles, { allowed: ALL_ROLES });
     const finalRoles = requestedRoles.length ? requestedRoles : ['consultant'];
@@ -120,8 +121,8 @@ class User {
          (email, password_hash, name, user_type,
           is_consultant, is_company, is_recruiter, is_partner,
           terms_accepted_at, terms_version, privacy_policy_version,
-          gender, date_of_birth, signup_ip, signup_country)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          gender, date_of_birth, signup_ip, signup_country, heard_about)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         normalisedEmail,
         passwordHash,
@@ -137,7 +138,10 @@ class User {
         gender,
         dateOfBirth,
         signupIp,
-        signupCountry
+        signupCountry,
+        // Closed vocabulary or nothing: an unrecognised answer is dropped rather than
+        // stored, because the point of the column is that it can be counted.
+        isSignupSource(heardAbout) ? heardAbout : null
       ]
     );
 

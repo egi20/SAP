@@ -797,6 +797,40 @@ Role escalation is one-directional and this is a security boundary, not a UI nic
   untouched.
 - `User.adminSetRoles` is the only path that removes a role or grants a privileged one.
 
+## The auth pages
+
+**"Remember me" lengthens THIS session's cookie and creates nothing else.** The usual shape
+is a long-lived token in its own table, which is a second credential to leak, to revoke on
+a password change and to expire correctly. The session already exists, the store already
+has its row, and `rolling: true` already refreshes it — so the whole feature is one number
+in `config/config.js`, and signing out still ends it exactly as before. It is set AFTER
+`req.session.regenerate()`, or it is written onto the session being thrown away.
+
+**The show/hide button is built by `public/js/main.js`, never rendered by the template.**
+It only works with scripting, and a server-rendered control that silently does nothing is
+worse than no control: the person has already decided to trust what it shows them. The
+state goes on `aria-pressed` and in the label, because an icon alone does not say whether
+the password is currently visible, which is the only thing the button is for.
+`autocomplete` is passed per field — a browser offering the current password on a "new
+password" field is how somebody sets their old one again.
+
+**The "sign in to continue" box appears only when `?redirect=` is set**, and carries the
+destination into the sign-up link beside it. A permanent version tells the person who came
+here deliberately nothing they did not know, and an alternative that drops the redirect
+loses the thing it just promised.
+
+**"How did you hear about us?" is a closed list and optional.** `config/signupSources.js`
+mirrors the ENUM in migration 019 and a test compares them. Eight options are answered
+honestly and can be counted; a text box produces "google", "Google" and "googled it". An
+unrecognised value is DROPPED in `User.create` rather than stored, because the only point
+of the column is that it can be counted. It is **not** `referral_attributions`: that
+records a link somebody actually followed and pays a commission on it, and an unverifiable
+answer must never reach the table that decides who gets paid.
+
+**Testing consequence:** express-session serialises `Expires` and emits no `Max-Age` at
+all. A helper that reads `Max-Age` returns null for every response, and the assertion then
+fails without ever having measured anything.
+
 ## LinkedIn confirmation
 
 **LINKING ONLY. NEVER A SIGN-IN METHOD.** Both routes require an authenticated session and

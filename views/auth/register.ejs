@@ -2,7 +2,7 @@
 
 <section class="glass-section glass-section-tall py-5">
   <div class="container">
-  <div class="row justify-content-center">
+  <div class="row justify-content-center g-4">
     <div class="col-lg-6">
       <%- include('../partials/flash') %>
 
@@ -67,13 +67,15 @@
 
             <div class="row g-2 mb-3">
               <div class="col-md-6">
-                <label class="form-label" for="password">Password</label>
-                <input class="form-control" id="password" name="password" type="password" required autocomplete="new-password">
-                <p class="form-text">At least 8 characters, with upper case, lower case and a number.</p>
+                <%- include('../partials/password-field', {
+                  id: 'password', label: 'Password', autocomplete: 'new-password',
+                  help: 'At least 8 characters, with upper case, lower case and a number.'
+                }) %>
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="confirm_password">Confirm password</label>
-                <input class="form-control" id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password">
+                <%- include('../partials/password-field', {
+                  id: 'confirm_password', label: 'Confirm password', autocomplete: 'new-password'
+                }) %>
               </div>
             </div>
 
@@ -109,10 +111,82 @@
               </label>
             </div>
 
+            <%#
+              Optional, and a closed list. Eight options are answered honestly and can be
+              counted; a text box produces "google", "Google" and "googled it". It is also
+              not the referral system — that records a link somebody actually followed and
+              pays a commission on it, and an unverifiable answer must not go near the
+              table that decides who gets paid.
+            %>
+            <div class="mb-3">
+              <label class="form-label" for="heard_about">How did you hear about us? <span class="text-muted-2">(optional)</span></label>
+              <select class="form-select" id="heard_about" name="heard_about">
+                <option value="">Rather not say</option>
+                <% signupSources.forEach(function (src) { %>
+                  <option value="<%= src.value %>" <%= values.heard_about === src.value ? 'selected' : '' %>><%= src.label %></option>
+                <% }) %>
+              </select>
+            </div>
+
             <button class="btn btn-primary w-100" type="submit">Create account</button>
           </form>
 
           <p class="text-center mt-3 mb-0 small">Already have an account? <a href="/auth/login">Sign in</a></p>
+        </div>
+      </div>
+    </div>
+
+    <%#
+      Four reasons, each one a thing the account actually does. Not a count of members and
+      not a testimonial: a figure nobody owns is a figure nobody updates, and a quotation
+      on a sign-up page is the one piece of evidence a reader discounts automatically.
+    %>
+    <div class="col-lg-4">
+      <div class="glass-card">
+        <div class="card-body p-4">
+          <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">Why join</h2>
+          <ul class="list-unstyled mb-0">
+            <li class="d-flex gap-2 mb-3">
+              <i class="bi bi-briefcase text-primary mt-1" aria-hidden="true"></i>
+              <div>
+                <strong class="d-block">Apply, and be found</strong>
+                <span class="small text-muted-2">
+                  Companies filter the directory by the modules you have actually delivered,
+                  not the ones you ticked.
+                </span>
+              </div>
+            </li>
+            <li class="d-flex gap-2 mb-3">
+              <i class="bi bi-incognito text-primary mt-1" aria-hidden="true"></i>
+              <div>
+                <strong class="d-block">Visible without being exposed</strong>
+                <span class="small text-muted-2">
+                  Names and photographs are shown to account holders only, and nobody can
+                  message you except about a specific role.
+                </span>
+              </div>
+            </li>
+            <li class="d-flex gap-2 mb-3">
+              <i class="bi bi-graph-up text-primary mt-1" aria-hidden="true"></i>
+              <div>
+                <strong class="d-block">Know what the work pays</strong>
+                <span class="small text-muted-2">
+                  Contribute a day rate and read the buckets it helps publish. Yours is never
+                  shown beside your name.
+                </span>
+              </div>
+            </li>
+            <li class="d-flex gap-2">
+              <i class="bi bi-people text-primary mt-1" aria-hidden="true"></i>
+              <div>
+                <strong class="d-block">Ask the people who have done it</strong>
+                <span class="small text-muted-2">
+                  Questions, write-ups and a daily challenge, organised by the same SAP
+                  vocabulary as everything else here.
+                </span>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

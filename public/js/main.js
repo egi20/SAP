@@ -146,3 +146,43 @@
     syncCurrent();
   }
 })();
+
+/*
+ * Show/hide for password fields.
+ *
+ * The button is built HERE rather than in the template, because it only works with
+ * scripting: a control rendered by the server that silently does nothing is worse than no
+ * control at all, since somebody has already decided to trust what it shows them.
+ *
+ * `aria-pressed` carries the state, and the label changes with it — an icon alone does not
+ * say whether the password is currently visible, which is the only thing the button is
+ * for.
+ */
+(function passwordToggles() {
+  document.querySelectorAll('.password-field').forEach(function (wrap) {
+    var input = wrap.querySelector('input[type="password"]');
+    if (!input) return;
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'password-toggle';
+    button.setAttribute('aria-pressed', 'false');
+    button.setAttribute('aria-controls', input.id);
+    button.setAttribute('aria-label', 'Show password');
+    button.innerHTML = '<i class="bi bi-eye" aria-hidden="true"></i>';
+
+    button.addEventListener('click', function () {
+      var shown = input.type === 'text';
+      input.type = shown ? 'password' : 'text';
+      button.setAttribute('aria-pressed', shown ? 'false' : 'true');
+      button.setAttribute('aria-label', shown ? 'Show password' : 'Hide password');
+      button.innerHTML = shown
+        ? '<i class="bi bi-eye" aria-hidden="true"></i>'
+        : '<i class="bi bi-eye-slash" aria-hidden="true"></i>';
+      // Returning focus to the field keeps a keyboard user where they were typing.
+      input.focus();
+    });
+
+    wrap.appendChild(button);
+  });
+}());

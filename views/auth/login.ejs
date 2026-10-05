@@ -10,6 +10,22 @@
         <div class="card-body p-4">
           <h1 class="h4 mb-3">Sign in</h1>
 
+          <%#
+            Said only when somebody was sent here from somewhere. A permanent "log in to
+            continue" box on the login page tells the person who came here deliberately
+            nothing they did not know.
+          %>
+          <% if (redirect) { %>
+            <div class="alert alert-info d-flex gap-2 align-items-start">
+              <i class="bi bi-info-circle mt-1" aria-hidden="true"></i>
+              <div class="flex-grow-1 small">
+                Sign in to continue — or
+                <a href="/auth/register?redirect=<%= encodeURIComponent(redirect) %>">create a free account</a>.
+                We will take you straight back to where you were.
+              </div>
+            </div>
+          <% } %>
+
           <% if (errors.length) { %>
             <div class="alert alert-danger">
               <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %></ul>
@@ -26,9 +42,23 @@
                      value="<%= values.email || '' %>" autocomplete="email" autofocus>
             </div>
             <div class="mb-3">
-              <label class="form-label" for="password">Password</label>
-              <input class="form-control" id="password" name="password" type="password" required autocomplete="current-password">
+              <%- include('../partials/password-field', {
+                id: 'password', label: 'Password', autocomplete: 'current-password'
+              }) %>
             </div>
+
+            <%#
+              "Remember me" lengthens THIS session's cookie and creates nothing else — no
+              second long-lived token to leak, revoke or expire. See config/config.js.
+            %>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="remember" name="remember">
+              <label class="form-check-label" for="remember">
+                Keep me signed in
+                <span class="text-muted-2 small d-block">For 30 days on this browser. Not on a shared computer.</span>
+              </label>
+            </div>
+
             <button class="btn btn-primary w-100" type="submit">Sign in</button>
           </form>
 

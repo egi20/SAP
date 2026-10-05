@@ -17,6 +17,7 @@ const { countryFromIp, clientIp, packIp } = require('../utils/geo');
 const email = require('../utils/email');
 const config = require('../config/config');
 const legalVersions = require('../config/legal-versions');
+const { SIGNUP_SOURCES } = require('../config/signupSources');
 
 const router = express.Router();
 
@@ -54,6 +55,7 @@ const registerValidators = [
 
 router.get('/register', isGuest, registrationOpen, (req, res) => {
   res.render('auth/register', {
+    signupSources: SIGNUP_SOURCES,
     title: 'Create an account',
     values: {},
     errors: [],
@@ -73,6 +75,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(422).render('auth/register', {
+    signupSources: SIGNUP_SOURCES,
         title: 'Create an account',
         values: req.body,
         errors: errors.array(),
@@ -88,6 +91,7 @@ router.post(
 
     if (await User.emailExists(req.body.email)) {
       return res.status(422).render('auth/register', {
+    signupSources: SIGNUP_SOURCES,
         title: 'Create an account',
         values: req.body,
         errors: [{ path: 'email', msg: 'An account with that email already exists.' }],
@@ -106,7 +110,10 @@ router.post(
       gender: req.body.gender || null,
       dateOfBirth: req.body.date_of_birth || null,
       signupIp: packIp(ip),
-      signupCountry: countryFromIp(ip)
+      signupCountry: countryFromIp(ip),
+      // Optional, and checked against the closed list in User.create rather than here —
+      // one validator, so a value cannot pass the route and fail the column.
+      heardAbout: req.body.heard_about || null
     });
 
     if (finalRoles.includes('consultant')) await ConsultantProfile.ensureExists(user.id);
@@ -196,6 +203,21 @@ router.post(
     return req.session.regenerate(async (err) => {
       if (err) throw err;
       req.session.user = User.buildSessionUser(user);
+
+      /*
+       * "Remember me" lengthens THIS session's cookie, and nothing else.
+       *
+       * Not a second long-lived token in a table, which is the usual shape and is a second
+       * credential to leak, revoke and expire. The session already exists, the store
+       * already has a row, and `rolling: true` already refreshes it on every request — so
+       * the whole feature is one number, and signing out still ends it exactly as before.
+       *
+       * Set AFTER regenerate(), or it is written onto the session being thrown away.
+       */
+      if (req.body.remember === 'on') {
+        req.session.cookie.maxAge = config.session.rememberMeMaxAge;
+      }
+
       await User.recordLogin(user.id);
       req.flash('success', `Welcome back, ${req.session.user.name}.`);
       return res.redirect(redirectAfterLogin);

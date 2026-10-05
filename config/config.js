@@ -68,7 +68,17 @@ const config = {
       httpOnly: true,
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000
-    }
+    },
+    /*
+     * What "remember me" means: this session's cookie lives thirty days instead of one,
+     * and `rolling: true` keeps refreshing it while somebody is using the site.
+     *
+     * Deliberately NOT a separate long-lived token in its own table. That is the usual
+     * shape and it is a second credential — one more thing to leak, to revoke on a
+     * password change, and to expire correctly. Here signing out still ends the session
+     * exactly as it did before, because there is nothing else to end.
+     */
+    rememberMeMaxAge: 30 * 24 * 60 * 60 * 1000
   },
   security: {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || (isProduction ? 12 : 10)

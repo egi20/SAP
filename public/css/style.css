@@ -997,6 +997,18 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
  */
 .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
+/* Password show/hide. The button is injected by main.js, so the padding only matters
+   when it exists — hence the rule on the button rather than on the input. */
+.password-field { position: relative; }
+.password-field .password-toggle {
+  position: absolute; top: 50%; right: 0.25rem; transform: translateY(-50%);
+  border: 0; background: transparent; padding: 0.35rem 0.55rem; line-height: 1;
+  color: var(--bs-secondary-color, #6b7280); border-radius: 0.375rem; cursor: pointer;
+}
+.password-field .password-toggle:hover { color: inherit; }
+.password-field .password-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.password-field input { padding-right: 2.75rem; }
+
 .footer-blurb { max-width: 38ch; }
 
 /*
