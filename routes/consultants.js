@@ -49,10 +49,14 @@ router.get(
       : 'relevance';
 
     const { rows, total } = await ConsultantProfile.browse(filters, { limit, offset, sort });
+    const viewerId = req.session.user ? req.session.user.id : null;
 
     res.render('consultants/index', {
       title: res.locals.seo.title,
-      consultants: rows,
+      // Redacted in the ROUTE, so the template is never handed a name it must remember not
+      // to print. See ConsultantProfile.redactFor.
+      consultants: ConsultantProfile.redactFor(rows, viewerId),
+      signedIn: Boolean(viewerId),
       filters,
       sort,
       roleCategories: ROLE_CATEGORIES,
@@ -74,6 +78,13 @@ router.get(
   '/photo/:id',
   requireIdParam('id'),
   asyncHandler(async (req, res) => {
+    /*
+     * A face identifies somebody as well as a name does, so it is behind the same account.
+     * Hiding the name and serving the photograph would be anonymity that fools only the
+     * person relying on it.
+     */
+    if (!req.session.user) return res.redirect('/images/avatar-placeholder.svg');
+
     const etag = await ImageBlob.getEtag('consultant_photos', req.params.id);
     if (!etag) return res.redirect('/images/avatar-placeholder.svg');
 
@@ -123,13 +134,29 @@ router.get(
         ? (await Job.browse({ company_user_id: viewer.id, status: 'open' }, { limit: 50 })).rows
         : [];
 
+    /*
+     * The owner and an administrator see the profile whole; everybody else sees it the way
+     * the directory shows it. `isSelf` matters here and not in the list, because somebody
+     * checking their own page needs to see what they wrote, not what a stranger sees.
+     */
+    const canSeeIdentity = Boolean(viewer) || isSelf;
+    const shown = ConsultantProfile.redactFor(profile, canSeeIdentity ? (viewer ? viewer.id : profile.user_id) : null);
+
     return res.render('consultants/show', {
-      title: `${profile.name} — ${profile.headline || 'SAP consultant'}`,
-      profile,
+      title: shown.name
+        ? `${shown.name} — ${profile.headline || 'SAP consultant'}`
+        : `${profile.headline || 'SAP consultant'} — SAP Hub`,
+      profile: shown,
+      signedIn: Boolean(viewer),
       skills,
       certifications,
       experiences,
-      linkedInIdentity,
+      /*
+       * The identity row carries the name LinkedIn returned, which is the thing the badge
+       * is about — and is a name. A reader who may not see the one on the profile may not
+       * see this one either, or the anonymity is theatre with a second copy behind it.
+       */
+      linkedInIdentity: viewer ? linkedInIdentity : null,
       isSelf,
       hiringJobs,
       // Contact details are for signed-in companies only. An open directory of

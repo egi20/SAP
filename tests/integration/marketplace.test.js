@@ -259,10 +259,21 @@ maybe()('a role posted with modules reaches the consultant who delivered them', 
     expect(profile.completeness).toBeGreaterThanOrEqual(60);
     expect(profile.is_public).toBe(1);
 
-    const byModule = await request(app).get('/consultants?modules=ewm');
+    /*
+     * Asserted through a SIGNED-IN agent. The directory is anonymised to a reader without
+     * an account — names and photographs are behind one, because most of the people in it
+     * are currently working — so a logged-out request finds the row and shows "Sign in to
+     * view name", which would fail this assertion for a reason that has nothing to do with
+     * module matching. See tests/integration/talentAnonymity.test.js.
+     *
+     * And through the COMPANY's agent, not the consultant's own: the navigation prints the
+     * signed-in user's name on every page, so browsing as the consultant would satisfy the
+     * negative assertion below from the navbar rather than from the results.
+     */
+    const byModule = await company.get('/consultants?modules=ewm');
     expect(byModule.text).toContain('Delivery Person');
 
-    const byOther = await request(app).get('/consultants?modules=fi-gl');
+    const byOther = await company.get('/consultants?modules=fi-gl');
     expect(byOther.text).not.toContain('Delivery Person');
   });
 });

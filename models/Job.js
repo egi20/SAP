@@ -49,6 +49,12 @@ function orderByFor(sort) {
  *
  * @returns {{clause:string, params:Array}}
  */
+/**
+ * The windows the "posted" filter offers, in days. One list, used by the filter, the
+ * control that renders it and the test that checks them against each other.
+ */
+const POSTED_WITHIN_DAYS = Object.freeze([1, 7, 14, 30, 90]);
+
 function buildFilter(filters = {}) {
   const where = [];
   const params = [];
@@ -91,6 +97,18 @@ function buildFilter(filters = {}) {
     where.push('j.country = ?');
     params.push(filters.country);
   }
+  /*
+   * "Posted in the last N days", validated against a FIXED SET rather than taken as a
+   * number. Not because an arbitrary integer here is dangerous — it is a filter, not the
+   * admin purge — but because the windows are what the control offers, and accepting
+   * ?posted_within=4000 produces a page that silently answers a question nobody can ask
+   * from the form and that nothing else on the site agrees with.
+   */
+  if (POSTED_WITHIN_DAYS.includes(Number(filters.posted_within))) {
+    where.push('j.published_at >= DATE_SUB(NOW(), INTERVAL ? DAY)');
+    params.push(Number(filters.posted_within));
+  }
+
   if (filters.rate_min) {
     const min = Number(filters.rate_min);
     if (Number.isFinite(min) && min > 0) {
@@ -158,6 +176,11 @@ class Job {
    */
   static get STATUSES() {
     return STATUSES;
+  }
+
+  /** The windows the "posted" filter offers, in days. The control renders this list. */
+  static get POSTED_WITHIN_DAYS() {
+    return POSTED_WITHIN_DAYS;
   }
 
   /**

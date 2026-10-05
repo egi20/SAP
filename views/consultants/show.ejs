@@ -15,7 +15,12 @@
           <div class="d-flex gap-3 mb-3">
             <img class="avatar avatar-lg" src="<%= profile.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
             <div>
-              <h1 class="h3 mb-1"><%= profile.name %></h1>
+              <%# Redacted in the route for a reader who is not signed in. %>
+              <h1 class="h3 mb-1">
+                <% if (profile.name) { %><%= profile.name %><% } else { %>
+                  <span class="text-muted-2">Name hidden</span>
+                <% } %>
+              </h1>
               <p class="text-muted-2 mb-2"><%= profile.headline || roleLabel(profile.primary_role) %></p>
               <div class="d-flex flex-wrap gap-1">
                 <% if (profile.primary_role) { %><span class="badge-hub accent"><%= roleLabel(profile.primary_role) %></span><% } %>

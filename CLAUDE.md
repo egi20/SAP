@@ -542,6 +542,32 @@ to the community tree and `unanswered` to a question; neither means anything for
 advert. Inventing a mapping between the two vocabularies would be a worse answer than
 admitting the filter does not apply.
 
+## The talent directory is anonymous
+
+**Names and photographs are behind an account; everything else is not.** The consultants
+most worth talking to are the ones currently working, and they are the ones with most to
+lose from a public listing their employer can read. So everything that makes somebody
+HIREABLE stays visible — role, modules delivered, experience, country, availability, rate —
+and everything that makes them IDENTIFIABLE needs an account, which is free.
+
+**`ConsultantProfile.redactFor` is the only place that decides, and it REDACTS rather than
+filters.** The row is still counted, still ranked, still matched: a directory that hid the
+people would be lying about how many are in it. It removes the name from the OBJECT rather
+than leaving a template to decline to print it, because a template that declines has still
+shipped the name to the browser in whatever else the page serialises — the `<title>` being
+the easiest one to miss. **The default is redacted**, so a caller that forgets a viewer
+breaks visibly instead of leaking.
+
+**It covers every surface a profile reaches**: the directory, the profile page, the search
+results, and `/consultants/photo/:id`, which answers the placeholder to a reader without an
+account. A face identifies somebody as well as a name, and the LinkedIn identity row
+carries a third copy — hiding one and serving the others is anonymity that fools only the
+person relying on it. A test asserts all four.
+
+**Testing consequence:** the navigation prints the signed-in user's name on every page, so
+a negative assertion about a name must browse as somebody else. Checking that a consultant
+is ABSENT from a filtered list, while signed in as that consultant, passes from the navbar.
+
 ## The hub landings
 
 **`/consultants` stays the directory.** The reference puts its consultant landing page

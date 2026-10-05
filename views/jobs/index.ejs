@@ -1,4 +1,5 @@
 <%- include('../partials/layout-start') %>
+<% const POSTED_LABELS = { 1: 'Last 24 hours', 7: 'Last 7 days', 14: 'Last 2 weeks', 30: 'Last month', 90: 'Last 3 months' }; %>
 
 <%- include('../partials/page-header', { icon: 'bi-briefcase', heading: 'SAP jobs and contracts', sub: 'Filter by cloud, role, seniority, work mode and country.' }) %>
 
@@ -127,6 +128,23 @@
           <label class="form-label" for="f-rate">Minimum day rate</label>
           <input class="form-control" id="f-rate" name="rate_min" type="number" min="0" step="50"
                  value="<%= filters.rate_min %>" placeholder="Any">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-posted">Posted</label>
+          <%#
+            The windows come from Job.POSTED_WITHIN_DAYS, which is also what the filter
+            validates against — one list, so this control cannot offer a window the query
+            would refuse, and a hand-edited one cannot answer a question the form cannot ask.
+          %>
+          <select class="form-select" id="f-posted" name="posted_within">
+            <option value="">Any time</option>
+            <% postedWindows.forEach(function (days) { %>
+              <option value="<%= days %>" <%= filters.posted_within === String(days) ? 'selected' : '' %>>
+                <%= POSTED_LABELS[days] %>
+              </option>
+            <% }) %>
+          </select>
         </div>
 
         <button class="btn btn-primary w-100 mb-2" type="submit">Apply filters</button>

@@ -3,7 +3,13 @@
     <div class="d-flex gap-3 align-items-center mb-2">
       <img class="avatar" src="<%= c.profile_picture || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
       <div class="min-w-0">
-        <h3 class="h6 mb-0 text-truncate"><%= c.name %></h3>
+        <%# `c.name` is null for a reader who is not signed in — the route redacted it, this
+            template only has to say so honestly rather than render an empty heading. %>
+        <h3 class="h6 mb-0 text-truncate">
+          <% if (c.name) { %><%= c.name %><% } else { %>
+            <span class="text-muted-2">Sign in to view name</span>
+          <% } %>
+        </h3>
         <p class="small text-muted-2 mb-0 text-truncate"><%= c.headline || roleLabel(c.primary_role) %></p>
       </div>
     </div>

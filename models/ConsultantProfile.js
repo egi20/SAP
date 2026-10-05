@@ -282,6 +282,43 @@ class ConsultantProfile {
     return completeness;
   }
 
+  /**
+   * Hide who somebody is from a reader who is not signed in.
+   *
+   * WHY THE DIRECTORY IS ANONYMOUS AT ALL. The consultants most worth talking to are the
+   * ones currently working, and they are the ones with most to lose from a public listing
+   * their employer can read. Being findable by companies must not mean being findable by
+   * the one you already have. So everything that makes somebody HIREABLE stays visible —
+   * role, modules delivered, experience, country, availability, rate — and everything that
+   * makes them IDENTIFIABLE goes behind an account, which is free.
+   *
+   * It redacts rather than filters: the row is still counted, still ranked, still matched.
+   * A directory that hid the people themselves would be a directory that lies about how
+   * many there are.
+   *
+   * THE DEFAULT IS REDACTED. A caller that forgets to pass a viewer gets anonymity, which
+   * is visible breakage rather than a leak. The name is removed from the OBJECT, not
+   * hidden by the template, because a template that merely declines to print it still
+   * shipped it to the browser in whatever else the page serialises.
+   */
+  static redactFor(row, viewerUserId = null) {
+    if (!row) return row;
+    if (Array.isArray(row)) return row.map((r) => ConsultantProfile.redactFor(r, viewerUserId));
+    if (viewerUserId) return row;
+
+    const redacted = { ...row };
+    redacted.name = null;
+    redacted.profile_picture = null;
+    // The links are names by another route: a LinkedIn URL and an SAP Community handle
+    // both identify a person as surely as the name above them.
+    redacted.linkedin_url = null;
+    redacted.website_url = null;
+    redacted.sap_community_url = null;
+    redacted.email = null;
+    redacted.redacted = true;
+    return redacted;
+  }
+
   static async browse(filters = {}, { limit = 20, offset = 0, sort = 'relevance' } = {}) {
     const { clause, params } = buildFilter(filters);
     const orderBy = SORTS[sort] || SORTS.relevance;

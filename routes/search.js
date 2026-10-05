@@ -3,6 +3,7 @@
 const express = require('express');
 
 const { searchEverything, MIN_QUERY_LENGTH } = require('../services/search');
+const ConsultantProfile = require('../models/ConsultantProfile');
 const { ipLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 
@@ -34,6 +35,20 @@ router.get(
   searchLimiter,
   asyncHandler(async (req, res) => {
     const results = await searchEverything(req.query.q);
+
+    /*
+     * Consultant rows are anonymised here for the same reason they are on /consultants, and
+     * at the same boundary — the route that renders them. `services/search.js` stays a
+     * module that adds nothing of its own, including this: it calls the same browse the
+     * list page calls, and what a reader may SEE of a row it is allowed to find is a
+     * question about the reader, not about the search.
+     */
+    const viewerId = req.session.user ? req.session.user.id : null;
+    results.groups.forEach((group) => {
+      if (group.key === 'consultants') {
+        group.rows = ConsultantProfile.redactFor(group.rows, viewerId);
+      }
+    });
 
     return res.render('search/index', {
       title: results.usable ? `Search — ${results.query}` : 'Search',

@@ -48,6 +48,11 @@ function filtersFrom(query) {
       .filter((slug) => slug && isModule(slug))
       .slice(0, 20),
     activate_phase: Job.ACTIVATE_PHASES.includes(query.activate_phase) ? query.activate_phase : '',
+    // Checked against the windows the control offers, so a hand-edited value cannot
+    // produce a page answering a question the form cannot ask.
+    posted_within: Job.POSTED_WITHIN_DAYS.includes(Number(query.posted_within))
+      ? String(Number(query.posted_within))
+      : '',
     rate_min: query.rate_min || ''
   };
 }
@@ -71,6 +76,7 @@ router.get(
       moduleFacets,
       allModules: ALL_MODULES,
       activatePhases: Job.ACTIVATE_PHASES,
+      postedWindows: Job.POSTED_WITHIN_DAYS,
       filters,
       sort,
       facets,
