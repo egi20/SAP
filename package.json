@@ -16,6 +16,7 @@
     "sync:catalogues": "node scripts/sync-catalogues.js",
     "create-admin": "node scripts/create-admin.js",
     "create-user": "node scripts/create-user.js",
+    "seed:dev": "node scripts/seed-dev.js",
     "wait-for-db": "node scripts/wait-for-db.js",
     "validate-boot": "node scripts/validate-boot.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",

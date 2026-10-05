@@ -215,7 +215,16 @@ maybe()('a review is signed in, one per account, and approved before it is seen'
     expect(res.status).toBe(302);
     expect(res.headers.location).toMatch(/\/auth\/login/);
 
-    const [[row]] = await promisePool.query('SELECT COUNT(*) AS n FROM site_reviews');
+    /*
+     * Scoped to the accounts this suite owns, not a count over the whole table. A global
+     * count is green only while nothing else in the database holds a review — it failed
+     * the day development data was seeded, reporting an anonymous-write hole that did not
+     * exist. Same trap as an unscoped LIMIT 1; see CLAUDE.md.
+     */
+    const [[row]] = await promisePool.query(
+      'SELECT COUNT(*) AS n FROM site_reviews r JOIN users u ON u.id = r.user_id WHERE u.email IN (?)',
+      [OWN_ACCOUNTS]
+    );
     expect(row.n).toBe(0);
   });
 

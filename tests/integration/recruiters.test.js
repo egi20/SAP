@@ -220,9 +220,21 @@ maybe()('an agency profile', () => {
 
     const wanted = PRODUCT_LINES[0].value;
     const other = PRODUCT_LINES[1].value;
-    expect((await RecruiterProfile.browse({ specialism: wanted })).rows).toHaveLength(1);
+
+    /*
+     * Asserted on THIS suite's agency rather than on the length of the whole result. A
+     * length of 1 is green only while no other agency exists anywhere in the database — it
+     * failed the day development data was seeded, for a reason that had nothing to do with
+     * the filter. Same trap as a global row count.
+     */
+    const listed = async (specialism) => {
+      const { rows } = await RecruiterProfile.browse({ specialism }, { limit: 100 });
+      return rows.some((row) => row.user_id === agencyId);
+    };
+
+    expect(await listed(wanted)).toBe(true);
     // JSON_CONTAINS, not a LIKE over the serialised array — no partial slug match.
-    expect((await RecruiterProfile.browse({ specialism: other })).rows).toHaveLength(0);
+    expect(await listed(other)).toBe(false);
   });
 });
 

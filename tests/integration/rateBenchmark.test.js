@@ -78,10 +78,25 @@ maybe()('GET /rates/calculator', () => {
   });
 
   it('keeps the contributed index separate from the model', async () => {
+    /*
+     * The claim is that there are TWO answers under two headings, not that the contributed
+     * one happens to be suppressed. Asserting "Not published" was really asserting that
+     * nobody had contributed anything to this role — true on an empty database, and it
+     * failed the day development data was seeded, for a reason that had nothing to do with
+     * the separation it was meant to test.
+     */
     const res = await request(app).get('/rates/calculator?role=s4-fi&years=8');
+    expect(res.text).toContain('How that figure was reached');
     expect(res.text).toContain('What members actually report');
-    // With nothing contributed, the honest answer is the floor, not the model's figure.
+    expect(res.text).toContain('the figure on the left is our model');
+  });
+
+  it('withholds a contributed figure for a role nobody has filled in', async () => {
+    // A role with no contributions anywhere shows the floor instead of a number — which is
+    // the behaviour that makes the index trustworthy, tested where it can be relied on.
+    const res = await request(app).get('/rates/calculator?role=concur&years=8');
     expect(res.text).toContain('Not published');
+    expect(res.text).toMatch(/At least \d+ are needed/);
   });
 
   /*

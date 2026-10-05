@@ -110,6 +110,23 @@ npm run dev
 `npm start` runs the migrations and the catalogue sync before it listens, so a deploy is
 one command.
 
+### Something to look at
+
+A fresh install has no jobs, no consultants and no posts, which makes every list page,
+filter and aggregate impossible to judge. For a local walkthrough:
+
+```bash
+npm run seed:dev                 # six consultants, two companies, an agency, twelve
+                                 # adverts, a community, rates, stories, an enquiry queue
+npm run seed:dev -- --remove     # and out again
+```
+
+Every seeded account signs in with `Seed-Password-1`, and every one of them ends in
+`@seed.saphub.test` so it is identifiable by eye and in a query. It refuses to run when
+`NODE_ENV=production` or when `APP_BASE_URL` is not a local address — see the comment at
+the top of `scripts/seed-dev.js` for why a seed is otherwise something this project does
+not have. Individual accounts, without the rest, come from `npm run create-user`.
+
 ### Checks
 
 ```bash

@@ -1061,6 +1061,42 @@ its declared type. The key check is `isValidKey`, not a truthiness test on the l
 Roles, modules, effort baselines and day rates live in `config/*.js` under version control,
 where a change has an author, a diff and a review.
 
+## Development data
+
+**`npm run seed:dev` exists and the refusal in `create-admin.js` still stands.** That
+refusal is about a REAL SITE: invented day rates publish a benchmark nobody contributed to,
+and invented consultant profiles are a public directory of people who do not exist. Neither
+harm has anything to do with somebody walking their own laptop through the navigation — and
+an empty database makes every list page, filter and aggregate untestable, because all three
+are pages about rows.
+
+So the refusal is kept where it bites, by making the seed hard to run anywhere real: it
+stops on `NODE_ENV=production`, it stops when `APP_BASE_URL` is not a local address (the
+stronger of the two checks — a real deployment must set it for its own links to work, while
+NODE_ENV is easy to leave unset), every account it creates ends in `@seed.saphub.test`, and
+`-- --remove` takes all of it out again.
+
+**It writes through the MODELS, never SQL.** Seeding then exercises the same validation,
+the same completeness scoring and the same points ledger a real sign-up does. A seed that
+inserted rows directly would cheerfully create a profile the application itself would have
+refused to publish, and the first person to notice would be somebody debugging why the
+directory is empty.
+
+**It seeds things that must stay INVISIBLE**: a draft advert, a closed one, and a hidden
+post. A seed that only creates visible rows cannot show that the rules work, and those
+three are exactly what a list view, a feed and a search page each have to exclude on their
+own.
+
+**It seeds one rate bucket that publishes and one that stays below the floor.** An index
+that only ever shows published figures hides the behaviour that makes it trustworthy.
+
+**Testing consequence, and it found three:** seeded data broke three assertions that were
+really asserting the database was empty — a global `COUNT(*)` over `site_reviews`, a
+`toHaveLength(1)` over every agency, and a "Not published" that meant "nobody has
+contributed to this role". None was about the feature it sat in. Run the suite with the
+seed present AND without it; a test that needs one or the other is a test with a hidden
+assumption.
+
 ## Tests
 
 **Run `npm test`, not `npx jest`.** The script sets `NODE_OPTIONS=--experimental-vm-modules`,
