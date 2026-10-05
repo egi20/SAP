@@ -25,6 +25,7 @@ const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
+const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -92,6 +93,13 @@ assertChallengeIntegrity();
  * diff and is wrong on every page of the site until somebody outside reports it.
  */
 assertSocialIntegrity();
+/*
+ * And the day-rate model: a role missing from the base table benchmarks everybody who
+ * picks it at a fallback, a country claimed by two regions takes whichever was written
+ * first, and a band table whose anchor is not 1.0 moves every figure on the site by a
+ * constant nobody can see. None of the three raises an error on its own.
+ */
+assertBenchmarkIntegrity();
 // Read once. These come from the environment and cannot change while the process runs.
 const SOCIAL_LINKS = socialLinks();
 

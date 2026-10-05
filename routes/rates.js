@@ -8,8 +8,10 @@ const Points = require('../models/Points');
 const { isAuthenticated, isConsultant, isEmailVerified } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { ROLE_CATEGORIES, ROLE_SLUGS, isRole, baseDayRate } = require('../config/roleTaxonomy');
+const { ROLE_CATEGORIES, ROLE_SLUGS, isRole, baseDayRate, roleLabel } = require('../config/roleTaxonomy');
 const { MIN_SAMPLE } = require('../utils/rateAggregation');
+const { benchmark, benchmarkProblems, curatedTable } = require('../utils/rateBenchmark');
+const benchmarkModel = require('../config/rateBenchmark');
 const { POINT_AWARDS } = require('../config/community');
 const countries = require('../config/all-countries.json');
 const config = require('../config/config');
@@ -45,10 +47,81 @@ router.get(
       contributors,
       minSample: MIN_SAMPLE,
       roleCategories: ROLE_CATEGORIES,
+      /*
+       * EVERY role, with its published base rate — not only the roles somebody has
+       * contributed to. The contributed table below it can be empty for months on a new
+       * install, and an index whose only navigation is a table of what people happened to
+       * fill in leaves most of the site unreachable and looks broken besides.
+       */
+      roleIndex: ROLE_CATEGORIES.map((group) => ({
+        category: group.category,
+        roles: group.roles.map((role) => ({ ...role, base: baseDayRate(role.value) }))
+      })),
       countries,
       // The editorial baseline is shown clearly labelled as editorial, never blended
       // into the contributed figures — mixing the two would make the index unfalsifiable.
       curatedBaseline: filters.role ? baseDayRate(filters.role) : null
+    });
+  })
+);
+
+/**
+ * GET /rates/calculator
+ *
+ * A GET with the answers in the query string, not a POST. The result is then a link
+ * somebody can bookmark, send to a client or paste into a negotiation, the back button
+ * works, and the page needs no scripting to produce a number. The reference posts the form
+ * and renders the answer into a page with no address of its own, so the one thing anybody
+ * wants to do with a benchmark — show it to somebody else — cannot be done.
+ *
+ * Nothing here is stored. A benchmark is a calculation over public catalogue values, and
+ * recording who asked what about their own pay would be collecting the most sensitive
+ * thing on the site for no purpose the person asking gets anything back from.
+ */
+router.get(
+  '/calculator',
+  asyncHandler(async (req, res) => {
+    const result = benchmark({
+      role: req.query.role,
+      years: req.query.years,
+      certifications: req.query.certifications,
+      country: req.query.country,
+      region: req.query.region,
+      workMode: req.query.work_mode,
+      contractType: req.query.contract_type
+    });
+
+    /*
+     * Same rule as the estimator: a figure that cannot reconcile against the factors
+     * printed beside it is a bug in the model, and showing it anyway is how a number
+     * nobody can reproduce ends up in somebody's rate card. 500 rather than a quiet
+     * fallback, because there is no correct number to fall back to.
+     */
+    const problems = result ? benchmarkProblems(result) : [];
+    if (problems.length) {
+      throw new Error(`Rate benchmark did not reconcile: ${problems.join('; ')}`);
+    }
+
+    // The contributed index for the same question, fetched so the page can put the two
+    // answers side by side. It is never merged into the model's figure.
+    const community = result
+      ? await RateSubmission.summary({
+        role: result.role,
+        seniority: '',
+        engagementType: 'contract',
+        country: result.input.country
+      })
+      : null;
+
+    res.render('rates/calculator', {
+      title: 'Benchmark your day rate',
+      result,
+      community,
+      minSample: MIN_SAMPLE,
+      roleCategories: ROLE_CATEGORIES,
+      countries,
+      model: benchmarkModel,
+      submitted: Boolean(req.query.role)
     });
   })
 );
@@ -141,15 +214,49 @@ router.post(
   })
 );
 
-/*
- * NO CONTRACT RATE CALCULATOR YET.
+/**
+ * GET /rates/:role
  *
- * It belongs to consultant tooling, which is a later area, and it is listed here rather
- * than half-built because its interesting part is not the arithmetic. The reference's
- * projection is entirely BEFORE TAX and says so on every line — deliberately, because
- * DynamicsHub's version multiplied by a hard-coded rate and presented the result as a
- * saving. Whatever lands here inherits that constraint, and the refusal of a tax figure
- * that is really a guess, from `docs/PORT-PLAN.md`.
+ * One page per role: the model across the experience bands, and what members have actually
+ * contributed for that role beside it. DECLARED LAST, after /calculator and /submit, or a
+ * role slug would shadow them — `/rates/submit` is a perfectly good-looking role parameter.
+ *
+ * An unknown slug is a 404 and not a redirect to the index. These URLs are the ones that
+ * get linked to from outside, and a silent redirect turns a typo nobody notices into a
+ * page that quietly answers a different question.
  */
+router.get(
+  '/:role',
+  asyncHandler(async (req, res) => {
+    const role = req.params.role;
+    if (!isRole(role)) {
+      return res.status(404).render('errors/404', { title: 'Not found' });
+    }
+
+    const filters = { role, seniority: '', engagementType: 'contract', country: '' };
+    const [community, bySeniority] = await Promise.all([
+      RateSubmission.summary(filters),
+      RateSubmission.bySeniority(filters)
+    ]);
+
+    const table = curatedTable(role);
+    // Each row is a benchmark like any other, so each row reconciles like any other.
+    const problems = table.length ? [] : ['no curated table for a known role'];
+    if (problems.length) {
+      throw new Error(`Rate benchmark did not reconcile: ${problems.join('; ')}`);
+    }
+
+    return res.render('rates/role', {
+      title: `${roleLabel(role)} day rates`,
+      role,
+      roleLabel: roleLabel(role),
+      table,
+      community,
+      bySeniority,
+      minSample: MIN_SAMPLE,
+      baseRate: baseDayRate(role)
+    });
+  })
+);
 
 module.exports = router;

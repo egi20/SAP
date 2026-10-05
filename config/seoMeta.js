@@ -55,12 +55,28 @@ const PAGE_META = {
       'Questions, discussions, articles and wins from SAP consultants and the companies hiring them. '
       + 'Transitions, clean core, certification, day rates and every product line.'
   },
+  '/rates/calculator': {
+    title: 'Benchmark your SAP day rate',
+    description:
+      'What an SAP role is worth: a published day-rate model by role, experience, region, certifications and contract type — with the arithmetic shown.'
+  },
+  '/about': {
+    title: 'About SAP Hub',
+    description: 'What SAP Hub is, who it is for, and what it deliberately does not do.'
+  },
+  '/faq': {
+    title: 'SAP Hub — frequently asked questions',
+    description:
+      'How the day-rate index is built, what the scope estimator produces, what the LinkedIn badge means, and what anything costs.'
+  },
   '/auth/login': { title: 'Sign in', description: 'Sign in to SAP Hub.' },
   '/auth/register': { title: 'Create an account', description: 'Join SAP Hub as a consultant or a hiring company.' }
 };
 
 /** Paths that may appear in the sitemap and carry a canonical URL. */
-const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates', '/community', '/success-stories', '/contact', '/legal/privacy', '/legal/terms'];
+const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
+  '/rates/calculator', '/community', '/success-stories', '/about', '/faq', '/contact',
+  '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {
   const clean = String(path || '/').split('?')[0];

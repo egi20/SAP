@@ -737,6 +737,51 @@ Do not push aggregation into SQL: a `GROUP BY` will quietly bypass the floor.
 3. Below the floor: keep the **count**, null the **values**.
 4. A suppressed period is a **gap**. Not a zero, not an interpolation.
 
+**The model and the contributed index are two answers, never one.** `utils/rateBenchmark.js`
+is an editorial model — a base rate per role from `config/roleTaxonomy.js`, moved by five
+documented factors in `config/rateBenchmark.js` — and it exists because on day one nobody
+has contributed anything and "we cannot tell you" is not a usable answer to "what is this
+role worth". It is published under our own name and shown BESIDE the contributed figure,
+never merged into it. The reference computes one number from a model and labels it with a
+confidence level derived from however much community data happened to be nearby: that reads
+as a statistical claim, is not one, and makes the figure impossible to check, because
+nobody can tell which part of it came from evidence. Where the model and the evidence
+disagree, the disagreement is the useful part.
+
+**The anchor must reproduce itself.** `BASE_DAY_RATES[role]` means a senior consultant, in
+the reference region, hybrid, on time-and-materials, with no certifications — so all five
+multipliers at that point are exactly 1.0 and the benchmark returns the base rate
+unchanged. A unit test asserts it for every role. A model whose "no adjustments" case does
+not reproduce its own published figure has a constant hidden in it, and every number on the
+site is wrong by that constant without one test failing.
+
+**The benchmark prints its working, and `benchmarkProblems()` checks the working against
+the answer.** Same shape as `reconciliationProblems()` in the estimator, and `routes/rates.js`
+throws rather than render a result that fails it. A model that hands back only its answer
+is one the reader has to trust; one that hands back the five numbers it multiplied is one
+they can argue with.
+
+**It is a GET, and nothing is stored.** The answers live in the query string, so a benchmark
+is a link somebody can bookmark or send; the back button works and no scripting is needed.
+Every field falls back to the anchor rather than 400ing, because people edit these URLs by
+hand. Recording who asked what about their own pay would be collecting the most sensitive
+thing on the site for nothing the person asking gets back. Note `Number()` and not
+`parseInt` on the numeric fields: `parseInt('12; DROP TABLE')` is `12`.
+
+**No tax, no saving, no take-home.** The model answers in euros before tax and says so on
+every figure derived from it, and the billable-day divisors behind the monthly and annual
+figures are printed rather than assumed. The equivalent-salary figure answers the narrower
+question of what a comparable permanent role costs an EMPLOYER, and is below annual
+billings because holiday, sickness and the gaps between projects are paid. Two tests — one
+on the model, one on the rendered page — fail if anything saving-shaped appears. Same
+refusal as the story money fields.
+
+**`/rates/:role` is declared last**, after `/calculator` and `/submit`, or a role slug
+shadows them — `/rates/submit` is a perfectly good-looking role parameter. An unknown slug
+is a 404 and never a redirect to the index: these URLs are linked to from outside, and a
+silent redirect turns a typo nobody notices into a page quietly answering a different
+question. The sitemap generates them from `ROLE_SLUGS` rather than listing them.
+
 `RATE_MIN_SAMPLE` is configurable, but lowering it below 3 to make a sparse index look
 fuller defeats the point of having it. It is an environment variable and not a setting,
 precisely so that lowering it is a deployment decision with a diff behind it.

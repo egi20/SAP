@@ -3,7 +3,7 @@
 const express = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
-const { ROLE_CATEGORIES } = require('../config/roleTaxonomy');
+const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const Job = require('../models/Job');
 const Post = require('../models/Post');
@@ -226,6 +226,13 @@ router.get(
 
     const urls = [
       ...PUBLIC_PATHS.map((p) => ({ loc: canonicalUrl(p), changefreq: 'daily' })),
+      /*
+       * The per-role pages are generated from the taxonomy rather than listed, so a role
+       * added to the catalogue is in the sitemap the same day and a role removed from it
+       * leaves. A hand-written list here would be the second copy of a vocabulary the
+       * config already owns.
+       */
+      ...ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
       ...jobs.map((j) => ({
         loc: canonicalUrl(`/jobs/${j.slug}`),
         lastmod: j.published_at ? new Date(j.published_at).toISOString() : undefined,

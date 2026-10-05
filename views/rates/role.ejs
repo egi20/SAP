@@ -1,0 +1,123 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-graph-up',
+  heading: `${roleLabel} day rates`,
+  sub: 'Our published benchmark across experience levels, and what members report.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="/rates">Rate &amp; salary index</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= roleLabel %></li>
+    </ol>
+  </nav>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-muted-2 text-uppercase">Published benchmark</h2>
+        <p class="small text-muted-2">
+          Our own model, at the reference region and hybrid working, on time and materials.
+          Everything below is EUR per day, before tax.
+        </p>
+        <table class="table table-sm align-middle mb-2">
+          <thead>
+            <tr>
+              <th scope="col">Experience</th>
+              <th scope="col" class="text-end">Low</th>
+              <th scope="col" class="text-end">Recommended</th>
+              <th scope="col" class="text-end">High</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% table.forEach(function (row) { %>
+              <tr>
+                <th scope="row" class="fw-normal"><%= row.band %></th>
+                <td class="text-end"><%= row.min %></td>
+                <td class="text-end"><strong><%= row.recommended %></strong></td>
+                <td class="text-end"><%= row.max %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p class="small text-muted-2 mb-3">
+          The base rate for this role is <strong><%= baseRate %></strong>, which is the
+          six-to-nine-year figure before any adjustment. Your own region, certifications and
+          contract type move it.
+        </p>
+        <a class="btn btn-primary btn-sm" href="/rates/calculator?role=<%= role %>">Benchmark your exact profile</a>
+      </div></div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-muted-2 text-uppercase">What members report</h2>
+        <%# The contributed index, kept separate from the model above on purpose. %>
+        <% if (community.suppressed) { %>
+          <p class="mb-2"><span class="rate-figure suppressed">Not published</span></p>
+          <p class="small text-muted-2 mb-3">
+            <%= community.contributors %>
+            <%= community.contributors === 1 ? 'person has' : 'people have' %> contributed a
+            figure for this role. At least <%= minSample %> are needed before a bucket is
+            published — and that counts people, not submissions, so one person filing five
+            times is still a sample of one.
+          </p>
+        <% } else { %>
+          <p class="mb-1">
+            <span class="rate-figure"><%= community.median %></span>
+            <span class="text-muted-2">EUR/day (median)</span>
+          </p>
+          <p class="small text-muted-2 mb-3">
+            25th–75th percentile <%= community.p25 %>–<%= community.p75 %>,
+            range <%= community.min %>–<%= community.max %>,
+            from <%= community.contributors %> contributors over the last 12 months.
+          </p>
+        <% } %>
+
+        <h3 class="h6 text-muted-2 text-uppercase mt-4">By seniority</h3>
+        <table class="table table-sm align-middle mb-2">
+          <tbody>
+            <% bySeniority.forEach(function (row) { %>
+              <tr>
+                <th scope="row" class="fw-normal text-capitalize"><%= row.seniority %></th>
+                <td class="text-end">
+                  <% if (row.suppressed) { %>
+                    <span class="text-muted-2 small">
+                      <%= row.contributors %> of <%= minSample %>
+                    </span>
+                  <% } else { %>
+                    <strong><%= row.median %></strong>
+                    <span class="text-muted-2 small">· <%= row.contributors %></span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p class="small text-muted-2 mb-3">
+          A row below the floor shows how far off it is, never a figure and never a zero —
+          a suppressed bucket is a gap, not an answer.
+        </p>
+        <a class="btn btn-outline-secondary btn-sm" href="/rates/submit">Add your figure</a>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="glass-card"><div class="card-body">
+    <h2 class="h6 text-muted-2 text-uppercase">Hiring for this role?</h2>
+    <p class="small text-muted-2 mb-3">
+      The same figures size a budget from the other side of the table. The estimator turns a
+      scope into consultant-days and a cost; the directory shows who has delivered it.
+    </p>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-primary" href="/consultants?role=<%= role %>">Consultants in this role</a>
+      <a class="btn btn-sm btn-outline-primary" href="/jobs?role=<%= role %>">Open roles</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/quotes/new">Size a programme</a>
+    </div>
+  </div></div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

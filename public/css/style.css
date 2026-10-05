@@ -984,6 +984,13 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
    ========================================================================== */
 
 .footer-rule { border-color: rgba(255, 255, 255, 0.15); }
+.role-rate-link {
+  padding: 0.5rem 0.75rem; border-radius: 0.5rem; text-decoration: none;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  font-size: 0.925rem; height: 100%;
+}
+.role-rate-link:hover { background: var(--glass-hover, rgba(127, 127, 127, 0.1)); }
+
 .footer-blurb { max-width: 38ch; }
 
 /*

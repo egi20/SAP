@@ -1,0 +1,227 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-calculator',
+  heading: 'Benchmark your day rate',
+  sub: 'What a role like yours is worth, and the arithmetic that says so.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+
+  <%#
+    A GET form. The answers end up in the address bar, so a benchmark is a link somebody can
+    bookmark, send to a client or paste into a negotiation, the back button works, and no
+    scripting is needed to produce a number.
+  %>
+  <form class="glass-card mb-4" method="get" action="/rates/calculator">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="role">Your role <span aria-hidden="true">*</span></label>
+          <select class="form-select" id="role" name="role" required>
+            <option value="">Choose a role…</option>
+            <% roleCategories.forEach(function (group) { %>
+              <optgroup label="<%= group.category %>">
+                <% group.roles.forEach(function (r) { %>
+                  <option value="<%= r.value %>" <%= result && result.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                <% }) %>
+              </optgroup>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" for="years">Years of SAP experience</label>
+          <input class="form-control" id="years" name="years" type="number" min="0" max="50"
+                 value="<%= result ? result.input.years : 6 %>">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" for="country">Where you work from</label>
+          <select class="form-select" id="country" name="country">
+            <option value="">Not sure / elsewhere</option>
+            <% countries.forEach(function (c) { %>
+              <option value="<%= c.code %>" <%= result && result.input.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+            <% }) %>
+          </select>
+          <p class="form-text">Used to pick a region, never stored.</p>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="work_mode">Work arrangement</label>
+          <select class="form-select" id="work_mode" name="work_mode">
+            <% model.WORK_MODES.forEach(function (m) { %>
+              <option value="<%= m.key %>" <%= result && result.input.workMode === m.key ? 'selected' : '' %>><%= m.label %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="certifications">SAP certifications held</label>
+          <input class="form-control" id="certifications" name="certifications" type="number" min="0" max="20"
+                 value="<%= result ? result.input.certifications : 0 %>">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="contract_type">Contract type</label>
+          <select class="form-select" id="contract_type" name="contract_type">
+            <% model.CONTRACT_TYPES.forEach(function (c) { %>
+              <option value="<%= c.key %>" <%= result && result.input.contractType === c.key ? 'selected' : '' %>><%= c.label %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Calculate</button>
+          <% if (result) { %><a class="btn btn-outline-secondary" href="/rates/calculator">Start again</a><% } %>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <% if (submitted && !result) { %>
+    <div class="glass-card mb-4"><div class="card-body">
+      <p class="mb-0">That is not a role we publish a benchmark for. Pick one from the list above.</p>
+    </div></div>
+  <% } %>
+
+  <% if (result) { %>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase mb-3"><%= result.roleLabel %></h2>
+          <div class="row text-center g-3">
+            <div class="col-4">
+              <p class="text-muted-2 small mb-1">Low</p>
+              <p class="rate-figure mb-0"><%= result.min %></p>
+            </div>
+            <div class="col-4">
+              <p class="text-muted-2 small mb-1">Recommended</p>
+              <p class="rate-figure mb-0 text-primary"><strong><%= result.recommended %></strong></p>
+            </div>
+            <div class="col-4">
+              <p class="text-muted-2 small mb-1">High</p>
+              <p class="rate-figure mb-0"><%= result.max %></p>
+            </div>
+          </div>
+          <p class="text-muted-2 small text-center mt-2 mb-0">EUR per day, before tax</p>
+        </div></div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase">If you billed it</h2>
+          <ul class="list-unstyled mb-2">
+            <li><strong><%= result.monthly.toLocaleString('en-GB') %></strong> EUR a month</li>
+            <li><strong><%= result.annual.toLocaleString('en-GB') %></strong> EUR a year</li>
+            <li><strong><%= result.equivalentSalary.toLocaleString('en-GB') %></strong> EUR equivalent salary</li>
+          </ul>
+          <%#
+            The divisors are printed, not hidden. A monthly figure with an unstated number of
+            billable days behind it is the number people quote back at you.
+          %>
+          <p class="small text-muted-2 mb-0">
+            At <%= result.assumptions.daysPerMonth %> billable days a month and
+            <%= result.assumptions.daysPerYear %> a year — all before tax. The salary figure is
+            what a comparable permanent role costs an employer, not what you would take home:
+            a permanent employee is paid through holiday, sickness and the gaps between
+            projects. <strong>Nothing here is tax advice</strong> and no deduction has been
+            applied.
+          </p>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-7">
+        <div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase">How that figure was reached</h2>
+          <%#
+            The working, printed. A model that hands back only its answer is one the reader
+            has to trust; one that hands back the five numbers it multiplied is one they can
+            argue with, which is the only useful kind.
+          %>
+          <table class="table table-sm align-middle mb-2">
+            <tbody>
+              <tr>
+                <th scope="row" class="fw-normal">Base rate for this role</th>
+                <td class="text-muted-2"></td>
+                <td class="text-end"><strong><%= result.base %></strong></td>
+              </tr>
+              <% result.factors.forEach(function (f) { %>
+                <tr>
+                  <th scope="row" class="fw-normal"><%= f.label %></th>
+                  <td class="text-muted-2 small"><%= f.choice %></td>
+                  <td class="text-end">× <%= f.multiplier.toFixed(2) %></td>
+                </tr>
+              <% }) %>
+              <tr class="border-top">
+                <th scope="row">Recommended day rate</th>
+                <td class="text-muted-2 small">rounded to the nearest 5</td>
+                <td class="text-end"><strong><%= result.recommended %></strong></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="small text-muted-2 mb-0">
+            The low and high figures are <%= Math.round((1 - result.assumptions.spreadBelow) * 100) %>% below
+            and <%= Math.round((result.assumptions.spreadAbove - 1) * 100) %>% above the recommended rate.
+            That spread is a fixed proportion, not a statistic — it is there because a single
+            number is a negotiating position nobody can use.
+          </p>
+        </div></div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 text-muted-2 text-uppercase">What members actually report</h2>
+          <%#
+            The second answer, never merged into the first. The reference computes one figure
+            from a model and labels it with a confidence level derived from however much
+            community data happened to be nearby — which reads as a statistical claim, is not
+            one, and makes the number impossible to check: you cannot tell which part of it
+            came from evidence.
+          %>
+          <% if (!community || community.suppressed) { %>
+            <p class="mb-2"><span class="rate-figure suppressed">Not published</span></p>
+            <p class="small text-muted-2 mb-3">
+              <%= community ? community.contributors : 0 %>
+              <%= (community && community.contributors === 1) ? 'person has' : 'people have' %>
+              contributed a figure for this role so far. At least <%= minSample %> are needed
+              before a bucket is published, counting people and not submissions.
+            </p>
+          <% } else { %>
+            <p class="mb-1">
+              <span class="rate-figure"><%= community.median %></span>
+              <span class="text-muted-2">EUR/day (median)</span>
+            </p>
+            <p class="small text-muted-2 mb-3">
+              25th–75th percentile <%= community.p25 %>–<%= community.p75 %>,
+              from <%= community.contributors %> contributors over the last 12 months.
+            </p>
+          <% } %>
+          <p class="small text-muted-2 mb-3">
+            This is the other answer to the same question, and it is deliberately kept
+            separate from the one above: the figure on the left is our model, the figure here
+            is evidence. Where they disagree, the evidence is the interesting one.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="/rates/<%= result.role %>">This role in detail</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/rates/submit">Add your figure</a>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="glass-card"><div class="card-body">
+      <h2 class="h6 text-muted-2 text-uppercase">What this is</h2>
+      <p class="small text-muted-2 mb-0">
+        An editorial model published under our own name: a base rate per role, moved by five
+        documented factors. It is not a survey, it does not know your client, your notice
+        period or your negotiating position, and it answers in euros before tax wherever you
+        are. Nothing you typed here was stored.
+      </p>
+    </div></div>
+  <% } %>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

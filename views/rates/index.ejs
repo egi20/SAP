@@ -174,7 +174,7 @@
             <tbody>
               <% byRole.forEach(function (row) { %>
                 <tr>
-                  <td><a href="/rates?role=<%= row.role %>"><%= roleLabel(row.role) %></a></td>
+                  <td><a href="/rates/<%= row.role %>"><%= roleLabel(row.role) %></a></td>
                   <% if (row.suppressed) { %>
                     <td colspan="2" class="text-end suppressed">Not enough data</td>
                   <% } else { %>
@@ -188,6 +188,41 @@
           </table>
         </div>
       <% } %>
+    </div>
+  </div>
+
+  <%#
+    Every role, with its published base rate, whether or not anybody has contributed to it.
+    The contributed table above can be empty for months on a new install, and an index whose
+    only navigation is a table of what people happened to fill in leaves most of the site
+    unreachable — and looks broken while it does.
+  %>
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <h2 class="h6 mb-1">Day rates by role</h2>
+          <p class="small text-muted-2 mb-0">
+            Our published benchmark for a consultant with six to nine years, before any
+            adjustment for region, certifications or contract type. EUR per day.
+          </p>
+        </div>
+        <a class="btn btn-primary btn-sm" href="/rates/calculator">Benchmark your rate</a>
+      </div>
+      <% roleIndex.forEach(function (group) { %>
+        <h3 class="h6 text-muted-2 text-uppercase mt-3"><%= group.category %></h3>
+        <div class="row g-2">
+          <% group.roles.forEach(function (r) { %>
+            <div class="col-sm-6 col-lg-4">
+              <a class="role-rate-link d-flex justify-content-between align-items-center gap-2"
+                 href="/rates/<%= r.value %>">
+                <span><%= r.label %></span>
+                <span class="text-muted-2 flex-shrink-0"><%= r.base %></span>
+              </a>
+            </div>
+          <% }) %>
+        </div>
+      <% }) %>
     </div>
   </div>
 
