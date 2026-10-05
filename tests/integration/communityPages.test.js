@@ -148,3 +148,37 @@ maybe()('GET /community/author/:id', () => {
     expect(res.headers.location).toBe('/community/author/7');
   });
 });
+
+/**
+ * The three bugs a walkthrough with real data found, pinned.
+ *
+ * Each one was invisible on an empty database: a link with no id has nothing to point at,
+ * a certification nobody holds renders nothing either way, and a branch for the wrong kind
+ * of account needs an account of the wrong kind. They are here because the fix is one line
+ * each and the test is the only thing that keeps them fixed.
+ */
+maybe()('what a card links to', () => {
+  it('carries the author id, so the link is not /community/author/', async () => {
+    /*
+     * `Post.browse` selects an explicit column list, and `author_user_id` was not in it —
+     * so every card rendered from it linked to "/community/author/" with nothing after
+     * the slash. Seven 404s on the front page, from one column missing.
+     */
+    const res = await request(app).get('/community');
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('href="/community/author/"');
+    expect(res.text).toMatch(/href="\/community\/author\/\d+"/);
+  });
+
+  it('carries it on the home feed too, which is where it was found', async () => {
+    const res = await request(app).get('/');
+    expect(res.text).not.toContain('href="/community/author/"');
+  });
+
+  it('carries it on the articles page and the author page', async () => {
+    const pages = await Promise.all(
+      ['/community/articles', `/community/author/${writerId}`].map((p) => request(app).get(p))
+    );
+    pages.forEach((res) => expect(res.text).not.toContain('href="/community/author/"'));
+  });
+});

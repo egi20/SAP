@@ -59,6 +59,13 @@ const PASSWORD = 'Seed-Password-1';
 const args = process.argv.slice(2);
 const REMOVE = args.includes('--remove');
 const FORCE = args.includes('--force');
+/*
+ * Enough rows to make the pager appear. Both lists page in twenties, so the
+ * hand-written set — ten adverts and six people, each written to say something — can
+ * never show a second page. The filler says nothing and is not meant to: it exists so
+ * that "page 2" and "Showing 21-40" can be clicked.
+ */
+const VOLUME = args.includes('--volume');
 
 function refuse(message) {
   console.error(`\n  Refusing to run: ${message}\n`);
@@ -557,6 +564,116 @@ async function seed() {
     issueType: 'bug', severity: 'normal', pageUrl: `${config.app.baseUrl}/rates?country=DE`
   });
   console.log('  2 enquiries waiting in the admin queue');
+
+  if (VOLUME) await seedVolume(employer.id);
+}
+
+/* ------------------------------------------------------------------- volume */
+
+const FILLER_ROLES = [
+  's4-fi', 's4-co', 's4-mm', 's4-sd', 's4-pp', 's4-ewm', 's4-qm', 's4-tm',
+  'sf-employee-central', 'sf-recruiting', 'ariba', 'concur', 'ibp',
+  'abap-developer', 'integration-consultant', 'basis-administrator',
+  'solution-architect', 'programme-manager', 'data-migration', 'testing-lead'
+];
+const FILLER_COUNTRIES = ['DE', 'NL', 'SE', 'GB', 'FR', 'ES', 'IT', 'PL', 'CZ', 'AT'];
+const FILLER_CITIES = ['Munich', 'Utrecht', 'Gothenburg', 'Manchester', 'Lyon', 'Valencia', 'Bologna', 'Wrocław', 'Brno', 'Graz'];
+const FILLER_PHASES = ['prepare', 'explore', 'realize', 'deploy', 'run'];
+const FILLER_SENIORITY = ['mid', 'senior', 'lead'];
+const FILLER_MODES = ['remote', 'hybrid', 'onsite'];
+
+const { roleLabel: labelForRole } = require('../config/roleTaxonomy');
+const { PRODUCT_LINES } = require('../config/sapProducts');
+
+/*
+ * Read from the catalogue rather than written out: a module slug typed here would be a
+ * second copy of a vocabulary config already owns, and the failure would be a filler row
+ * whose module filter matches nothing.
+ */
+const ALL_FILLER_MODULES = PRODUCT_LINES.flatMap((line) => line.modules.map((m) => m.value));
+
+/**
+ * Filler, and it is labelled as filler.
+ *
+ * Every row says "Seed filler" in a place a reader will see it, because the one thing
+ * worse than an empty directory is a full one somebody mistakes for real. The interesting
+ * rows are the hand-written ones above; these exist to make a second page exist.
+ */
+async function seedVolume(employerId) {
+  const extraJobs = 26;
+  for (let i = 0; i < extraJobs; i += 1) {
+    const role = FILLER_ROLES[i % FILLER_ROLES.length];
+    const n = String(i + 1).padStart(2, '0');
+    const job = await Job.create(employerId, {
+      title: `Seed filler ${n} — ${labelForRole(role)}`,
+      description: 'Seed filler. This advert exists so the job list has more than one page; it describes no real engagement.',
+      role,
+      seniority: FILLER_SENIORITY[i % FILLER_SENIORITY.length],
+      engagement_type: i % 5 === 0 ? 'permanent' : 'contract',
+      work_mode: FILLER_MODES[i % FILLER_MODES.length],
+      country: FILLER_COUNTRIES[i % FILLER_COUNTRIES.length],
+      city: FILLER_CITIES[i % FILLER_CITIES.length],
+      rate_min: 500 + (i % 8) * 50,
+      rate_max: 700 + (i % 8) * 60,
+      rate_visible: 1,
+      currency: 'EUR',
+      duration_months: 6 + (i % 7),
+      activate_phase: FILLER_PHASES[i % FILLER_PHASES.length],
+      status: 'open'
+    });
+    await Job.setModules(job.id, [ALL_FILLER_MODULES[i % ALL_FILLER_MODULES.length]]);
+  }
+
+  const extraConsultants = 22;
+  for (let i = 0; i < extraConsultants; i += 1) {
+    const role = FILLER_ROLES[i % FILLER_ROLES.length];
+    const n = String(i + 1).padStart(2, '0');
+    const user = await makeUser(`filler${n}`, `Seed Filler ${n}`, ['consultant']);
+
+    await ConsultantProfile.ensureExists(user.id);
+    await ConsultantProfile.update(user.id, {
+      headline: `Seed filler ${n} — ${labelForRole(role)}`,
+      bio: 'Seed filler. This profile exists so the talent directory has more than one page; it describes no real person.',
+      primary_role: role,
+      seniority: FILLER_SENIORITY[i % FILLER_SENIORITY.length],
+      country: FILLER_COUNTRIES[i % FILLER_COUNTRIES.length],
+      city: FILLER_CITIES[i % FILLER_CITIES.length],
+      years_experience: 3 + (i % 15),
+      full_lifecycles: i % 4,
+      day_rate: 550 + (i % 10) * 55,
+      currency: 'EUR',
+      availability: ['immediate', 'two_weeks', 'one_month'][i % 3],
+      work_mode: FILLER_MODES[i % FILLER_MODES.length],
+      willing_to_travel: i % 2
+    });
+
+    const skills = await Skill.findOrCreateMany([labelForRole(role), 'SAP Activate']);
+    await Skill.setForConsultant(user.id, skills.map((sk) => sk.id));
+
+    // A profile needs a project and an engagement to clear the publishing floor; without
+    // them the seed would report success and leave the directory the size it was.
+    await ConsultantProfile.addProject(user.id, {
+      name: `Seed filler engagement ${n}`,
+      client: 'Confidential',
+      role: labelForRole(role),
+      activatePhase: FILLER_PHASES[i % FILLER_PHASES.length],
+      isFullLifecycle: i % 3 === 0,
+      modules: [ALL_FILLER_MODULES[i % ALL_FILLER_MODULES.length]],
+      startedOn: '2023-01-09',
+      endedOn: '2024-06-28',
+      description: 'Seed filler.'
+    });
+    await ConsultantProfile.addExperience(user.id, {
+      company: 'Independent', title: 'Seed filler', startedOn: '2019-01-07', isCurrent: true
+    });
+
+    const published = await ConsultantProfile.setPublic(user.id, true);
+    if (!published.published && i === 0) {
+      console.log(`    filler profiles reach only ${published.completeness}% and will not list`);
+    }
+  }
+
+  console.log(`  + ${extraJobs} filler adverts and ${extraConsultants} filler profiles, so both lists page`);
 }
 
 async function firstAdmin() {
@@ -591,7 +708,11 @@ async function firstAdmin() {
     console.log('    consultant   ana.fi@seed.saphub.test   (also: ben.ewm, carla.mm, dan.abap, eva.sf, farid.pm)');
     console.log('    company      hiring.co@seed.saphub.test, partner.co@seed.saphub.test');
     console.log('    agency       agency@seed.saphub.test');
-    console.log('\n  Remove it all again with:  npm run seed:dev -- --remove\n');
+    if (!VOLUME) {
+    console.log('\n  Both lists page in twenties, so this set shows one page. Add --volume');
+    console.log('  for filler rows that make a second one exist.');
+  }
+  console.log('\n  Remove it all again with:  npm run seed:dev -- --remove\n');
   } catch (err) {
     console.error(`\n  Seeding failed: ${err.message}\n`);
     console.error(err.stack);

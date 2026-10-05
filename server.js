@@ -108,6 +108,17 @@ assertBenchmarkIntegrity();
  * three are wrong pages rather than errors.
  */
 assertEngagementIntegrity();
+
+/*
+ * The support address is the one setting a developer never notices is unset, because the
+ * page renders perfectly with it. Production refuses to boot on the placeholder; here it
+ * says so once, loudly, every time the server starts — it has now been reported twice from
+ * a running install, which is what a silent default buys you.
+ */
+if (!config.isProduction && config.app.supportEmail === 'support@example.com') {
+  console.warn('  SUPPORT_EMAIL is still the example value, and it is printed on /contact');
+  console.warn('  and in the footer. Set it in .env. Production refuses to start on it.\n');
+}
 // Read once. These come from the environment and cannot change while the process runs.
 const SOCIAL_LINKS = socialLinks();
 

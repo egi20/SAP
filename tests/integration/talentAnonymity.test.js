@@ -18,7 +18,7 @@ const ConsultantProfile = require('../../models/ConsultantProfile');
 const reachable = process.env.TEST_DATABASE_AVAILABLE === '1';
 const maybe = () => (reachable ? describe : describe.skip);
 
-const OWN = ['anon-con@example.test', 'anon-viewer@example.test'];
+const OWN = ['anon-con@example.test', 'anon-viewer@example.test', 'anon-peer@example.test'];
 const NAME = 'Zyloteq Anonymisable';
 const HEADLINE = 'Zyloteq EWM rollout specialist';
 const CSRF = /name="_csrf" value="([^"]+)"/;
@@ -33,11 +33,11 @@ function csrfFrom(html) {
 }
 
 /** A signed-in agent, to prove the name IS shown to an account. */
-async function signedInAgent() {
+async function signedInAgent(as = OWN[1]) {
   const agent = request.agent(app);
   const page = await agent.get('/auth/login');
   await agent.post('/auth/login').type('form').send({
-    _csrf: csrfFrom(page.text), email: OWN[1], password: 'Anon-Test-Pass-1'
+    _csrf: csrfFrom(page.text), email: as, password: 'Anon-Test-Pass-1'
   });
   return agent;
 }
@@ -57,6 +57,13 @@ beforeAll(async () => {
     email: OWN[1], password: 'Anon-Test-Pass-1', name: 'Anon Viewer', roles: ['company']
   });
   await User.setEmailVerified(viewer.id);
+
+  // A second reader who is signed in but is NOT a hiring account — the case the contact
+  // block used to answer with a login button.
+  const peer = await User.create({
+    email: OWN[2], password: 'Anon-Test-Pass-1', name: 'Anon Peer', roles: ['consultant']
+  });
+  await User.setEmailVerified(peer.id);
 
   await ConsultantProfile.ensureExists(consultantId);
   await ConsultantProfile.update(consultantId, {
@@ -185,5 +192,57 @@ maybe()('the posted-within filter', () => {
     const res = await request(app).get('/jobs?posted_within=1');
     expect(res.status).toBe(200);
     expect(res.text).toContain('value="1" selected');
+  });
+});
+
+/**
+ * Two more findings from a walkthrough with real data, both on the profile page and both
+ * invisible on an empty database.
+ */
+maybe()('the profile page', () => {
+  it('prints the certification\'s name and not just a tick', async () => {
+    /*
+     * The view read `c.name`; the row has no name column. The model derives `label` from
+     * the catalogue, so a renamed exam updates on every profile holding it — and asking
+     * for the wrong field rendered an empty string beside a green tick, which reads as a
+     * certification with no title.
+     */
+    await ConsultantProfile.addCertification(consultantId, { code: 'C_S4EWM' });
+
+    // Asserted against the catalogue's own label rather than a loose pattern, and NOT
+    // inside a catch that would let the case pass by never running.
+    const { certByCode } = require('../../config/certifications');
+    const label = certByCode('C_S4EWM').label;
+    expect(label).toBeTruthy();
+
+    const agent = await signedInAgent();
+    const res = await agent.get(`/consultants/${consultantId}`);
+    expect(res.text).toContain('Certifications');
+    expect(res.text).toContain(label);
+  });
+
+  it('does not offer a signed-in reader a button to sign in', async () => {
+    /*
+     * "Signed out" and "signed in as the wrong kind of account" shared a branch, so a
+     * consultant reading another consultant's profile was offered a Sign in button leading
+     * to a page they were already past. Signing in would not have helped — which is the
+     * worst thing a button can promise.
+     */
+    const peer = await signedInAgent(OWN[2]);
+    const res = await peer.get(`/consultants/${consultantId}`);
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('Sign in to contact');
+    expect(res.text).toContain('hiring accounts only');
+  });
+
+  it('still offers it to somebody who really is signed out', async () => {
+    const res = await request(app).get(`/consultants/${consultantId}`);
+    expect(res.text).toContain('Sign in to contact');
+  });
+
+  it('shows the contact details to a hiring account', async () => {
+    const company = await signedInAgent();
+    const res = await company.get(`/consultants/${consultantId}`);
+    expect(res.text).toContain('anon-con@example.test');
   });
 });

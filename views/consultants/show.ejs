@@ -131,8 +131,23 @@
             <% } %>
           <% } else if (!isSelf) { %>
             <hr>
-            <p class="small text-muted-2 mb-2">Contact details are shown to signed-in hiring accounts.</p>
-            <a class="btn btn-outline-primary w-100 btn-sm" href="/auth/login?redirect=<%= encodeURIComponent('/consultants/' + profile.user_id) %>">Sign in to contact</a>
+            <%#
+              THREE outcomes, not two. "Signed out" and "signed in as the wrong kind of
+              account" were sharing a branch, so a consultant reading another consultant's
+              profile was offered a Sign in button leading to a page they were already past.
+              Signing in would not have helped them, which is the worst thing a button can
+              promise.
+            %>
+            <% if (!signedIn) { %>
+              <p class="small text-muted-2 mb-2">Contact details are shown to signed-in hiring accounts.</p>
+              <a class="btn btn-outline-primary w-100 btn-sm" href="/auth/login?redirect=<%= encodeURIComponent('/consultants/' + profile.user_id) %>">Sign in to contact</a>
+            <% } else { %>
+              <p class="small text-muted-2 mb-0">
+                Contact details are shown to hiring accounts only — a company or an agency.
+                An open directory of email addresses is a scraping target, and the people in
+                it did not agree to that.
+              </p>
+            <% } %>
           <% } %>
 
           <% if (isSelf) { %>
@@ -174,7 +189,11 @@
             <ul class="list-unstyled mb-0 small">
               <% certifications.forEach(function (c) { %>
                 <li class="mb-1">
-                  <i class="bi bi-patch-check text-success"></i> <%= c.name %>
+                  <%# `label`, not `name`: there is no name column on the row. The model
+                      derives the label from the catalogue so a renamed exam updates on
+                      every profile holding it — asking for `name` rendered an empty
+                      string beside a tick, which read as a certification with no title. %>
+                  <i class="bi bi-patch-check text-success"></i> <%= c.label %>
                   <% if (c.earned_on) { %><span class="text-muted-2">· <%= new Date(c.earned_on).getFullYear() %></span><% } %>
                 </li>
               <% }); %>

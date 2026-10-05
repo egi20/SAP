@@ -118,6 +118,7 @@ filter and aggregate impossible to judge. For a local walkthrough:
 ```bash
 npm run seed:dev                 # six consultants, two companies, an agency, twelve
                                  # adverts, a community, rates, stories, an enquiry queue
+npm run seed:dev -- --volume     # plus filler rows, so both lists have a second page
 npm run seed:dev -- --remove     # and out again
 ```
 

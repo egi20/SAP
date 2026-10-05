@@ -161,6 +161,11 @@ class Post {
     const [rows] = await promisePool.query(
       `SELECT p.id, p.kind, p.title, p.slug, p.body, p.vote_score, p.reply_count, p.view_count,
               p.is_solved, p.is_pinned, p.created_at, p.last_activity_at,
+              -- The author's id, because the card links to their page. AUTHOR_SELECT below
+              -- carries the NAME and not the id, so a card rendered from this query linked
+              -- to "/community/author/" with nothing after it — a 404 on every card on the
+              -- front page, from one column missing out of an explicit list.
+              p.author_user_id,
               -- Selected for the ONE caller that passes include_hidden. Without it the
               -- opt-in returns hidden and visible rows that look identical, so the
               -- moderation list offers "Hide" on a post that is already hidden and the

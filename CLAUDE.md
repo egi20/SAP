@@ -1087,6 +1087,14 @@ post. A seed that only creates visible rows cannot show that the rules work, and
 three are exactly what a list view, a feed and a search page each have to exclude on their
 own.
 
+**`--volume` adds filler, and the filler says it is filler.** Both lists page in twenties,
+so the hand-written set — ten adverts and six people, each written to say something — can
+never show a second page. The filler carries "Seed filler" where a reader will see it,
+because the one thing worse than an empty directory is a full one somebody mistakes for
+real. Its module slugs come from `PRODUCT_LINES` rather than being typed, and each filler
+profile gets a project and an engagement because the publishing floor would otherwise
+refuse it and the seed would report success over an unchanged directory.
+
 **It seeds one rate bucket that publishes and one that stays below the floor.** An index
 that only ever shows published figures hides the behaviour that makes it trustworthy.
 
