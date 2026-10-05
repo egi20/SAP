@@ -1010,6 +1010,28 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .password-field input { padding-right: 2.75rem; }
 
 /*
+ * The fixed social rail, down the left edge. Rendered only where at least one real account
+ * is configured — see views/partials/social-rail.ejs — and only from xl up, because a
+ * fixed column beside a phone either overlaps the content or steals a thumb's width of it.
+ */
+.social-rail {
+  position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 1020;
+  flex-direction: column; gap: 0.25rem; margin: 0; padding: 0.4rem 0.3rem;
+  border-radius: 0 0.75rem 0.75rem 0;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14)); border-left: 0;
+  background: var(--bs-body-bg, #fff); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+.social-rail a {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
+  color: var(--bs-secondary-color, #6b7280); font-size: 1.05rem; text-decoration: none;
+}
+.social-rail a:hover { color: inherit; background: var(--glass-hover, rgba(127, 127, 127, 0.12)); }
+.social-rail a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+@media print { .social-rail { display: none !important; } }
+
+/*
  * The cookie notice and the back-to-top button.
  *
  * Both are appended to <body> by main.js, so neither exists until the script runs — which

@@ -102,3 +102,30 @@ describe('back to top', () => {
     expect(section).toContain('passive: true');
   });
 });
+
+describe('the social rail', () => {
+  const RAIL = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'views', 'partials', 'social-rail.ejs'), 'utf8'
+  );
+
+  it('renders nothing when no social account is configured', () => {
+    /*
+     * `socialLinks()` always appends the support address, so a rail built from it
+     * unconditionally would be a permanent strip containing one email icon — which is not
+     * a social rail, it is a piece of furniture. Contact already has the footer and
+     * /contact.
+     */
+    expect(RAIL).toContain("l.key !== 'email'");
+    expect(RAIL).toContain('if (railLinks.length)');
+  });
+
+  it('reads the same list the footer does', () => {
+    // One source, or the two drift the moment an account is added.
+    expect(RAIL).toContain('socialLinks');
+    expect(RAIL).not.toMatch(/https?:\/\/(www\.)?(linkedin|x|instagram|tiktok|youtube)\.com/);
+  });
+
+  it('is hidden on the screens where a fixed column would steal content', () => {
+    expect(RAIL).toContain('d-none d-xl-flex');
+  });
+});

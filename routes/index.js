@@ -18,6 +18,7 @@ const config = require('../config/config');
 const legalVersions = require('../config/legal-versions');
 const { ENGAGEMENT_MODELS } = require('../config/engagementModels');
 const Enquiry = require('../models/Enquiry');
+const Post = require('../models/Post');
 const email = require('../utils/email');
 const { ipLimiter } = require('../middleware/rateLimit');
 const { body, validationResult } = require('express-validator');
@@ -187,6 +188,44 @@ router.get('/consultant-hub', (req, res) => {
 router.get('/company-hub', (req, res) => {
   res.render('hubs/company', { title: 'Company Hub', models: ENGAGEMENT_MODELS });
 });
+
+/**
+ * GET /blog
+ *
+ * The Hub's own articles. A VIEW over `Post.browse`, not a second content store — see
+ * migration 020 for why. An editorial post is a community article written from a Hub
+ * account and marked, so it inherits replies, votes, categories, the points ledger and the
+ * moderation flag for nothing.
+ *
+ * There is NO /blog/:slug. The article already has a canonical URL under /community, and a
+ * second address for the same text is two pages competing in search results, two reply
+ * counts to reconcile and two places somebody can land on a post that has since been
+ * hidden. The list links straight through.
+ *
+ * NO SUBSCRIBE BOX. The reference has one, and a box that collects an address with nothing
+ * to send it, no record of consent and no unsubscribe link is a promise made to somebody
+ * who cannot withdraw it. It arrives when there is a newsletter, a stored consent and a
+ * working unsubscribe — all three, the same rule the contact form waited on.
+ */
+router.get(
+  '/blog',
+  asyncHandler(async (req, res) => {
+    const filters = { kind: 'article', editorial: '1' };
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 10 });
+
+    const { rows, total } = await Post.browse(filters, { limit, offset, sort: 'newest' });
+
+    res.render('blog/index', {
+      title: 'The SAP Hub blog',
+      posts: rows,
+      total,
+      postKind,
+      toPlainText,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/blog', req.query, p)
+    });
+  })
+);
 
 /**
  * GET /about

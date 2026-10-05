@@ -79,6 +79,11 @@ const PAGE_META = {
     description:
       'Hire SAP consultants by delivered modules, size a programme into consultant-days and a budget, and see what the market pays.'
   },
+  '/blog': {
+    title: 'The SAP Hub blog',
+    description:
+      'What we are building, what we are seeing in the SAP market, and why things here work the way they do.'
+  },
   '/report-issue': {
     title: 'Report a problem',
     description: 'Tell us about something broken, confusing or behaving differently from what the page said.'
@@ -90,7 +95,7 @@ const PAGE_META = {
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
   '/rates/calculator', '/community', '/community/articles', '/success-stories',
-  '/consultant-hub', '/company-hub', '/about', '/faq', '/contact', '/report-issue',
+  '/consultant-hub', '/company-hub', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

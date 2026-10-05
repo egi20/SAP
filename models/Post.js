@@ -45,6 +45,16 @@ function buildFilter(filters = {}) {
     where.push('c.slug = ?');
     params.push(filters.category_slug);
   }
+  /*
+   * The blog is this filter and nothing else. `editorial` is '1' for the Hub's own posts
+   * and '0' to exclude them; absent means both, because the community feed shows an
+   * official article beside everybody else's and should.
+   */
+  if (filters.editorial === '1') {
+    where.push('p.is_editorial = 1');
+  } else if (filters.editorial === '0') {
+    where.push('p.is_editorial = 0');
+  }
   if (filters.author_user_id) {
     where.push('p.author_user_id = ?');
     params.push(filters.author_user_id);
@@ -96,13 +106,15 @@ class Post {
     return rows.length > 0;
   }
 
-  static async create(authorUserId, { categoryId, kind, title, body }) {
+  static async create(authorUserId, { categoryId, kind, title, body, isEditorial = false }) {
     const slug = await uniqueSlug(title, Post.slugTaken);
 
     return withTransaction(async (conn) => {
       const [result] = await conn.query(
-        'INSERT INTO posts (category_id, author_user_id, kind, title, slug, body) VALUES (?, ?, ?, ?, ?, ?)',
-        [categoryId, authorUserId, kind, title, slug, body]
+        'INSERT INTO posts (category_id, author_user_id, kind, title, slug, body, is_editorial) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        // Only an article can be editorial. A "win" or a question flying the Hub's own
+        // colours would be the site congratulating itself, or asking itself something.
+        [categoryId, authorUserId, kind, title, slug, body, isEditorial && kind === 'article' ? 1 : 0]
       );
 
       /*

@@ -111,7 +111,14 @@ router.post(
       categoryId: Number(req.body.category_id),
       kind: req.body.kind,
       title: req.body.title.trim(),
-      body: sanitizeRichText(req.body.body)
+      body: sanitizeRichText(req.body.body),
+      /*
+       * The flag is read from the form and then checked HERE against the session, never
+       * trusted from the body. A posted `is_editorial=on` from an ordinary member is
+       * exactly the shape of request this has to refuse, and the model cannot tell who
+       * sent it.
+       */
+      isEditorial: Boolean(req.session.user.isAdmin && req.body.is_editorial === 'on')
     });
 
     req.flash('success', 'Posted.');

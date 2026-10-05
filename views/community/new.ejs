@@ -64,6 +64,31 @@
           </div>
         </div>
 
+        <% if (currentUser && currentUser.isAdmin) { %>
+          <%#
+            Only an administrator is shown this, and the route checks the session again
+            before honouring it — a posted `is_editorial=on` from an ordinary member is
+            exactly the request that has to be refused, and the model cannot tell who sent
+            it. Articles only: a "win" flying the Hub's own colours would be the site
+            congratulating itself.
+          %>
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="is_editorial" name="is_editorial"
+                       <%= values.is_editorial ? 'checked' : '' %>>
+                <label class="form-check-label" for="is_editorial">
+                  Publish as a Hub article
+                  <span class="text-muted-2 small d-block">
+                    Appears on <a href="/blog">the blog</a> as well as in the community.
+                    People can still reply to it.
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        <% } %>
+
         <div class="glass-card">
           <div class="card-body">
             <button class="btn btn-primary w-100" type="submit">Publish</button>

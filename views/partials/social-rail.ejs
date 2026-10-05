@@ -1,0 +1,26 @@
+<%
+  /*
+   * The fixed social rail.
+   *
+   * It renders ONLY when at least one real social account is configured. `socialLinks()`
+   * always appends the support address, so a rail built from it unconditionally would be a
+   * permanent strip containing one email icon — which is not a social rail, it is a piece
+   * of furniture. Contact already has a place in the footer and on /contact.
+   *
+   * Hidden below large screens: a fixed column down the side of a phone either overlaps
+   * the content or steals a thumb's width of it, and the same links are in the footer.
+   */
+  const railLinks = socialLinks.filter(function (l) { return l.key !== 'email'; });
+%>
+<% if (railLinks.length) { %>
+  <ul class="social-rail d-none d-xl-flex list-unstyled" aria-label="<%= appName %> on social media">
+    <% socialLinks.forEach(function (link) { %>
+      <li>
+        <a href="<%= link.href %>" aria-label="<%= link.label %>"
+           <%= link.key === 'email' ? '' : 'rel="noopener" target="_blank"' %>>
+          <i class="bi <%= link.icon %>" aria-hidden="true"></i>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>

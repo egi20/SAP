@@ -231,6 +231,41 @@ deactivates a category that leaves the config rather than deleting it — posts 
 unticked checkbox posts nothing and absence has to mean false. A caller changing one switch
 must hand back the others, or it silently closes registration.
 
+## The blog
+
+**It is a VIEW, not a second content store.** An editorial post is a community article
+written from a Hub account and marked with `posts.is_editorial` (migration 020). There is
+no `blog_posts` table, because a fourth place for text would overlap community articles and
+success stories, and would need its own editor, moderation, slug rules and idea of
+"hidden" — all four already written, tested and argued about once. `/blog` is
+`Post.browse({ kind: 'article', editorial: '1' })`, and a test fails if that route grows
+any SQL.
+
+**So a blog post can be replied to, and that is deliberate.** An announcement nobody can
+answer in public is an announcement answered in somebody's inbox instead, where nobody else
+can read the reply.
+
+**There is no `/blog/:slug`.** The article already has a canonical URL under `/community`.
+A second address for the same text is two pages competing in search, two reply counts to
+reconcile, and two places to land on a post that has since been hidden.
+
+**The mark is read from the form and checked against the SESSION.** `routes/community.js`
+sets `isEditorial` only when the poster is an admin; the model cannot tell who sent the
+request, and a posted `is_editorial=on` from an ordinary member is precisely the request
+that has to be refused. Articles only — a "win" in the Hub's own colours would be the site
+congratulating itself.
+
+**No subscribe box.** A box collecting an address with nothing to send it, no record of
+consent and no unsubscribe link is a promise made to somebody who cannot withdraw it. It
+arrives with a newsletter, a stored consent and a working unsubscribe — all three, the same
+rule the contact form waited on.
+
+**The social rail renders only where a real account is configured.** `socialLinks()` always
+appends the support address, so a rail built from it unconditionally is a permanent strip
+holding one email icon — furniture, not a social rail. It reads the same list as the
+footer, and it is hidden below `xl`, where a fixed column either overlaps the content or
+steals a thumb's width of it.
+
 ## Messaging
 
 **Every conversation is anchored to a subject** — an application, or an enquiry about a
