@@ -69,13 +69,24 @@ const PAGE_META = {
     description:
       'How the day-rate index is built, what the scope estimator produces, what the LinkedIn badge means, and what anything costs.'
   },
+  '/consultant-hub': {
+    title: 'SAP Hub for consultants',
+    description:
+      'Find SAP contract and permanent work, benchmark your day rate, and build a profile companies filter by what you have actually delivered.'
+  },
+  '/company-hub': {
+    title: 'SAP Hub for companies',
+    description:
+      'Hire SAP consultants by delivered modules, size a programme into consultant-days and a budget, and see what the market pays.'
+  },
   '/auth/login': { title: 'Sign in', description: 'Sign in to SAP Hub.' },
   '/auth/register': { title: 'Create an account', description: 'Join SAP Hub as a consultant or a hiring company.' }
 };
 
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
-  '/rates/calculator', '/community', '/success-stories', '/about', '/faq', '/contact',
+  '/rates/calculator', '/community', '/community/articles', '/success-stories',
+  '/consultant-hub', '/company-hub', '/about', '/faq', '/contact',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

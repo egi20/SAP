@@ -1,0 +1,73 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-person-badge',
+  heading: 'Consultant Hub',
+  sub: 'Everything here for the person doing the work.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+
+  <div class="row g-3 mb-4">
+    <%
+      /*
+       * Four cards, each one a link to something that exists. The reference's version
+       * carries a CV generator and a tax calculator beside these; the first is not built
+       * here and the second is not going to be, so neither is advertised.
+       */
+      const cards = [
+        { href: '/jobs', icon: 'bi-briefcase', tone: 'icon-blue', title: 'Find work',
+          body: 'Filter by module, Activate phase, country and day rate — not by keyword alone. FI, CO, MM, SD, EWM, SuccessFactors, Ariba, BTP.' },
+        { href: '/rates/calculator', icon: 'bi-calculator', tone: 'icon-success', title: 'Benchmark your rate',
+          body: 'What a role like yours is worth, with the arithmetic shown, beside what members actually report. No account needed.' },
+        { href: '/auth/register', icon: 'bi-person-gear', tone: 'icon-navyblue', title: 'Build a profile',
+          body: 'Describe what you have delivered, module by module and engagement by engagement. Companies filter on delivery history.' },
+        { href: '/community', icon: 'bi-people', tone: 'icon-info', title: 'Ask and answer',
+          body: 'Questions, discussions and write-ups from people doing the same work. Answering builds a standing that shows on your profile.' }
+      ];
+    %>
+    <% cards.forEach(function (c) { %>
+      <div class="col-md-6">
+        <a class="glass-card d-block h-100 text-reset" href="<%= c.href %>">
+          <div class="card-body">
+            <span class="icon-tile icon-tile-sm <%= c.tone %> mb-2"><i class="bi <%= c.icon %>"></i></span>
+            <h2 class="h6 mb-1"><%= c.title %></h2>
+            <p class="small text-muted-2 mb-0"><%= c.body %></p>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h5 mb-3">Why a profile here is different</h2>
+    <ul class="mb-0">
+      <li><strong>A delivered module is not a ticked box.</strong> The modules on your profile
+          come from the engagements you list, so a company filtering for EWM finds people who
+          have done EWM on a programme — which is why being found here means something.</li>
+      <li><strong>Your name is not public.</strong> The directory is fully searchable signed
+          out, and names appear to accounts. Being visible to employers does not mean being
+          visible to your current one.</li>
+      <li><strong>Rates you contribute are never shown beside you.</strong> They go into
+          aggregates that are published only once at least three different people have
+          contributed to the same bucket.</li>
+      <li><strong>Nobody can message you out of nowhere.</strong> Every conversation is
+          anchored to an application or a specific role, so there is no open inbox for
+          recruiters to work through.</li>
+    </ul>
+  </div></div>
+
+  <div class="glass-card glass-card-tinted"><div class="card-body text-center py-4">
+    <h2 class="h5 mb-2">It is free, and it stays free</h2>
+    <p class="text-muted-2 mb-3">
+      Nothing a consultant does here is paid for. The two things that cost money are a
+      company featuring an advert and a deposit against an accepted quote.
+    </p>
+    <div class="d-flex flex-wrap gap-2 justify-content-center">
+      <a class="btn btn-primary" href="/auth/register">Create a free account</a>
+      <a class="btn btn-outline-secondary" href="/jobs">Browse roles first</a>
+    </div>
+  </div></div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

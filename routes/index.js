@@ -16,6 +16,7 @@ const RateSubmission = require('../models/RateSubmission');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const config = require('../config/config');
 const legalVersions = require('../config/legal-versions');
+const { ENGAGEMENT_MODELS } = require('../config/engagementModels');
 
 const router = express.Router();
 
@@ -159,6 +160,31 @@ router.get('/forum/user/:id', (req, res) => {
 });
 
 /**
+ * GET /consultant-hub  and  GET /company-hub
+ *
+ * One page per side of the marketplace, answering "what is here for me" before somebody
+ * has to guess which menu to open.
+ *
+ * WHY NOT /consultants AND /companies, which is where the reference puts these. Because
+ * /consultants is the consultant DIRECTORY here and is the single most valuable URL on the
+ * site — it is what somebody types and what other sites link to when they want to hire an
+ * SAP consultant. Handing it to a page of prose and moving the directory to
+ * /companies/talent would bury the product behind the brochure and break every link
+ * already pointing at it. The hub pages get their own names instead, which match the
+ * labels already in the navigation, and the directories keep theirs.
+ *
+ * NO NUMBERS THAT MOVE, for the same reason as /about: a consultant count or an average
+ * rate on a landing page is a claim somebody has to remember to update, and nobody does.
+ */
+router.get('/consultant-hub', (req, res) => {
+  res.render('hubs/consultant', { title: 'Consultant Hub' });
+});
+
+router.get('/company-hub', (req, res) => {
+  res.render('hubs/company', { title: 'Company Hub', models: ENGAGEMENT_MODELS });
+});
+
+/**
  * GET /about
  *
  * What the Hub is, who it is for and what it deliberately does not do. The last part is
@@ -251,6 +277,9 @@ router.get(
        * config already owns.
        */
       ...ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
+      // Same argument: the engagement models own their own slugs, so the sitemap reads them
+      // rather than repeating them.
+      ...ENGAGEMENT_MODELS.map((m) => ({ loc: canonicalUrl(`/companies/${m.slug}`), changefreq: 'monthly' })),
       ...jobs.map((j) => ({
         loc: canonicalUrl(`/jobs/${j.slug}`),
         lastmod: j.published_at ? new Date(j.published_at).toISOString() : undefined,

@@ -1,0 +1,88 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-building',
+  heading: 'Company Hub',
+  sub: 'Find SAP people, size the work, and know what it should cost.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+
+  <div class="row g-3 mb-4">
+    <%
+      const cards = [
+        { href: '/consultants', icon: 'bi-people', tone: 'icon-blue', title: 'Browse talent',
+          body: 'Search on modules actually delivered, full lifecycles, certifications, availability and day rate.' },
+        { href: '/jobs/new', icon: 'bi-plus-square', tone: 'icon-navyblue', title: 'Post a role',
+          body: 'Describe it in SAP terms — modules in scope, the Activate phase, the rate — and it reaches people filtering for exactly that.' },
+        { href: '/quotes/new', icon: 'bi-calculator', tone: 'icon-success', title: 'Size a programme',
+          body: 'Turn a scope into consultant-days, a phase plan and a budget, exportable as a document, workbook or deck.' },
+        { href: '/rates', icon: 'bi-graph-up', tone: 'icon-info', title: 'Check the market',
+          body: 'Day rates by role, experience and region: our published benchmark beside what consultants report.' }
+      ];
+    %>
+    <% cards.forEach(function (c) { %>
+      <div class="col-md-6">
+        <a class="glass-card d-block h-100 text-reset" href="<%= c.href %>">
+          <div class="card-body">
+            <span class="icon-tile icon-tile-sm <%= c.tone %> mb-2"><i class="bi <%= c.icon %>"></i></span>
+            <h2 class="h6 mb-1"><%= c.title %></h2>
+            <p class="small text-muted-2 mb-0"><%= c.body %></p>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <h2 class="h5 mb-3">Three ways to buy delivery</h2>
+  <div class="row g-3 mb-4">
+    <%# The three come from config/engagementModels.js, which is also what builds their routes. %>
+    <% models.forEach(function (m) { %>
+      <div class="col-lg-4">
+        <a class="glass-card d-block h-100 text-reset" href="/companies/<%= m.slug %>">
+          <div class="card-body">
+            <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi <%= m.icon %>"></i></span>
+            <h3 class="h6 mb-1"><%= m.label %></h3>
+            <p class="small text-muted-2 mb-2"><%= m.summary %></p>
+            <p class="small mb-0"><strong>Best for:</strong> <%= m.bestFor %></p>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h5 mb-3">What is different about hiring here</h2>
+    <ul class="mb-0">
+      <li><strong>Modules filter ANY-of, skills filter ALL-of.</strong> A programme touching
+          four modules finds anybody who has worked on any of them; a skill requirement
+          narrows. The controls do what they look like they do.</li>
+      <li><strong>Delivery history, not self-assessment.</strong> The module filter reads the
+          engagements a consultant has listed, so it cannot be satisfied by ticking a box.</li>
+      <li><strong>An estimate that reconciles.</strong> Phase days and resource days each sum
+          exactly to the total, every cost is days times a rate, and nothing is counted
+          twice. The breakdown is what you hand to your own finance team.</li>
+      <li><strong>A quote keeps its basis.</strong> Priced under the catalogue of the day it
+          was produced, and flagged rather than silently re-priced if the catalogue moves.</li>
+    </ul>
+  </div></div>
+
+  <div class="glass-card glass-card-tinted"><div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h2 class="h5 mb-2">Start wherever you are</h2>
+        <p class="text-muted-2 mb-0">
+          If you know who you need, browse talent. If you know the work but not the shape,
+          size it first — the estimator is free and needs no commitment. If neither is clear
+          yet, write to us and a person will answer.
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <a class="btn btn-primary mb-2" href="/auth/register">Create a company account</a>
+        <a class="btn btn-outline-secondary" href="/contact">Talk to a person</a>
+      </div>
+    </div>
+  </div></div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

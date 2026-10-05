@@ -1,0 +1,106 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: model.icon,
+  heading: model.label,
+  sub: model.summary
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="/company-hub">Company Hub</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= model.label %></li>
+    </ol>
+  </nav>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Best for</h2>
+        <p class="mb-0 small"><%= model.bestFor %></p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">You own</h2>
+        <p class="mb-0 small"><%= model.youOwn %></p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">We own</h2>
+        <p class="mb-0 small"><%= model.weOwn %></p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5 mb-3">How it works</h2>
+        <ol class="mb-0">
+          <% model.steps.forEach(function (step) { %>
+            <li class="mb-2">
+              <strong><%= step[0] %>.</strong>
+              <span class="text-muted-2"><%= step[1] %></span>
+            </li>
+          <% }) %>
+        </ol>
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5 mb-3">What you get</h2>
+        <ul class="mb-0 small">
+          <% model.benefits.forEach(function (b) { %><li class="mb-2"><%= b %></li><% }) %>
+        </ul>
+      </div></div>
+    </div>
+  </div>
+
+  <%#
+    The caveat is on the page, not left for the first invoice. A model page that only lists
+    benefits is a sales sheet; the one thing a reader cannot get anywhere else is when this
+    is the wrong choice.
+  %>
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">When this is the wrong fit</h2>
+    <p class="mb-0"><%= model.watchOut %></p>
+  </div></div>
+
+  <h2 class="h5 mb-3">The other two</h2>
+  <div class="row g-3 mb-4">
+    <% models.filter(function (m) { return m.slug !== model.slug; }).forEach(function (m) { %>
+      <div class="col-md-6">
+        <a class="glass-card d-block h-100 text-reset" href="/companies/<%= m.slug %>">
+          <div class="card-body">
+            <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi <%= m.icon %>"></i></span>
+            <h3 class="h6 mb-1"><%= m.label %></h3>
+            <p class="small text-muted-2 mb-0"><%= m.summary %></p>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="glass-card glass-card-tinted"><div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h2 class="h5 mb-2">Next step</h2>
+        <p class="text-muted-2 mb-0">
+          Pricing for anything paid on the Hub is on the <a href="/payments">pricing page</a>.
+          What an engagement itself costs depends on the scope, which the estimator will size
+          for you before you commit to anything.
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <a class="btn btn-primary mb-2" href="/consultants">Browse talent</a>
+        <a class="btn btn-outline-secondary" href="/contact">Get in touch</a>
+      </div>
+    </div>
+  </div></div>
+
+</div>
+</section>
+<%- include('../partials/layout-end') %>

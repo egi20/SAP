@@ -9,6 +9,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const countries = require('../config/all-countries.json');
+const { ENGAGEMENT_MODELS } = require('../config/engagementModels');
 
 const router = express.Router();
 
@@ -21,6 +22,24 @@ const router = express.Router();
  * the walkthrough argues this path should become canonical and /consultants become a
  * landing page, and that decision is not made yet.
  */
+/*
+ * The three engagement-model pages, with their paths DERIVED FROM THE CATALOGUE rather
+ * than written out again. A route list beside the config is the second copy of a
+ * vocabulary, and the failure is silent: a model renamed in one place answers 404 from the
+ * link the other place still renders.
+ *
+ * Declared before `/:slug`, like every other fixed path here.
+ */
+ENGAGEMENT_MODELS.forEach((model) => {
+  router.get(`/${model.slug}`, (req, res) => {
+    res.render('companies/engagement-model', {
+      title: model.label,
+      model,
+      models: ENGAGEMENT_MODELS
+    });
+  });
+});
+
 router.get('/talent', (req, res) => {
   const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
   res.redirect(302, `/consultants${qs}`);

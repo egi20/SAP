@@ -125,3 +125,46 @@ maybe()('Short aliases', () => {
     expect(res.headers.location).toBeUndefined();
   });
 });
+
+/**
+ * The landing pages, which exist because the walkthrough found no page answering "what is
+ * here for me" on either side of the marketplace.
+ */
+maybe()('Hub and engagement-model landings', () => {
+  beforeAll(() => {
+    app = require('../../server');
+  });
+
+  it.each([
+    ['/consultant-hub', 'Consultant Hub'],
+    ['/company-hub', 'Company Hub'],
+    ['/companies/staff-augmentation', 'Staff augmentation'],
+    ['/companies/project-based', 'Project-based'],
+    ['/companies/managed-services', 'Managed services']
+  ])('%s renders and is headed %s', async (href, heading) => {
+    const res = await request(app).get(href);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(heading);
+  });
+
+  it('keeps /consultants as the directory, not a landing page', async () => {
+    /*
+     * The reference puts its consultant landing page at /consultants and moves the
+     * directory to /companies/talent. That URL is the single most valuable one on the site —
+     * it is what somebody types to hire an SAP consultant — so it keeps the product, and
+     * the landing page got its own name.
+     */
+    const res = await request(app).get('/consultants');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Consultant Hub'); // the nav entry
+    expect(res.text).not.toContain('Everything here for the person doing the work.');
+  });
+
+  it('does not let an engagement slug be read as a company slug', async () => {
+    // They are declared before `/:slug`; without that, a company named "project-based"
+    // would take the page.
+    const res = await request(app).get('/companies/project-based');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('When this is the wrong fit');
+  });
+});

@@ -542,6 +542,35 @@ to the community tree and `unanswered` to a question; neither means anything for
 advert. Inventing a mapping between the two vocabularies would be a worse answer than
 admitting the filter does not apply.
 
+## The hub landings
+
+**`/consultants` stays the directory.** The reference puts its consultant landing page
+there and moves the directory to `/companies/talent`; here that would hand the single most
+valuable URL on the site — what somebody types, and what other sites link to, in order to
+hire an SAP consultant — to a page of prose, and bury the product behind the brochure. The
+landing pages are `/consultant-hub` and `/company-hub`, which match the labels already in
+the navigation. `/companies/talent` redirects to `/consultants` for anybody arriving from
+the reference's shape.
+
+**The three engagement models are a catalogue, not three pages.**
+`config/engagementModels.js` owns them, asserts itself at boot, and `routes/companies.js`
+BUILDS ITS ROUTES BY ITERATING IT — a route list written out beside the config is the second
+copy of a vocabulary, and the failure is silent: a model renamed in one place answers 404
+from the link the other place still renders. A unit test reads the route file and fails if
+a slug appears in it as a literal. They are declared before `/:slug`, or a company whose
+slug is "project-based" takes the page.
+
+**No model carries a price**, asserted both in the config and in a test. `config/payments.js`
+is the only module that decides what anything costs, and a figure on a page a client reads
+would be a second answer about money with nothing reconciling the two.
+
+**Each model says when it is the WRONG fit**, and the assertion requires it. A page that
+only lists benefits is a sales sheet; the caveat is the one thing the reader cannot get
+anywhere else.
+
+**No landing page carries a number that moves** — no consultant count, no average rate.
+Same rule as `/about`: a figure nobody owns is a figure nobody updates.
+
 ## Agencies
 
 **The guard is `isRecruiter` from `middleware/auth.js` and nowhere else.** This is the file

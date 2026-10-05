@@ -26,6 +26,7 @@ const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
+const { assertEngagementIntegrity } = require('./config/engagementModels');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -100,6 +101,13 @@ assertSocialIntegrity();
  * constant nobody can see. None of the three raises an error on its own.
  */
 assertBenchmarkIntegrity();
+/*
+ * And the engagement models: a slug that does not match its route renders the page
+ * under the wrong heading, a missing field renders as a blank bullet, and a price that
+ * drifted onto one of them is a second answer about money in front of a client. All
+ * three are wrong pages rather than errors.
+ */
+assertEngagementIntegrity();
 // Read once. These come from the environment and cannot change while the process runs.
 const SOCIAL_LINKS = socialLinks();
 
