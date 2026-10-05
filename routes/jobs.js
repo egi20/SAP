@@ -17,6 +17,7 @@ const { ROLE_CATEGORIES, isRole, ROLE_SLUGS } = require('../config/roleTaxonomy'
 const { PRODUCT_LINES, ALL_MODULES, isModule } = require('../config/sapProducts');
 const { JOB_FEATURE_DAYS, JOB_FEATURE_PRICE_MINOR, formatMinor } = require('../config/payments');
 const { jobPostingJsonLd } = require('../config/seoMeta');
+const config = require('../config/config');
 const { matchScore } = require('../utils/jobMatcher');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { returnTo } = require('../utils/returnTo');
@@ -338,7 +339,14 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const [jobSkills, jobModules] = await Promise.all([Skill.forJob(job.id), Job.modulesFor(job.id)]);
+    const [jobSkills, jobModules, applicationCount, company] = await Promise.all([
+      Skill.forJob(job.id),
+      Job.modulesFor(job.id),
+      Application.countForJob(job.id),
+      // The advertiser's own profile, for the "About the company" card. `job` already
+      // carries the name and the slug; this is the description and the rest of it.
+      CompanyProfile.findByUserId(job.company_user_id)
+    ]);
 
     let application = null;
     let saved = false;
@@ -382,6 +390,12 @@ router.get(
       saved,
       match,
       featuredUntil,
+      applicationCount,
+      company,
+      // Built here, not in the template: the canonical URL is config's to decide, and a
+      // share link assembled from whatever host the browser happened to use would carry
+      // localhost into somebody's timeline.
+      shareUrl: `${config.app.baseUrl}/jobs/${job.slug}`,
       jobStatuses: Job.STATUSES,
       jobFeatureDays: JOB_FEATURE_DAYS,
       jobFeaturePrice: formatMinor(JOB_FEATURE_PRICE_MINOR),

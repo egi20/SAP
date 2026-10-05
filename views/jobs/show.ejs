@@ -4,6 +4,18 @@
 <div class="container py-4">
   <%- include('../partials/flash') %>
 
+  <%#
+    A breadcrumb rather than a "Back" button. The app sends `Referrer-Policy: no-referrer`,
+    so the server cannot know where somebody came from, and a button labelled "Back" that
+    always goes to the same place is lying about half the time. This says where it goes.
+  %>
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="/jobs">All jobs</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= job.title %></li>
+    </ol>
+  </nav>
+
   <div class="row g-4">
     <div class="col-lg-8">
       <div class="glass-card mb-3">
@@ -211,6 +223,101 @@
               <strong>Modules</strong> counts the ones you have entered in your delivery history,
               not the ones you have listed as skills. Adding an engagement moves it.
             </p>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="glass-card mt-3">
+        <div class="card-body">
+          <h2 class="h6">Job overview</h2>
+          <ul class="list-unstyled small mb-0 job-overview">
+            <li><span class="text-muted-2">Engagement</span><span><%= job.engagement_type %></span></li>
+            <li><span class="text-muted-2">Work mode</span><span><%= job.work_mode %></span></li>
+            <li>
+              <span class="text-muted-2">Location</span>
+              <span><%= [job.city, job.country].filter(Boolean).join(', ') || 'Not stated' %></span>
+            </li>
+            <li><span class="text-muted-2">Experience</span><span><%= job.seniority %></span></li>
+            <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase %></span></li>
+            <% if (job.duration_months) { %>
+              <li><span class="text-muted-2">Duration</span><span><%= job.duration_months %> months</span></li>
+            <% } %>
+            <li>
+              <span class="text-muted-2">Posted</span>
+              <span><%= job.published_at ? new Date(job.published_at).toISOString().slice(0, 10) : 'Not yet' %></span>
+            </li>
+            <%#
+              Shown to everybody, and it excludes withdrawn applications: the number answers
+              "how much competition is there", and somebody who pulled out is not
+              competition. A candidate deciding where to spend an evening learns something
+              true from it, and hiding it advantages nobody but the advertiser.
+            %>
+            <li>
+              <span class="text-muted-2">Applications</span>
+              <span><%= applicationCount %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card mt-3">
+        <div class="card-body">
+          <h2 class="h6">Share this job</h2>
+          <%#
+            Plain links, built from the canonical URL the server decided — no third-party
+            share widget, which would mean a script from somebody else's domain on a page
+            that currently loads nothing from one. The copy button is added by main.js,
+            because it is the only one of the four that needs scripting.
+          %>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-secondary" rel="noopener" target="_blank"
+               href="https://www.linkedin.com/sharing/share-offsite/?url=<%= encodeURIComponent(shareUrl) %>">
+              <i class="bi bi-linkedin" aria-hidden="true"></i> LinkedIn
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" rel="noopener" target="_blank"
+               href="https://x.com/intent/tweet?url=<%= encodeURIComponent(shareUrl) %>&amp;text=<%= encodeURIComponent(job.title) %>">
+              <i class="bi bi-twitter-x" aria-hidden="true"></i> X
+            </a>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="mailto:?subject=<%= encodeURIComponent(job.title) %>&amp;body=<%= encodeURIComponent(shareUrl) %>">
+              <i class="bi bi-envelope" aria-hidden="true"></i> Email
+            </a>
+            <span class="copy-link" data-copy="<%= shareUrl %>"></span>
+          </div>
+        </div>
+      </div>
+
+      <%#
+        The test is `about || website`, and NOT company_type. That column has a DEFAULT of
+        'end_customer', so every row has one and a condition including it is always true —
+        which rendered an "About the company" heading over an empty box for a company that
+        had filled nothing in. A heading with nothing under it reads as a company that
+        could not be bothered.
+      %>
+      <% if (company && (company.about || company.website)) { %>
+        <div class="glass-card mt-3">
+          <div class="card-body">
+            <h2 class="h6">About <%= job.company_name %></h2>
+            <% if (company.company_type) { %>
+              <p class="small text-muted-2 mb-2">
+                <%= { end_customer: 'End customer', consulting_partner: 'Consulting partner',
+                      isv: 'ISV', staffing: 'Staffing company' }[company.company_type] || company.company_type %>
+                <% if (company.company_size) { %> · <%= company.company_size %> people<% } %>
+              </p>
+            <% } %>
+            <%# `about`, which is what the column is called. There is no `description`. %>
+            <% if (company.about) { %>
+              <p class="small mb-3"><%= toPlainText(company.about, 240) %></p>
+            <% } %>
+            <div class="d-flex flex-wrap gap-2">
+              <% if (job.company_slug) { %>
+                <a class="btn btn-sm btn-outline-primary" href="/companies/<%= job.company_slug %>">Their other roles</a>
+              <% } %>
+              <% if (company.website) { %>
+                <a class="btn btn-sm btn-outline-secondary" rel="nofollow noopener" target="_blank"
+                   href="<%= company.website %>">Website</a>
+              <% } %>
+            </div>
           </div>
         </div>
       <% } %>

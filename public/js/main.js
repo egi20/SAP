@@ -290,3 +290,68 @@
   }, { passive: true });
   update();
 }());
+
+/*
+ * Copy-link buttons.
+ *
+ * Built here rather than rendered, for the same reason as the password toggle: the button
+ * cannot work without scripting, and a server-rendered control that silently does nothing
+ * is worse than none. The URL comes from `data-copy`, which the server filled from the
+ * canonical base URL — not from `location.href`, which carries whatever query string the
+ * reader happened to arrive with into the link they then send somebody.
+ */
+(function copyLinks() {
+  document.querySelectorAll('.copy-link').forEach(function (slot) {
+    var url = slot.getAttribute('data-copy');
+    if (!url) return;
+
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-outline-secondary';
+    button.innerHTML = '<i class="bi bi-link-45deg" aria-hidden="true"></i> Copy link';
+
+    // aria-live, so the confirmation is announced rather than only seen.
+    var status = document.createElement('span');
+    status.className = 'visually-hidden';
+    status.setAttribute('aria-live', 'polite');
+
+    function confirm(text) {
+      button.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> ' + text;
+      status.textContent = text;
+      window.setTimeout(function () {
+        button.innerHTML = '<i class="bi bi-link-45deg" aria-hidden="true"></i> Copy link';
+        status.textContent = '';
+      }, 2000);
+    }
+
+    button.addEventListener('click', function () {
+      /*
+       * `navigator.clipboard` needs a secure context, which http://localhost is and a
+       * plain-http deployment is not. Falling back to a hidden field and execCommand keeps
+       * the button honest there rather than leaving it silently doing nothing.
+       */
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(function () { confirm('Copied'); },
+          function () { confirm('Press Ctrl+C'); });
+        return;
+      }
+      var field = document.createElement('input');
+      field.value = url;
+      field.setAttribute('readonly', '');
+      field.style.position = 'absolute';
+      field.style.left = '-9999px';
+      document.body.appendChild(field);
+      field.select();
+      try {
+        document.execCommand('copy');
+        confirm('Copied');
+      } catch (err) {
+        confirm('Press Ctrl+C');
+      }
+      field.remove();
+    });
+
+    slot.appendChild(button);
+    slot.appendChild(status);
+  });
+}());

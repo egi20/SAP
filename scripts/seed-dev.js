@@ -358,16 +358,18 @@ async function seed() {
   await CompanyProfile.ensureExists(employer.id, 'Nordwind Manufacturing');
   await CompanyProfile.update(employer.id, {
     company_type: 'end_customer', country: 'DE', city: 'Munich', website: 'https://example.test',
-    description: 'A manufacturing group mid-way through an S/4HANA conversion. Hiring contract and permanent across finance and supply chain.',
-    size_band: '1000-4999'
+    // `about` and `company_size` are what the columns are called. CompanyProfile.update
+    // filters against an allowed list, so a wrong name is dropped in silence.
+    about: 'A manufacturing group mid-way through an S/4HANA conversion. Hiring contract and permanent across finance and supply chain.',
+    company_size: '1000+'
   });
 
   const partner = await makeUser('partner.co', 'Meridian SAP Partners', ['company']);
   await CompanyProfile.ensureExists(partner.id, 'Meridian SAP Partners');
   await CompanyProfile.update(partner.id, {
     company_type: 'consulting_partner', country: 'NL', city: 'Utrecht', website: 'https://example.test',
-    description: 'Implementation partner working across S/4HANA finance and supply chain.',
-    size_band: '200-999'
+    about: 'Implementation partner working across S/4HANA finance and supply chain.',
+    company_size: '201-1000'
   });
 
   const agency = await makeUser('agency', 'Hanseatic SAP Recruitment', ['recruiter']);

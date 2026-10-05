@@ -182,6 +182,24 @@ class Application {
     return { rows, total };
   }
 
+  /**
+   * How many people have applied, for the advert's own overview card.
+   *
+   * WITHDRAWN APPLICATIONS ARE EXCLUDED. The number answers "how much competition is
+   * there", and somebody who pulled out is not competition — counting them inflates the
+   * figure in the one direction that discourages the next reader for no reason.
+   *
+   * It is shown publicly on purpose. A candidate deciding where to spend an evening
+   * learns something true from it, and hiding it advantages nobody but the advertiser.
+   */
+  static async countForJob(jobId) {
+    const [[row]] = await promisePool.query(
+      "SELECT COUNT(*) AS count FROM applications WHERE job_id = ? AND status <> 'withdrawn'",
+      [jobId]
+    );
+    return row.count;
+  }
+
   static async listForConsultant(consultantUserId, { limit = 30, offset = 0 } = {}) {
     const [rows] = await promisePool.query(
       `SELECT a.*, j.title AS job_title, j.slug AS job_slug, j.status AS job_status,

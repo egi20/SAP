@@ -622,6 +622,39 @@ to the community tree and `unanswered` to a question; neither means anything for
 advert. Inventing a mapping between the two vocabularies would be a worse answer than
 admitting the filter does not apply.
 
+## The job advert's page
+
+**A breadcrumb, not a "Back" button.** The app sends `Referrer-Policy: no-referrer`, so the
+server cannot know where somebody came from — and a button labelled "Back" that always goes
+to the same place is lying about half the time. The breadcrumb says where it goes. Same
+reason `res.redirect('back')` is banned.
+
+**The application count excludes withdrawn applications.** The number answers "how much
+competition is there", and somebody who pulled out is not competition: counting them
+inflates it in the one direction that discourages the next reader for nothing. It is public
+on purpose — a candidate deciding where to spend an evening learns something true from it,
+and hiding it advantages nobody but the advertiser.
+
+**Share links are built from `config.app.baseUrl`, never from the request.** A link
+assembled from whatever host the browser used carries localhost, or a staging hostname,
+into somebody's timeline, where it is wrong forever and nobody can tell why. They are plain
+links: a third-party share widget would be the first script from anybody else's domain on a
+page that currently loads none. The copy button is built by `public/js/main.js` from
+`data-copy` — not `location.href`, which would carry whatever query string the reader
+arrived with into the link they send on — and it falls back to `execCommand` because
+`navigator.clipboard` needs a secure context that a plain-http deployment is not.
+
+**"About the company" is gated on `about || website`, never on `company_type`.** That column
+has a DEFAULT of `end_customer`, so every row has one and a condition including it is always
+true — which rendered the heading over an empty box for a company that had filled nothing
+in. A heading with nothing under it reads as a company that could not be bothered.
+
+**`CompanyProfile.update` filters against an allowed list and drops an unknown key in
+silence.** The columns are `about` and `company_size`; writing `description` and
+`size_band` succeeds, changes nothing, and the page renders blank. Same shape as the
+certification that asked for `name` when the model returns `label`: in this codebase a
+wrong field name is not an error, it is an empty string.
+
 ## The talent directory is anonymous
 
 **Names and photographs are behind an account; everything else is not.** The consultants
