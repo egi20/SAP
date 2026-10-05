@@ -1066,6 +1066,14 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   .cookie-notice, .back-to-top { display: none !important; }
 }
 
+/* The feed card's "Show more". A <details>, so it needs no script. */
+/* No literal fallback: the palette test scans this file for reference-palette colours, and
+   a hard-coded hex here is exactly the drift it exists to catch. --bs-link-color is set
+   unconditionally at :root. */
+.post-more > summary { cursor: pointer; color: var(--bs-link-color); }
+.post-more > summary::marker { color: var(--bs-secondary-color, #6b7280); }
+.post-more[open] > summary { margin-bottom: 0.25rem; }
+
 /* The job overview list: label left, value right, on one line each. */
 .job-overview li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.25rem 0; }
 .job-overview li + li { border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)); }

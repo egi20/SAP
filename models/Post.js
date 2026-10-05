@@ -154,7 +154,13 @@ class Post {
     return rows[0] || null;
   }
 
-  static async browse(filters = {}, { limit = 20, offset = 0, sort = 'recent' } = {}) {
+  /**
+   * @param {number|null} viewerUserId  Their own vote on each row, so a card can show the
+   *   button already pressed. `services/feed.js` was passing this in and `browse` was not
+   *   taking it — the argument went nowhere and every card rendered unvoted however many
+   *   times its reader had voted.
+   */
+  static async browse(filters = {}, { limit = 20, offset = 0, sort = 'recent', viewerUserId = null } = {}) {
     const { clause, params } = buildFilter(filters);
     const orderBy = SORTS[sort] || SORTS.recent;
 
@@ -173,6 +179,7 @@ class Post {
               -- else, because every other caller filters it out in the builder.
               p.hidden_at,
               c.slug AS category_slug, c.name AS category_name, c.icon AS category_icon,
+              ${viewerUserId ? "(SELECT v.value FROM post_votes v WHERE v.user_id = ? AND v.target_type = 'post' AND v.target_id = p.id)" : 'NULL'} AS my_vote,
               ${AUTHOR_SELECT}
          FROM posts p
          JOIN post_categories c ON c.id = p.category_id
@@ -180,7 +187,9 @@ class Post {
         WHERE ${clause}
         ORDER BY ${orderBy}
         LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+      // The viewer's id binds FIRST: the subquery above sits ahead of the WHERE clause,
+      // and mysql2 fills `?` in the order they appear in the statement, not by name.
+      viewerUserId ? [viewerUserId, ...params, limit, offset] : [...params, limit, offset]
     );
 
     const [[{ total }]] = await promisePool.query(

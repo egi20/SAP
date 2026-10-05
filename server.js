@@ -309,6 +309,12 @@ app.use((req, res, next) => {
   // worse than no button.
   res.locals.linkedinReady = linkedinConfig.isConfigured();
   res.locals.supportEmail = config.app.supportEmail;
+  /*
+   * The canonical base, for the share and copy links a template builds. Never the request's
+   * host: a link assembled from whatever the browser used carries localhost, or a staging
+   * hostname, into whatever somebody pastes it into.
+   */
+  res.locals.appBaseUrl = config.app.baseUrl;
   res.locals.socialLinks = SOCIAL_LINKS;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;

@@ -1,6 +1,24 @@
 <%
   const meta = postKind(post.kind);
-  const preview = toPlainText(post.body, 240);
+
+  /*
+   * TWO extracts, not the whole body.
+   *
+   * "Show more" on the reference expands the full post inline, which means every card on
+   * a fifteen-card feed ships its entire article whether or not anybody opens it. Here the
+   * card carries a short extract and a longer one — enough to decide with — and the rest
+   * is behind the link that was always there. The bound is the point: a feed page must not
+   * grow with the length of what people wrote.
+   */
+  const SHORT = 280;
+  const LONG = 760;
+  const preview = toPlainText(post.body, SHORT);
+  const longer = toPlainText(post.body, LONG);
+  const hasMore = longer.length > preview.length;
+  const rest = hasMore ? longer.slice(preview.length - 1) : '';
+
+  const postUrl = '/community/' + post.slug;
+  const myVote = Number(post.my_vote) || 0;
 %>
 <article class="glass-card mb-3">
   <div class="card-body">
@@ -17,7 +35,7 @@
     </div>
 
     <h3 class="h5 mb-2">
-      <a class="text-reset" href="/community/<%= post.slug %>"><%= post.title %></a>
+      <a class="text-reset" href="<%= postUrl %>"><%= post.title %></a>
     </h3>
 
     <%#
@@ -31,16 +49,67 @@
       <span class="small text-muted-2">
         <a class="text-reset" href="/community/author/<%= post.author_user_id %>"><%= post.author_name %></a>
         <% if (post.author_role) { %> · <%= roleLabel(post.author_role) %><% } %>
+        <% if (post.author_points) { %> · <%= post.author_points %> pts<% } %>
       </span>
     </div>
 
-    <% if (preview) { %><p class="mb-3 text-muted-2"><%= preview %></p><% } %>
+    <% if (preview) { %>
+      <p class="mb-2 text-muted-2"><%= preview %></p>
+      <%#
+        A <details>, so it works with scripting off and the keyboard reaches it — the one
+        expander on the site that needs no JavaScript at all.
+      %>
+      <% if (hasMore) { %>
+        <details class="mb-2 post-more">
+          <summary class="small">Show more</summary>
+          <p class="mt-2 mb-0 text-muted-2"><%= rest %></p>
+          <p class="mt-2 mb-0 small"><a href="<%= postUrl %>">Read the rest</a></p>
+        </details>
+      <% } %>
+    <% } %>
 
-    <div class="d-flex flex-wrap align-items-center gap-3 small text-muted-2">
-      <span title="Votes"><i class="bi bi-arrow-up-circle"></i> <%= post.vote_score %></span>
-      <span title="Replies"><i class="bi bi-chat"></i> <%= post.reply_count %></span>
-      <span title="Views"><i class="bi bi-eye"></i> <%= post.view_count %></span>
-      <a class="ms-auto" href="/community/<%= post.slug %>">Open <i class="bi bi-arrow-right"></i></a>
+    <div class="d-flex flex-wrap align-items-center gap-2 small text-muted-2 mt-3">
+      <%#
+        The same endpoint the thread page votes through, so the points ledger is written in
+        one place. `redirectTo` carries where we are, because the app sends no Referer and
+        the route would otherwise land a feed reader on the community index.
+      %>
+      <% if (currentUser) { %>
+        <form method="post" action="/community/vote/post/<%= post.id %>" class="d-inline">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="redirectTo" value="<%= currentPath %>">
+          <%# Voting again clears it, which is what the model does with a repeated value. %>
+          <input type="hidden" name="value" value="<%= myVote === 1 ? 0 : 1 %>">
+          <button class="btn btn-sm <%= myVote === 1 ? 'btn-primary' : 'btn-outline-secondary' %>"
+                  type="submit" aria-pressed="<%= myVote === 1 %>">
+            <i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
+            <%= post.vote_score %>
+          </button>
+        </form>
+      <% } else { %>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="/auth/login?redirect=<%= encodeURIComponent(postUrl) %>"
+           title="Sign in to upvote this">
+          <i class="bi bi-arrow-up-circle" aria-hidden="true"></i> <%= post.vote_score %>
+        </a>
+      <% } %>
+
+      <%#
+        A link to the thread, not a box on the card. A reply written against 280 characters
+        of a question is a reply written without reading it — and duplicate answers are the
+        one thing a question thread cannot recover from. The composer is where the question
+        is.
+      %>
+      <a class="btn btn-sm btn-outline-secondary" href="<%= postUrl %>#reply">
+        <i class="bi bi-chat" aria-hidden="true"></i> <%= post.reply_count %>
+      </a>
+
+      <span class="copy-link" data-copy="<%= appBaseUrl %><%= postUrl %>"></span>
+
+      <span class="ms-auto d-flex align-items-center gap-3">
+        <span title="Views"><i class="bi bi-eye"></i> <%= post.view_count %></span>
+        <a href="<%= postUrl %>">Open <i class="bi bi-arrow-right"></i></a>
+      </span>
     </div>
   </div>
 </article>

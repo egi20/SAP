@@ -617,6 +617,30 @@ a SUM over both sources and is not deduplicated — same argument as search.
 only way two independently paginated sources interleave correctly, since neither knows how
 many of the other's rows sort above it. That cost is why the feed pages in fifteens.
 
+**The card's controls go through paths that already exist.** The upvote posts to
+`/community/vote/post/:id`, the one endpoint the thread page uses, so the points ledger
+keeps a single writer; the copy link is built from `appBaseUrl`, never the request; and
+"reply" is a LINK to the thread's `#reply` anchor rather than a box on the card. A reply
+written against 280 characters of a question is a reply written without reading it, and
+duplicate answers are the one thing a question thread cannot recover from.
+
+**"Show more" holds a longer extract, not the body.** The reference expands the whole post
+inline, so every card on a fifteen-card feed ships its entire article whether or not
+anybody opens it — a feed page must not grow with the length of what people wrote. The card
+carries 280 characters and a 760-character extract behind a `<details>`, which is the one
+expander on the site that needs no script and that the keyboard reaches unaided.
+
+**`Post.browse` takes `viewerUserId` and uses it.** It did not, while `services/feed.js`
+passed one in — the argument went nowhere and every card rendered unvoted however many
+times its reader had voted. The viewer's id binds FIRST in that query, because the
+`my_vote` subquery sits ahead of the WHERE clause and mysql2 fills `?` in statement order.
+`countsByKind` takes no viewer at all: a count of posts by kind is the same number for
+everybody, and passing one read like a feature.
+
+**The vote route returns through `returnTo`.** Its own allow-list accepted only paths under
+`/community`, so a vote cast on the home feed threw the reader onto the community index —
+a page they had not asked for, having lost their place in the one they had.
+
 **A community filter narrows the feed to posts, and the page says so.** A category belongs
 to the community tree and `unanswered` to a question; neither means anything for an
 advert. Inventing a mapping between the two vocabularies would be a worse answer than
@@ -1174,6 +1198,11 @@ Clear fixtures on the way IN, which also makes a run independent of how the last
 Two `afterAll`s in one file both ending the pool is the same trap one step earlier: every
 test in the describe after the first one queries a closed pool, and it surfaces as a 500
 from the route, which reads exactly like an application bug.
+
+**A hard-coded hex in `public/css/style.css` fails the palette test**, which scans that
+file for colours from the two reference palettes. `var(--token, #fallback)` counts: the
+fallback is a literal in the file. The tokens at `:root` are set unconditionally, so there
+is nothing to fall back from.
 
 supertest parses a body whose type it recognises and hands back `{}` for one it does not,
 so `res.body` is not a Buffer for a .pptx or a .zip. Download tests pass a binary parser

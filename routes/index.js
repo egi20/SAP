@@ -57,7 +57,7 @@ router.get(
 
     const [feed, counts, leaderboard, newMembers, standing, unread, landing] = await Promise.all([
       homeFeed(filters, { limit, offset }, user ? user.id : null),
-      feedCounts(filters, user ? user.id : null),
+      feedCounts(filters),
       Points.leaderboard({ days: 30, limit: 6 }),
       countRecentMembers(),
       user ? Points.standingFor(user.id) : Promise.resolve(null),

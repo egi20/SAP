@@ -11,6 +11,7 @@ const { writeLimiter, ipLimiter } = require('../middleware/rateLimit');
 const { communityWritable } = require('../middleware/settingsGates');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
+const { returnTo } = require('../utils/returnTo');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { sanitizeRichText, toPlainText } = require('../utils/sanitize');
 const { POST_KINDS, isPostKind, postKind } = require('../config/community');
@@ -41,7 +42,7 @@ router.get(
     const sort = ['recent', 'newest', 'top', 'busiest'].includes(req.query.sort) ? req.query.sort : 'recent';
 
     const [{ rows, total }, categories, counts, leaderboard] = await Promise.all([
-      Post.browse(filters, { limit, offset, sort }),
+      Post.browse(filters, { limit, offset, sort, viewerUserId: req.session.user ? req.session.user.id : null }),
       Post.listCategories(),
       Post.countsByKind(filters),
       Points.leaderboard({ days: 30, limit: 8 })
@@ -368,7 +369,13 @@ router.post(
       }
     }
 
-    return res.redirect(req.body.redirectTo && req.body.redirectTo.startsWith('/community/') ? req.body.redirectTo : '/community');
+    /*
+     * `returnTo`, not a private allow-list. The hand-rolled check only accepted paths
+     * under /community, so a vote cast from the home feed threw the reader onto the
+     * community index — a page they had not asked for, having lost their place in the one
+     * they had. See utils/returnTo.js.
+     */
+    return res.redirect(returnTo(req, '/community'));
   })
 );
 

@@ -89,12 +89,14 @@ async function homeFeed(filters, { limit, offset }, viewerUserId = null) {
  * Counts for the filter pills, from the same sources the list reads. A pill must never
  * promise rows the list will not show.
  */
-async function feedCounts(filters, viewerUserId = null) {
+async function feedCounts(filters) {
+  // No viewer argument: a count of posts by kind is the same number for everybody, and
+  // `countsByKind` never took one. Passing it was noise that read like a feature.
   const postCounts = await Post.countsByKind({
     kind: '',
     category_slug: filters.category_slug,
     unanswered: filters.unanswered
-  }, viewerUserId);
+  });
 
   if (communityOnly(filters)) return { ...postCounts, [JOB_KIND]: 0 };
 

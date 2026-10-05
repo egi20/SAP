@@ -188,8 +188,13 @@
           <% }); %>
         <% } %>
 
+        <%#
+          `id="reply"` so the feed card's reply button lands here rather than at the top of
+          a thread the reader then has to scroll. The anchor is on the form, not the
+          textarea, so the label is on screen with it.
+        %>
         <% if (currentUser && !post.is_locked) { %>
-          <form method="post" action="/community/<%= post.slug %>/reply" class="glass-card">
+          <form method="post" action="/community/<%= post.slug %>/reply" class="glass-card" id="reply">
             <div class="card-body">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <label class="form-label" for="body"><%= kind.solvable ? 'Your answer' : 'Your reply' %></label>
@@ -198,6 +203,7 @@
             </div>
           </form>
         <% } else if (!currentUser) { %>
+          <span id="reply"></span>
           <div class="glass-card">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
               <span class="text-muted-2">Sign in to reply.</span>
