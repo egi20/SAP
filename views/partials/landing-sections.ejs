@@ -1,0 +1,39 @@
+<%#
+  The rest of the landing page, BELOW the feed. "Latest roles" and "Available consultants"
+  used to sit here and are gone: the feed now carries job adverts itself, and a page that
+  lists the same six roles twice reads as a page with nothing in it.
+%>
+<div class="container">
+  <section class="mb-5">
+    <h2 class="mb-3">Browse by cloud</h2>
+    <div class="row g-3">
+      <% productLines.forEach(function (f) { %>
+        <div class="col-6 col-md-4 col-lg-3">
+          <a class="glass-card d-block h-100 text-reset animate-on-scroll" href="/jobs?module=<%= f.modules[0].value %>">
+            <div class="card-body text-center">
+              <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-cloud"></i></span>
+              <h3 class="h6 mb-1"><%= f.label %></h3>
+              <p class="small text-muted-2 mb-0"><%= f.modules.length %> modules</p>
+            </div>
+          </a>
+        </div>
+      <% }); %>
+    </div>
+  </section>
+
+  <section class="glass-card glass-card-tinted p-4 mb-5 animate-on-scroll">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h2 class="mb-2">Know what the work is worth</h2>
+        <p class="mb-0 text-muted-2">
+          The rate index is built from figures contributed by consultants, one per person per month.
+          No bucket is published until at least three different people have contributed to it, so a
+          small market cannot become a guessing game about one person's pay.
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <a class="btn btn-primary" href="/rates"><i class="bi bi-graph-up"></i> Open the rate index</a>
+      </div>
+    </div>
+  </section>
+</div>

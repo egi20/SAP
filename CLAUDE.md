@@ -492,6 +492,35 @@ with a reason.
 crawl space, every query string a distinct URL; a meta tag only stops it being indexed
 after it has already been fetched.
 
+## The home feed
+
+**`/` is one page for everybody, and it is the feed.** It used to be two — a landing page
+for a visitor, the feed for a member — and a comparison against the reference, done logged
+out, is what retired that: a marketplace that shows a stranger a page of claims while
+members see the activity hides the only evidence the claims are true, from exactly the
+person who needs it. The landing material survives around the feed, above and below, and
+renders for nobody who is signed in.
+
+**`services/feed.js` adds no filter of its own, for the same reason `services/search.js`
+does not.** Both sources go through the same `browse` their own list pages call, so a draft
+advert and a hidden post are invisible on the front page without anything in the feed
+knowing why. A feed with its own WHERE clause would be a second place that has to remember
+`status = 'open'` and `hidden_at IS NULL`, and the front page is the worst place to forget.
+Tests create a draft job and a hidden post and assert the stranger's feed shows neither.
+
+**Order is strictly by date and there is no cross-type score.** A job advert and a
+five-hundred-word article have nothing comparable to rank against each other. The total is
+a SUM over both sources and is not deduplicated — same argument as search.
+
+**The mixed page asks each source for `offset + limit` and slices the merge.** It is the
+only way two independently paginated sources interleave correctly, since neither knows how
+many of the other's rows sort above it. That cost is why the feed pages in fifteens.
+
+**A community filter narrows the feed to posts, and the page says so.** A category belongs
+to the community tree and `unanswered` to a question; neither means anything for an
+advert. Inventing a mapping between the two vocabularies would be a worse answer than
+admitting the filter does not apply.
+
 ## Agencies
 
 **The guard is `isRecruiter` from `middleware/auth.js` and nowhere else.** This is the file
@@ -818,6 +847,15 @@ without one — the decision is made in `tests/globalSetup.js`, in the parent pr
 so a flag set in a hook is still false when the suite decides whether to skip. The first
 version of that suite reported seven skipped tests against a database that was running,
 which is the worst outcome available — a green run that tested nothing.
+
+**Do not close the pool in a test file.** `tests/setup.js` registers a global `afterAll`
+that closes the pool and the session store, and a hook registered there runs BEFORE a
+top-level hook in the test file — so a top-level `afterAll` that queries anything gets
+"Pool is closed", which Jest reports as the suite failing while every test in it passed.
+Clear fixtures on the way IN, which also makes a run independent of how the last one ended.
+Two `afterAll`s in one file both ending the pool is the same trap one step earlier: every
+test in the describe after the first one queries a closed pool, and it surfaces as a 500
+from the route, which reads exactly like an application bug.
 
 supertest parses a body whose type it recognises and hands back `{}` for one it does not,
 so `res.body` is not a Buffer for a .pptx or a .zip. Download tests pass a binary parser

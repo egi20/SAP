@@ -6,10 +6,10 @@ const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const Job = require('../models/Job');
-const Post = require('../models/Post');
 const Points = require('../models/Points');
 const Notification = require('../models/Notification');
 const { POST_KINDS, isPostKind, postKind } = require('../config/community');
+const { homeFeed, feedCounts, JOB_KIND } = require('../services/feed');
 const { toPlainText } = require('../utils/sanitize');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const RateSubmission = require('../models/RateSubmission');
@@ -19,82 +19,93 @@ const legalVersions = require('../config/legal-versions');
 
 const router = express.Router();
 
-/*
- * TWO HOME PAGES: a landing page for a visitor, the community feed for a member.
+/**
+ * GET /  — ONE home page, the feed, for everybody.
  *
- * The core commit deliberately served one page to both, because the feed is a community
- * feature and a signed-in member would otherwise have landed on something emptier than
- * what they saw before they joined. The community is here now, so the split is too.
+ * It used to be two: a landing page for a visitor, the feed for a member. A comparison
+ * against the reference, done logged out, is what retired that. A marketplace that shows a
+ * stranger a page of claims while members see the activity hides the only evidence the
+ * claims are true — and the visitor is exactly the person who needs it. So the feed is the
+ * page, and the landing material it replaced is still here: the hero and the four numbers
+ * above it, where they say what this is before the feed shows it happening, and the rest
+ * below.
+ *
+ * None of that renders for a member. They have read it, and for them it would push the
+ * thing they came back for below the fold.
+ *
+ * The feed itself is `services/feed.js`, which adds no filter of its own — see the note
+ * there. Nothing in this handler decides what a stranger may see.
  */
 router.get(
   '/',
-  asyncHandler(async (req, res, next) => {
-    if (req.session.user) return feedHandler(req, res, next);
+  asyncHandler(async (req, res) => {
+    const user = req.session.user || null;
 
-    const [latestJobs, featuredConsultants, contributors] = await Promise.all([
-      Job.browse({}, { limit: 6, sort: 'newest' }),
-      ConsultantProfile.browse({}, { limit: 6 }),
-      RateSubmission.totalContributors()
+    const filters = {
+      kind: isFeedKind(req.query.kind) ? req.query.kind : '',
+      category_slug: req.query.category ? String(req.query.category).slice(0, 64) : '',
+      unanswered: req.query.unanswered === '1' ? '1' : ''
+    };
+
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 15 });
+
+    const [feed, counts, leaderboard, newMembers, standing, unread, landing] = await Promise.all([
+      homeFeed(filters, { limit, offset }, user ? user.id : null),
+      feedCounts(filters, user ? user.id : null),
+      Points.leaderboard({ days: 30, limit: 6 }),
+      countRecentMembers(),
+      user ? Points.standingFor(user.id) : Promise.resolve(null),
+      user ? Notification.unreadCount(user.id) : Promise.resolve(0),
+      user ? Promise.resolve(null) : landingData()
     ]);
 
-    res.render('index', {
-      title: res.locals.seo.title,
-      latestJobs: latestJobs.rows,
-      totalJobs: latestJobs.total,
-      featuredConsultants: featuredConsultants.rows,
-      totalConsultants: featuredConsultants.total,
-      // Stated as the plain number of people who have contributed, because an
-      // unverifiable scale claim is worse than a small honest one.
-      rateContributors: contributors,
-      roleCategories: ROLE_CATEGORIES,
-      productLines: PRODUCT_LINES
+    res.render('feed/index', {
+      title: user ? 'Home' : res.locals.seo.title,
+      entries: feed.entries,
+      postsOnly: feed.postsOnly,
+      counts,
+      filters,
+      standing,
+      leaderboard,
+      newMembers,
+      unread,
+      landing,
+      kinds: POST_KINDS,
+      jobKind: JOB_KIND,
+      postKind,
+      toPlainText,
+      greeting: greetingFor(new Date()),
+      pagination: paginationMeta({ page, perPage, total: feed.total }),
+      pageUrl: (p) => pageUrl('/', req.query, p)
     });
   })
 );
 
+/** The feed's type vocabulary: the community's post kinds, plus job adverts. */
+function isFeedKind(value) {
+  return value === JOB_KIND || isPostKind(value);
+}
+
 /**
- * The signed-in feed.
- *
- * Deliberately one query set and no personalisation beyond the filters: a feed that tries
- * to guess what somebody wants, on a community this size, mostly hides things.
+ * What the landing half of the page needs. Fetched only for a visitor who is not signed
+ * in, because it is the only reader it renders for — a member pays for none of it.
  */
-const feedHandler = asyncHandler(async (req, res) => {
-  const filters = {
-    kind: isPostKind(req.query.kind) ? req.query.kind : '',
-    category_slug: req.query.category ? String(req.query.category).slice(0, 64) : '',
-    unanswered: req.query.unanswered === '1' ? '1' : ''
-  };
-
-  const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 15 });
-
-  const [{ rows: posts, total }, counts, standing, leaderboard, newMembers, unread, latestJobs] = await Promise.all([
-    Post.browse(filters, { limit, offset, sort: 'recent' }),
-    Post.countsByKind(filters),
-    Points.standingFor(req.session.user.id),
-    Points.leaderboard({ days: 30, limit: 6 }),
-    countRecentMembers(),
-    Notification.unreadCount(req.session.user.id),
-    Job.browse({}, { limit: 4, sort: 'newest' })
+async function landingData() {
+  const [jobs, consultants, rateContributors] = await Promise.all([
+    Job.browse({}, { limit: 1, sort: 'newest' }),
+    ConsultantProfile.browse({}, { limit: 1 }),
+    RateSubmission.totalContributors()
   ]);
-
-  res.render('feed/index', {
-    title: 'Home',
-    posts,
-    counts,
-    filters,
-    standing,
-    leaderboard,
-    newMembers,
-    unread,
-    latestJobs: latestJobs.rows,
-    kinds: POST_KINDS,
-    postKind,
-    toPlainText,
-    greeting: greetingFor(new Date()),
-    pagination: paginationMeta({ page, perPage, total }),
-    pageUrl: (p) => pageUrl('/', req.query, p)
-  });
-});
+  return {
+    totalJobs: jobs.total,
+    totalConsultants: consultants.total,
+    // The plain number of people who have contributed: an unverifiable scale claim is
+    // worse than a small honest one.
+    rateContributors,
+    roleCategories: ROLE_CATEGORIES,
+    productLines: PRODUCT_LINES
+  };
+}
 
 /** People who joined in the last seven days — the "new this week" line. */
 async function countRecentMembers() {

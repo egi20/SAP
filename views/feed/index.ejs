@@ -1,61 +1,131 @@
 <%- include('../partials/layout-start') %>
 
-<section class="glass-section pt-5">
+<%#
+  ONE home page for everybody. The hero and the four numbers render only for a visitor who
+  is not signed in: a member has read them, and for them they would push the thing they came
+  back for below the fold.
+%>
+<% if (!currentUser) { %>
+  <%- include('../partials/landing-hero', landing) %>
+<% } %>
+
+<section class="glass-section <%= currentUser ? 'pt-5' : '' %>">
   <div class="container">
     <%- include('../partials/flash') %>
 
-    <div class="mb-4">
-      <h1 class="mb-1"><%= greeting %>, <%= currentUser.name.split(' ')[0] %></h1>
-      <p class="text-muted-2 mb-0">The community kept busy while you were away — here's the latest.</p>
-    </div>
-
-    <%- include('../partials/composer') %>
+    <% if (currentUser) { %>
+      <div class="mb-4">
+        <h1 class="mb-1"><%= greeting %>, <%= currentUser.name.split(' ')[0] %></h1>
+        <p class="text-muted-2 mb-0">The community kept busy while you were away — here's the latest.</p>
+      </div>
+      <%- include('../partials/composer') %>
+    <% } else { %>
+      <div class="mb-4">
+        <h2 class="mb-1">Live from the community</h2>
+        <p class="text-muted-2 mb-0">
+          Every role posted and every question asked, newest first. Reading needs no account.
+        </p>
+      </div>
+    <% } %>
 
     <div class="row g-4">
       <div class="col-lg-8">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <%- include('../partials/kind-filters', { filterBase: '/' }) %>
+          <%- include('../partials/kind-filters', { filterBase: '/', includeJobs: true }) %>
           <a class="btn btn-navy btn-sm mb-3" href="/community">
             <i class="bi bi-people"></i> Community home <i class="bi bi-arrow-right"></i>
           </a>
         </div>
 
-        <% if (posts.length === 0) { %>
+        <% if (postsOnly) { %>
+          <%#
+            A category belongs to the community tree and `unanswered` to a question; neither
+            means anything for a job advert. Rather than inventing a mapping between the two
+            vocabularies, the feed narrows — and says that it has.
+          %>
+          <p class="small text-muted-2">
+            Showing community posts only: that filter does not apply to job adverts.
+            <a href="/">Clear it</a> to see everything.
+          </p>
+        <% } %>
+
+        <% if (entries.length === 0) { %>
           <div class="empty-state glass-card">
             <i class="bi bi-chat-square-text"></i>
             <p class="mb-1">Nothing here yet.</p>
-            <p class="small mb-3">Be the first — a question counts as much as an article.</p>
-            <a class="btn btn-primary" href="/community/new">Write the first post</a>
+            <% if (currentUser) { %>
+              <p class="small mb-3">Be the first — a question counts as much as an article.</p>
+              <a class="btn btn-primary" href="/community/new">Write the first post</a>
+            <% } else { %>
+              <p class="small mb-3">Nothing has been posted yet. An account is free, and the first post counts double.</p>
+              <a class="btn btn-primary" href="/auth/register">Create an account</a>
+            <% } %>
           </div>
         <% } else { %>
-          <% posts.forEach(function (post) { %>
-            <%- include('../partials/post-card', { post: post }) %>
+          <% entries.forEach(function (entry) { %>
+            <% if (entry.type === 'job') { %>
+              <%- include('../partials/job-card', { job: entry.job }) %>
+            <% } else { %>
+              <%- include('../partials/post-card', { post: entry.post }) %>
+            <% } %>
           <% }); %>
           <%- include('../partials/pagination') %>
         <% } %>
       </div>
 
       <aside class="col-lg-4">
-        <div class="glass-card mb-3">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="match-ring" style="--pct: <%= standing.progressPercent %>">
-                <span><%= standing.level %></span>
-              </div>
-              <div class="flex-grow-1">
-                <strong><%= standing.title %></strong>
-                <div class="meter mt-2"><i style="width: <%= standing.progressPercent %>%"></i></div>
-                <p class="small text-muted-2 mb-0 mt-1">
-                  <% if (standing.nextLevel) { %>
-                    <%= standing.pointsToNext %> pts to level <%= standing.nextLevel %>
-                  <% } else { %>
-                    <%= standing.points %> pts — top level
-                  <% } %>
-                </p>
+        <% if (currentUser) { %>
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-3">
+                <div class="match-ring" style="--pct: <%= standing.progressPercent %>">
+                  <span><%= standing.level %></span>
+                </div>
+                <div class="flex-grow-1">
+                  <strong><%= standing.title %></strong>
+                  <div class="meter mt-2"><i style="width: <%= standing.progressPercent %>%"></i></div>
+                  <p class="small text-muted-2 mb-0 mt-1">
+                    <% if (standing.nextLevel) { %>
+                      <%= standing.pointsToNext %> pts to level <%= standing.nextLevel %>
+                    <% } else { %>
+                      <%= standing.points %> pts — top level
+                    <% } %>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        <% } else { %>
+          <%#
+            What a member sees here is their own standing. A visitor has none, so the slot
+            answers the question they actually have — what an account is for — rather than
+            showing them an empty progress ring.
+          %>
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">New here?</h2>
+              <p class="small mb-3">
+                Reading is open to everybody. An account is free and takes a minute.
+              </p>
+              <div class="d-flex gap-2">
+                <a class="btn btn-primary btn-sm" href="/auth/register">Sign up</a>
+                <a class="btn btn-outline-secondary btn-sm" href="/auth/login">Sign in</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card mb-3">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Why sign in?</h2>
+              <ul class="small mb-0 ps-3">
+                <li>Apply for roles and message the people advertising them</li>
+                <li>Ask a question, answer one, and build a standing that shows</li>
+                <li>See consultants' names in the directory</li>
+                <li>Contribute a day rate, and read the buckets it helps publish</li>
+              </ul>
+            </div>
+          </div>
+        <% } %>
 
         <div class="glass-card mb-3">
           <div class="card-body">
@@ -69,7 +139,7 @@
         </div>
 
         <% if (leaderboard.length) { %>
-          <div class="glass-card mb-3">
+          <div class="glass-card">
             <div class="card-body">
               <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Most helpful, 30 days</h2>
               <ul class="list-unstyled mb-0">
@@ -87,28 +157,13 @@
             </div>
           </div>
         <% } %>
-
-        <div class="glass-card">
-          <div class="card-body">
-            <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Latest roles</h2>
-            <% if (latestJobs.length === 0) { %>
-              <p class="small text-muted-2 mb-0">No open roles right now.</p>
-            <% } else { %>
-              <ul class="list-unstyled mb-2">
-                <% latestJobs.forEach(function (job) { %>
-                  <li class="mb-2">
-                    <a class="text-reset d-block text-truncate" href="/jobs/<%= job.slug %>"><%= job.title %></a>
-                    <span class="small text-muted-2"><%= job.company_name || 'Confidential' %></span>
-                  </li>
-                <% }); %>
-              </ul>
-              <a class="small" href="/jobs">All jobs <i class="bi bi-arrow-right"></i></a>
-            <% } %>
-          </div>
-        </div>
       </aside>
     </div>
   </div>
 </section>
+
+<% if (!currentUser) { %>
+  <%- include('../partials/landing-sections', landing) %>
+<% } %>
 
 <%- include('../partials/layout-end') %>

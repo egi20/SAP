@@ -1,5 +1,10 @@
-<%- include('partials/layout-start') %>
-
+<%#
+  The landing half of the home page, shown ABOVE the feed to a visitor who is not signed in
+  and not at all to a member — who has seen it, and for whom it would push the thing they
+  came back for below the fold. It carries what the feed cannot: what this site is, the
+  search that starts the most common journey, and the four numbers that say whether any of
+  it is worth their time.
+%>
 <section class="hero">
   <div class="container">
     <div class="row align-items-center g-4">
@@ -37,8 +42,7 @@
 </section>
 
 <div class="container">
-  <%- include('partials/flash') %>
-
+  
   <div class="row g-3 mb-5">
     <%
       const homeStats = [
@@ -60,71 +64,4 @@
       </div>
     <% }); %>
   </div>
-
-  <section class="mb-5">
-    <div class="d-flex justify-content-between align-items-end mb-3">
-      <h2 class="mb-0">Latest roles</h2>
-      <a href="/jobs">See all jobs <i class="bi bi-arrow-right"></i></a>
-    </div>
-    <% if (latestJobs.length === 0) { %>
-      <div class="empty-state glass-card"><i class="bi bi-briefcase"></i>No roles posted yet.</div>
-    <% } else { %>
-      <div class="row g-3">
-        <% latestJobs.forEach(function (job) { %>
-          <div class="col-lg-6"><%- include('partials/job-card', { job: job }) %></div>
-        <% }); %>
-      </div>
-    <% } %>
-  </section>
-
-  <section class="mb-5">
-    <div class="d-flex justify-content-between align-items-end mb-3">
-      <h2 class="mb-0">Available consultants</h2>
-      <a href="/consultants">See all talent <i class="bi bi-arrow-right"></i></a>
-    </div>
-    <% if (featuredConsultants.length === 0) { %>
-      <div class="empty-state glass-card"><i class="bi bi-people"></i>No public profiles yet.</div>
-    <% } else { %>
-      <div class="row g-3">
-        <% featuredConsultants.forEach(function (c) { %>
-          <div class="col-md-6 col-lg-4"><%- include('partials/consultant-card', { c: c }) %></div>
-        <% }); %>
-      </div>
-    <% } %>
-  </section>
-
-  <section class="mb-5">
-    <h2 class="mb-3">Browse by cloud</h2>
-    <div class="row g-3">
-      <% productLines.forEach(function (f) { %>
-        <div class="col-6 col-md-4 col-lg-3">
-          <a class="glass-card d-block h-100 text-reset animate-on-scroll" href="/jobs?module=<%= f.modules[0].value %>">
-            <div class="card-body text-center">
-              <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-cloud"></i></span>
-              <h3 class="h6 mb-1"><%= f.label %></h3>
-              <p class="small text-muted-2 mb-0"><%= f.modules.length %> modules</p>
-            </div>
-          </a>
-        </div>
-      <% }); %>
-    </div>
-  </section>
-
-  <section class="glass-card glass-card-tinted p-4 mb-5 animate-on-scroll">
-    <div class="row align-items-center g-3">
-      <div class="col-lg-8">
-        <h2 class="mb-2">Know what the work is worth</h2>
-        <p class="mb-0 text-muted-2">
-          The rate index is built from figures contributed by consultants, one per person per month.
-          No bucket is published until at least three different people have contributed to it, so a
-          small market cannot become a guessing game about one person's pay.
-        </p>
-      </div>
-      <div class="col-lg-4 text-lg-end">
-        <a class="btn btn-primary" href="/rates"><i class="bi bi-graph-up"></i> Open the rate index</a>
-      </div>
-    </div>
-  </section>
 </div>
-
-<%- include('partials/layout-end') %>

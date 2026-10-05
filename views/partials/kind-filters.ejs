@@ -9,7 +9,11 @@
     const s = params.toString();
     return s ? base + '?' + s : base;
   };
-  const totalCount = Object.values(counts || {}).reduce(function (a, b) { return a + b; }, 0);
+  /* The home feed carries job adverts beside the posts; /community does not. */
+  const withJobs = typeof includeJobs !== 'undefined' && includeJobs;
+  const totalCount = Object.entries(counts || {})
+    .filter(function (e) { return withJobs || e[0] !== 'job'; })
+    .reduce(function (a, e) { return a + e[1]; }, 0);
 %>
 <div class="d-flex flex-wrap gap-2 mb-3">
   <a class="btn btn-sm <%= filters.kind ? 'btn-outline-primary' : 'btn-primary' %>" href="<%= qs({}) %>">
@@ -22,4 +26,11 @@
       <span class="opacity-75">(<%= counts[k.value] || 0 %>)</span>
     </a>
   <% }); %>
+  <% if (withJobs) { %>
+    <a class="btn btn-sm <%= filters.kind === 'job' ? 'btn-primary' : 'btn-outline-primary' %>"
+       href="<%= qs({ kind: 'job' }) %>">
+      <i class="bi bi-briefcase"></i> Jobs
+      <span class="opacity-75">(<%= counts.job || 0 %>)</span>
+    </a>
+  <% } %>
 </div>

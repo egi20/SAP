@@ -10,7 +10,6 @@
  */
 
 const request = require('supertest');
-const { promisePool } = require('../../config/database');
 const { benchmark } = require('../../utils/rateBenchmark');
 
 const reachable = process.env.TEST_DATABASE_AVAILABLE === '1';
@@ -18,10 +17,13 @@ const maybe = () => (reachable ? describe : describe.skip);
 
 let app;
 
-afterAll(async () => {
-  await promisePool.end().catch(() => {});
-});
-
+/*
+ * NO POOL TEARDOWN HERE. `tests/setup.js` registers a global afterAll that closes the pool
+ * and the session store, and a hook registered there runs BEFORE a top-level hook in this
+ * file — so a top-level afterAll that queries anything gets "Pool is closed", which Jest
+ * reports as the whole suite failing while every test in it passed. Fixtures are therefore
+ * cleared on the way IN, which also makes a run independent of how the last one ended.
+ */
 maybe()('GET /rates/calculator', () => {
   beforeAll(() => {
     app = require('../../server');

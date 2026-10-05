@@ -21,7 +21,6 @@
 const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
-const { promisePool } = require('../../config/database');
 
 const reachable = process.env.TEST_DATABASE_AVAILABLE === '1';
 const maybe = () => (reachable ? describe : describe.skip);
@@ -55,15 +54,12 @@ const ALL_LINKS = PARTIALS.flatMap((file) => linksIn(file).map((href) => [file, 
 let app;
 
 /*
- * ONE teardown for the whole file, not one per describe. The pool is shared, so a second
- * `afterAll` closing it leaves every test in the describe after it querying a closed
- * pool — which surfaces as a 500 from the route and reads exactly like an application
- * bug. It cost a diagnosis the first time.
+ * NO POOL TEARDOWN HERE. `tests/setup.js` registers a global afterAll that closes the pool
+ * and the session store, and a hook registered there runs BEFORE a top-level hook in this
+ * file — so a top-level afterAll that queries anything gets "Pool is closed", which Jest
+ * reports as the whole suite failing while every test in it passed. Fixtures are therefore
+ * cleared on the way IN, which also makes a run independent of how the last one ended.
  */
-afterAll(async () => {
-  await promisePool.end().catch(() => {});
-});
-
 maybe()('Navigation and footer links', () => {
   beforeAll(() => {
     app = require('../../server');
