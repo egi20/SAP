@@ -75,11 +75,11 @@ sound go-live fails — and it is a line item on real statements of work.
 | Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
 | Referrals & commissions | 4 | 4 | **done** |
 | LinkedIn confirmation | 3 | 3 | **done** |
-| AI drafting, every draft verified | — | — | after the core |
+| AI drafting, every draft verified | — | 2 | **done** — a draft and nothing else, verified before anybody reads it |
 | Search across everything | 1 | 1 | **done** — four sources; agencies join with that area |
 | Recruiters (agencies) | 6 | 6 | **done** |
 | Success stories, reviews | 10 | 11 | **done** |
-| Sales CRM | 16 | ~16 | after the core |
+| Sales CRM | 16 | 16 | **done** — superadmin only, and nothing in it sends anything |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
 | Tax advisory — the introduction only | 3 | 2 | **done** — two handlers, third kind on `enquiries` |
 | Daily challenge, graded on the server | 3 | 3 | **done** — one game, not nine |
