@@ -93,6 +93,20 @@
     </div>
 
     <aside class="col-lg-4">
+      <%
+        /*
+         * The card renders only when one of its branches has something to put in it.
+         *
+         * The three branches below cover the owner, a consultant and a signed-out
+         * visitor — and nobody else. A signed-in COMPANY reading somebody else's advert,
+         * or an administrator, fell through all three and got the card with an empty body:
+         * a white strip between the description and the question box, reported from both
+         * mobile and desktop. A heading with nothing under it reads as a box that failed
+         * to load, which is the same argument "About the company" is gated on.
+         */
+        const hasPrimaryAction = isOwner || !currentUser || Boolean(currentUser && currentUser.isConsultant);
+      %>
+      <% if (hasPrimaryAction) { %>
       <div class="glass-card mb-3">
         <div class="card-body">
           <% if (isOwner) { %>
@@ -230,6 +244,7 @@
           <% } %>
         </div>
       </div>
+      <% } %>
 
       <% if (currentUser && !isOwner && job.status === 'open') { %>
         <div class="glass-card mb-3">
@@ -240,7 +255,10 @@
               <input type="hidden" name="kind" value="enquiry">
               <input type="hidden" name="job_id" value="<%= job.id %>">
               <input type="hidden" name="recipient_user_id" value="<%= job.company_user_id %>">
-              <textarea class="form-control mb-2" name="body" rows="3" required maxlength="5000"
+              <%# A placeholder is not a label: it disappears on focus and a screen reader
+                  announces an unnamed box. The label is visually hidden, not absent. %>
+              <label class="visually-hidden" for="enquiry-body">Your question about this role</label>
+              <textarea class="form-control mb-2" id="enquiry-body" name="body" rows="3" required maxlength="5000"
                         placeholder="Ask the advertiser directly"></textarea>
               <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Send question</button>
             </form>
@@ -288,7 +306,7 @@
             <li><span class="text-muted-2">Work mode</span><span><%= job.work_mode %></span></li>
             <li>
               <span class="text-muted-2">Location</span>
-              <span><%= [job.city, job.country].filter(Boolean).join(', ') || 'Not stated' %></span>
+              <span><%= locationLabel(job.city, job.country) || 'Not stated' %></span>
             </li>
             <li><span class="text-muted-2">Experience</span><span><%= job.seniority %></span></li>
             <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase %></span></li>

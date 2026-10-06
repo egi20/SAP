@@ -22,7 +22,8 @@
         <%= retentionDays %>-day retention this site promised on the form.
       </div>
       <% if (currentUser && currentUser.isSuperadmin) { %>
-        <form method="post" action="/admin/enquiries/purge-tax">
+        <form method="post" action="/admin/enquiries/purge-tax"
+              data-confirm="Permanently delete the closed tax enquiries past their retention window? This cannot be undone.">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn btn-sm btn-outline-danger" type="submit">Delete them</button>
         </form>

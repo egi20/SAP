@@ -5,6 +5,7 @@
 <section class="glass-section pb-5">
 <div class="container">
   <%- include('../partials/flash') %>
+  <%- include('../partials/form-errors') %>
 
   <div class="glass-card mb-4">
     <div class="card-body">
@@ -100,7 +101,9 @@
           <div class="mb-3">
             <label class="form-label" for="skills">Skills</label>
             <input class="form-control" id="skills" name="skills"
-                   value="<%= skills.map(function (s) { return s.name; }).join(', ') %>"
+                   value="<%= typeof submittedSkills === 'string' && submittedSkills !== null
+                               ? submittedSkills
+                               : skills.map(function (s) { return s.name; }).join(', ') %>"
                    placeholder="ABAP, CDS views, Fiori elements, SAP BTP">
             <p class="form-text">Comma separated. These drive matching and employer filters.</p>
           </div>
@@ -276,8 +279,12 @@
           <% } %>
           <form method="post" action="/profile/consultant/experience">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <input class="form-control form-control-sm mb-2" name="title" placeholder="Job title" required>
-            <input class="form-control form-control-sm mb-2" name="company" placeholder="Company" required>
+            <%# A placeholder vanishes the moment somebody types into the box, so it cannot
+                be the only name a field has. %>
+            <label class="visually-hidden" for="experience-title">Job title</label>
+            <input class="form-control form-control-sm mb-2" id="experience-title" name="title" placeholder="Job title" required>
+            <label class="visually-hidden" for="experience-company">Company</label>
+            <input class="form-control form-control-sm mb-2" id="experience-company" name="company" placeholder="Company" required>
             <div class="row g-1 mb-2">
               <div class="col-6"><input class="form-control form-control-sm" name="started_on" type="date" required aria-label="Started"></div>
               <div class="col-6"><input class="form-control form-control-sm" name="ended_on" type="date" aria-label="Ended"></div>

@@ -37,7 +37,7 @@
       <p class="small text-muted-2 mb-1"><%= a.headline || roleLabel(a.primary_role) %></p>
       <div class="d-flex flex-wrap gap-1">
         <% if (a.seniority) { %><span class="badge-hub"><%= a.seniority %></span><% } %>
-        <% if (a.country) { %><span class="badge-hub"><%= a.country %></span><% } %>
+        <% if (a.country) { %><span class="badge-hub"><%= countryName(a.country) %></span><% } %>
         <% if (a.certification_count > 0) { %><span class="badge-hub ok"><%= a.certification_count %> certs</span><% } %>
         <% if (a.day_rate) { %><span class="badge-hub"><%= Math.round(a.day_rate) %> <%= a.currency %>/day</span><% } %>
         <%#

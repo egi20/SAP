@@ -5,11 +5,19 @@
 <section class="glass-section pb-5">
 <div class="container">
   <%- include('../partials/flash') %>
+  <%- include('../partials/form-errors') %>
 
   <div class="d-flex flex-wrap justify-content-end mb-3">
-    <a class="btn btn-sm btn-outline-primary" href="/profile/company/template">
-      <i class="bi bi-palette"></i> Document branding and clauses
-    </a>
+    <%
+      /*
+       * No "Document branding and clauses" button. It linked to
+       * `/profile/company/template`, which has never existed: `routes/quotes.js` passes
+       * `branding = null` with a comment saying company branding is a later area, and the
+       * generators take the Hub's own palette. A button for an unbuilt screen is worse
+       * than its absence — it reads as a feature this account cannot reach, and it 404s.
+       * It comes back with the screen, not before it.
+       */
+    %>
   </div>
 
   <div class="row g-4">

@@ -4,6 +4,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 
 const Job = require('../models/Job');
+// The floor lives in the catalogue, where the form reads it too.
+const DESCRIPTION_MIN_LENGTH = Job.SECTIONS.find((section) => section.required).minLength;
 const Skill = require('../models/Skill');
 const Application = require('../models/Application');
 const JobTransfer = require('../models/JobTransfer');
@@ -117,7 +119,8 @@ router.get(
 
 const jobValidators = [
   body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Give the role a title of at least 5 characters.'),
-  body('description').trim().isLength({ min: 50 }).withMessage('Please describe the engagement in at least 50 characters.'),
+  body('description').trim().isLength({ min: DESCRIPTION_MIN_LENGTH })
+    .withMessage(`Please describe the engagement in at least ${DESCRIPTION_MIN_LENGTH} characters.`),
   /*
    * The optional sections are bounded and nothing else. `optional({ checkFalsy: true })`
    * is right here and would be wrong on a number — see `full_lifecycles` — because an

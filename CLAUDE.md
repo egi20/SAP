@@ -43,6 +43,13 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   variable, host-pinned and asserted at boot, and an account that is not configured is not
   rendered. The footer and the fixed rail read the same list, or the two drift the moment
   an account is added.
+- **The server refuses a database the code has outgrown.** `npm start` migrates first;
+  `npm run dev` does not, and the failure that produces is the worst-shaped one available —
+  every page touching a new column answers 500 with `Unknown column 'j.admin_hidden_at'`,
+  which reads like a bug in the query. A QA pass lost most of a day of the company role to
+  it and could not delete its own test advert, because the page holding the delete button
+  was one of the broken ones. `checkSchemaIsCurrent()` names the files and the command;
+  production exits rather than serving a schema that does not match the code.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
 - **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use
@@ -1661,6 +1668,19 @@ is a 404 and never a redirect to the index: these URLs are linked to from outsid
 silent redirect turns a typo nobody notices into a page quietly answering a different
 question. The sitemap generates them from `ROLE_SLUGS` rather than listing them.
 
+**A contributed figure has bounds, and `config/rateBounds.js` is the only place that knows
+them.** The validator accepted anything from 1 to a million for both a day rate and an
+annual salary — two things a factor of two hundred apart — so 5 EUR/day was stored for a
+senior consultant and counted towards a published bucket. The form stated a different rule
+again: `min="1" step="10"`, and an HTML `step` counts FROM `min`, so 600 and 1000 were
+refused in the browser while 611 was accepted. One rule, described twice, neither right.
+`boundsFor(engagementType, currency)` is read by the validator AND by the form, the ranges
+are declared in EUR and converted through the same frozen `FX_TO_EUR` the submission is
+normalised with, and the boot assertion checks the two ranges do not overlap — that is what
+lets a mis-picked engagement type be refused instead of averaged in. The amount field
+carries `step="1"` and NO `min`/`max`: the real bound depends on two other controls, and an
+HTML constraint that cannot express that must not pretend to.
+
 `RATE_MIN_SAMPLE` is configurable, but lowering it below 3 to make a sparse index look
 fuller defeats the point of having it. It is an environment variable and not a setting,
 precisely so that lowering it is a deployment decision with a diff behind it.
@@ -1723,6 +1743,115 @@ contributed to this role". None was about the feature it sat in. Run the suite w
 seed present AND without it; a test that needs one or the other is a test with a hidden
 assumption.
 
+## Forms, URLs and one clock
+
+**A refused form RE-RENDERS; it never redirects.** The consultant profile flashed
+`errors.array()[0].msg` and redirected, which re-reads the row — so one wrong field in a
+fifteen-field form threw away everything typed, and the member started again. Both long
+profile forms now answer 422 with their own answers merged over the stored row. The short
+forms beside them (a password change, adding one certification) still redirect, because
+they lose nothing worth keeping.
+
+**Every validator carries a message naming its own field.** Without `.withMessage()`,
+express-validator says "Invalid value", and a form then refuses a profile without saying
+which of fifteen boxes it is refusing. `full_lifecycles` had a message and was the one
+field people could correct. `views/partials/form-errors.ejs` prints the whole list, not the
+first one: express-validator reports per field, so showing one throws the rest away.
+
+**`utils/profileUrl.js` is an allow-list on the WRITE path, and it is the only one.** A QA
+pass stored `javascript:alert(...)` and `not a url` in `linkedin_url`, `website_url` and
+`sap_community_url`, because nothing checked them. `videoEmbed` can afford to decide at
+render time because it derives something from a URL it is handed; here the COLUMN is what
+other code will trust, and the first template that decides to make a row clickable inherits
+whatever has been sitting there. The company profile shares the list through
+`COMPANY_URL_COLUMNS`, because its `website` is the one URL the site renders as a link
+today — "About the company" is gated on `about || website` — so over there it was live
+rather than latent. LinkedIn is pinned to `linkedin.com` and SAP Community to `sap.com`: a
+field labelled "LinkedIn" pointing somewhere else is a label that is false about its own
+content. Credentials are refused too — `https://linkedin.com@evil.example/` has hostname
+`evil.example` and reads as the real thing.
+
+**Every connection speaks UTC, and it is set per connection.** `timezone: 'Z'` tells the
+DRIVER to read a DATETIME back as UTC; nothing told the SERVER to write one, so `NOW()` and
+every `DEFAULT CURRENT_TIMESTAMP` ran in whatever zone the database host was in. Reported
+from a machine in CEST as a message sent at 16:35 displaying as 18:35. The clock skew is
+the visible half — the silent half is every window computed in SQL (`DATE_SUB(NOW(),
+INTERVAL ? DAY)` on stalled applications, the error purge, the tax retention purge,
+`earns_until`, the rate period) being off by the host's offset with nothing on screen to
+compare against. It never showed in development because the containers run UTC. Set in
+`config/database.js` on the pool's `connection` event rather than asked of the deployment:
+a rule that depends on how somebody configured their database server is a rule this
+application cannot check.
+
+**A country is printed by name.** `countryName`/`locationLabel` in `utils/geo.js` read the
+same `config/all-countries.json` every country select is built from, so a name can never be
+one the form could not have produced. "Tirana, AL" on a CV asks an employer to expand an
+abbreviation.
+
+## The chrome, and what a crawl found
+
+**A control written for a dark header on a white one is invisible, not ugly.**
+`.navbar-hub` is `rgba(255,255,255,0.82)`. The "Sign in" button was `btn-outline-light` —
+`#f8f9fa` text in an `#f8f9fa` border — so for every signed-out visitor, on every page, the
+only visible control was "Sign up". The search box beside it had `color: #fff` on a 12%
+white fill, which is why a phone pass reported "a large empty space between About and the
+icons": an invisible field between two visible things. Neither was reported as a contrast
+bug, because nobody signed out looks at their own navigation.
+
+**A link to a screen that was never built is worse than no link.** `/profile/company/template`
+had a button on the company profile and no route anywhere: `routes/quotes.js` passes
+`branding = null` with a comment saying company branding is a later area. It comes back
+with the screen, not before it. `tests/integration/navigation.test.js` opens every link in
+the two chrome partials — it does not reach a sidebar, which is where both dead links were.
+
+**A leaderboard over `points_ledger` must not link into the talent directory.** Anybody can
+earn points — a company, an administrator, a consultant who has never published a profile —
+so `/consultants/:id` 404'd with a real name on it. `/community/author/:id` is the page
+those points were earned on and publishes nothing the feed does not.
+
+**Writing an advert is a company action and reading one is a consultant action, and they
+share a path prefix.** `/jobs/new` lit the Consultant menu, which is the navigation telling
+a company that the page they are on belongs to the other side of the marketplace.
+
+**A card renders only when a branch has filled it.** The advert's sidebar card covered the
+owner, a consultant and a signed-out visitor — and nobody else, so a signed-in company or
+an administrator got an empty white strip. Same rule as "About the company": a heading with
+nothing under it reads as a box that failed to load.
+
+**One `data-confirm` attribute, one listener in `main.js`.** The community delete carried
+its own inline `onsubmit` and the quote draft carried nothing, which is how a button ends
+up without one. It degrades to today's behaviour without scripting — which is why it may
+be built in `main.js` at all, unlike the password toggle, where a dead control would be a
+promise the person has already decided to trust.
+
+## Small screens
+
+Nothing scrolled sideways at 320px and the layout held. These are the things a narrow
+screen makes WRONG rather than things it breaks, and all of them are in one block at the
+end of `public/css/style.css`.
+
+**iOS Safari zooms the page when a form control under 16px takes focus, and does not zoom
+back.** Every field was `0.925rem` — 14.8px — so tapping any box on any form threw the
+layout off. Raised under `(hover: none) and (pointer: coarse)` only: this is a fix for one
+browser behaviour, not a change of mind about type size.
+
+**A fixed element cannot push anything out of its way.** The cookie notice took about a
+third of a phone screen and sat on top of the form buttons underneath it until it was
+dismissed. `main.js` adds `has-cookie-notice` to `body` so the space is reserved, and
+removes it with the notice.
+
+**Sixteen admin tabs wrapped into eight rows**, so every admin page opened on its own
+navigation. One row that scrolls sideways, with the same right-edge fade `.table-responsive`
+now carries — a table that scrolls with nothing saying so is a table whose last columns do
+not exist, and the Void button on `/admin/rates` was off the edge.
+
+**A `title` is a tooltip and a tooltip does not exist on a touch screen.** The superadmin
+mark was an unexplained "S"; it is an icon with hidden text and a legend under the strip.
+
+**A touch target is bought with padding, not font size**, and only on a coarse pointer —
+"Open →" was 21px and the footer links about 19px. A link inside a sentence stays inline,
+or it becomes a 44px block in the middle of the paragraph.
+
 ## Tests
 
 **Run `npm test`, not `npx jest`.** The script sets `NODE_OPTIONS=--experimental-vm-modules`,
@@ -1780,6 +1909,14 @@ created in 011 and widened twice; a test comparing the code against `011_moderat
 failed on the second widening while the code was correct and the file it was checked
 against was stale. `effectiveEnumValues` walks every migration in order and takes the last
 definition, exactly as the runner does.
+
+**A frozen catalogue cannot be sorted in place.** `expect(ENGAGEMENT_TYPES.sort())` throws
+rather than failing, because `Object.freeze` is doing its job. Copy first.
+
+**A refusal that writes nothing leaves NULL, not a filtered string.** Asserting
+`expect(row.url).not.toMatch(/javascript/i)` fails on `null` with "received value must be a
+string" — which reads like the fix did not work when it worked completely. The claim is
+that the write never happened, so say that.
 
 **A hard-coded hex in `public/css/style.css` fails the palette test**, which scans that
 file for colours from the two reference palettes. `var(--token, #fallback)` counts: the

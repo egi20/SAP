@@ -25,6 +25,13 @@ const SECTIONS = Object.freeze([
     label: 'About the role',
     required: true,
     rows: 10,
+    /*
+     * The floor the route enforces, declared where the FORM can read it too. It was a
+     * literal 50 inside `routes/jobs.js`, so the only way to discover it was to write an
+     * advert, press the button and be refused — the same two-places-one-rule shape as the
+     * rate amount's `min`/`step`.
+     */
+    minLength: 50,
     help: 'What the engagement is and what it is for.'
   }),
   Object.freeze({
@@ -90,6 +97,12 @@ function assertJobSectionsIntegrity() {
     // or it is answered with whatever the person guessed it meant.
     if (!section.help) problems.push(`Section "${section.key}" has no help text.`);
   });
+
+  for (const section of SECTIONS) {
+    if (section.required && !Number.isInteger(section.minLength)) {
+      problems.push(`${section.key}: a required section needs a declared minLength, or the form and the validator disagree about it`);
+    }
+  }
 
   const required = SECTIONS.filter((s) => s.required);
   if (required.length !== 1) {

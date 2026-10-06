@@ -53,7 +53,7 @@
               <div class="d-flex flex-wrap gap-1">
                 <span class="badge-hub"><%= co.company_type.replace('_', ' ') %></span>
                 <% if (co.company_size) { %><span class="badge-hub"><%= co.company_size %></span><% } %>
-                <% if (co.country) { %><span class="badge-hub"><%= co.country %></span><% } %>
+                <% if (co.country) { %><span class="badge-hub"><%= countryName(co.country) %></span><% } %>
                 <% if (co.open_jobs > 0) { %><span class="badge-hub ok"><%= co.open_jobs %> open</span><% } %>
               </div>
             </div>

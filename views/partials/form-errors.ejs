@@ -1,0 +1,23 @@
+<%
+/*
+ * Every refusal a form produced, in one list.
+ *
+ * ONE copy, for the reason the honeypot got its own partial: the consultant profile
+ * flashed only `errors.array()[0].msg` and the member was told about one problem at a
+ * time, fixing the form in as many round trips as they had mistakes. A list is not a
+ * nicety here — express-validator reports per field, so showing one is throwing the rest
+ * of the answer away.
+ *
+ * `errors` may be absent on a page that has never been posted to; treated as empty rather
+ * than declared with a default, because `const errors = ...` inside a partial shadows the
+ * local for the whole block and throws before it is assigned.
+ */
+%>
+<% if (typeof errors !== 'undefined' && errors && errors.length) { %>
+  <div class="alert alert-danger" role="alert">
+    <p class="fw-semibold mb-1">Please check the form.</p>
+    <ul class="mb-0">
+      <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %>
+    </ul>
+  </div>
+<% } %>

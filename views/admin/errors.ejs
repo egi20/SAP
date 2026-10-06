@@ -87,7 +87,8 @@
   <% if (currentUser && currentUser.isSuperadmin) { %>
     <div class="glass-card mb-4">
       <div class="card-body">
-        <form class="row g-2 align-items-end" method="post" action="/admin/errors/purge">
+        <form class="row g-2 align-items-end" method="post" action="/admin/errors/purge"
+              data-confirm="Permanently delete error entries older than the chosen window? This is the one action on this surface that cannot be undone.">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="col-md-4">
             <label class="form-label" for="days">Remove entries older than</label>

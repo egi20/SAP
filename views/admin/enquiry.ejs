@@ -105,7 +105,7 @@
             specialist asks for what they need in the conversation.
           -%>
           <% if (enquiry.kind === 'tax_advisory') { %>
-            <li><span class="text-muted-2">Country</span> — <%= enquiry.country %></li>
+            <li><span class="text-muted-2">Country</span> — <%= countryName(enquiry.country) %></li>
             <li><span class="text-muted-2">Works today</span> — <%= enquiry.arrangement %></li>
             <li><span class="text-muted-2">Topic</span> — <%= enquiry.topic %></li>
             <% if (enquiry.privacy_version) { %>

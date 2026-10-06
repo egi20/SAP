@@ -10,8 +10,9 @@ const morgan = require('morgan');
 const flash = require('connect-flash');
 
 const config = require('./config/config');
-const { pool } = require('./config/database');
+const { pool, promisePool } = require('./config/database');
 const { assertTaxonomyIntegrity, roleLabel } = require('./config/roleTaxonomy');
+const { countryName, locationLabel } = require('./utils/geo');
 const { assertCatalogueIntegrity, moduleLabel, lineLabel } = require('./config/sapProducts');
 const { assertCertificationIntegrity } = require('./config/certifications');
 const { assertSettingsIntegrity } = require('./config/settings');
@@ -31,6 +32,8 @@ const { assertJobSectionsIntegrity } = require('./config/jobSections');
 const { assertCrmIntegrity } = require('./config/crm');
 const { assertDraftingIntegrity } = require('./config/drafting');
 const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
+const { assertRateBoundsIntegrity } = require('./config/rateBounds');
+const { pendingMigrations } = require('./scripts/migrate');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -143,6 +146,15 @@ assertDraftingIntegrity();
  * under.
  */
 assertTaxAdvisoryIntegrity();
+
+/*
+ * And the bounds a contributed rate has to fall inside. Every failure here publishes a
+ * wrong number instead of raising one: a floor of zero accepts the 5 EUR/day a QA pass
+ * actually got stored, and a published percentile is read by somebody deciding what to
+ * ask for. The two ranges are also checked for overlap, because that is what lets a
+ * mis-picked engagement type be refused rather than averaged in.
+ */
+assertRateBoundsIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the
@@ -362,6 +374,8 @@ app.use((req, res, next) => {
   res.locals.sanitizeRichText = sanitizeRichText;
   res.locals.toPlainText = toPlainText;
   res.locals.jsonForScript = jsonForScript;
+  res.locals.countryName = countryName;
+  res.locals.locationLabel = locationLabel;
   res.locals.roleLabel = roleLabel;
   res.locals.moduleLabel = moduleLabel;
   res.locals.lineLabel = lineLabel;
@@ -395,7 +409,50 @@ app.use('/challenges', require('./routes/challenges'));
 app.use(notFound);
 app.use(errorHandler);
 
+/**
+ * Refuse to serve a database the code has outgrown.
+ *
+ * `npm start` migrates before it starts. `npm run dev` does not, and the failure that
+ * produces is the worst-shaped one available: every page that touches a new column answers
+ * 500, and the stack trace says `Unknown column 'j.admin_hidden_at'` — which reads like a
+ * bug in the query rather than a migration nobody ran. A QA pass lost most of a day of the
+ * company role to it, found it in the stack traces, and could not delete its own test
+ * advert because the page carrying the delete button was one of the broken ones.
+ *
+ * So it is checked once, at the one moment somebody is watching the log, and it NAMES the
+ * files and the command. Production refuses outright: serving a schema that does not match
+ * the code is how a write lands in a column that means something else. Development warns
+ * and continues, because a half-migrated database is sometimes exactly what somebody is
+ * in the middle of fixing.
+ *
+ * Same argument as `scripts/migrate.js` refusing a database with tables and no history:
+ * the bare error it would otherwise produce describes the symptom and hides the cause.
+ */
+async function checkSchemaIsCurrent() {
+  let pending;
+  try {
+    pending = await pendingMigrations(promisePool);
+  } catch (err) {
+    console.error(`\n  Could not check for pending migrations: ${err.message}`);
+    console.error('  The database may be unreachable. Pages that read it will fail.\n');
+    return;
+  }
+  if (!pending.length) return;
+
+  const list = pending.map((f) => `    - ${f}`).join('\n');
+  const message = `${pending.length} migration(s) have not been applied:\n${list}\n`
+    + '  Run "npm run migrate". Until then every page reading a new column answers 500.';
+
+  if (config.isProduction) {
+    console.error(`\n  REFUSING TO START. ${message}\n`);
+    process.exit(1);
+  }
+  console.warn(`\n  ${message}\n`);
+}
+
 if (require.main === module) {
+  // Awaited, so a production refusal happens before the port is bound rather than after.
+  checkSchemaIsCurrent().then(() => {
   const server = app.listen(config.app.port, () => {
     console.log(`${config.app.name} listening on port ${config.app.port} (${config.env})`);
   });
@@ -411,6 +468,7 @@ if (require.main === module) {
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
+  });
 }
 
 /*

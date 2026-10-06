@@ -239,10 +239,18 @@
       // Nothing to do: it will appear again, which is the correct outcome.
     }
     bar.remove();
+    document.body.classList.remove('has-cookie-notice');
   });
 
   bar.appendChild(button);
   document.body.appendChild(bar);
+  /*
+   * The notice is `position: fixed`, so it cannot push anything out of its way — on a
+   * phone it covered about a third of the screen, and the form buttons and validation
+   * messages underneath it were unreachable until it was dismissed. The class makes `body`
+   * reserve the space, and it goes when the notice does.
+   */
+  document.body.classList.add('has-cookie-notice');
 }());
 
 /*
@@ -355,3 +363,30 @@
     slot.appendChild(status);
   });
 }());
+
+/*
+ * Confirm before a form that destroys something.
+ *
+ * A quote draft was deleted by one click with nothing in between, and the community's
+ * delete carried its own inline `onsubmit` — one copy per button, which is how a button
+ * ends up without one. A `data-confirm` attribute and one listener is the same shape as
+ * the copy button and the password toggle: the markup declares intent, this file builds
+ * the behaviour.
+ *
+ * Bound on the FORM in the capture phase, so it runs before anything a page island has
+ * attached and before the submit reaches the network. Without scripting the form submits
+ * exactly as it does today — this degrades to the current behaviour rather than to a
+ * control that lies about what it does, which is why it may be built here at all.
+ */
+(function confirmDestructive() {
+  document.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (!form || !form.matches || !form.matches('form[data-confirm]')) return;
+    var message = form.getAttribute('data-confirm');
+    if (!message) return;
+    if (!window.confirm(message)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+})();

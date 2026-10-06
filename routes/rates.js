@@ -13,6 +13,7 @@ const { MIN_SAMPLE } = require('../utils/rateAggregation');
 const { benchmark, benchmarkProblems, curatedTable } = require('../utils/rateBenchmark');
 const benchmarkModel = require('../config/rateBenchmark');
 const { POINT_AWARDS } = require('../config/community');
+const { BOUNDS, STEP, isEngagementType, boundsFor } = require('../config/rateBounds');
 const countries = require('../config/all-countries.json');
 const config = require('../config/config');
 const router = express.Router();
@@ -135,10 +136,13 @@ router.get(
     res.render('rates/submit', {
       title: 'Contribute your rate',
       own,
+      form: {},
       roleCategories: ROLE_CATEGORIES,
       currencies: RateSubmission.SUPPORTED_CURRENCIES,
       countries,
       minSample: MIN_SAMPLE,
+      amountBounds: BOUNDS,
+      amountStep: STEP,
       errors: []
     });
   })
@@ -153,10 +157,31 @@ router.post(
   [
     body('role').isIn(ROLE_SLUGS).withMessage('Choose your role.'),
     body('seniority').isIn(SENIORITIES).withMessage('Choose your seniority.'),
-    body('engagement_type').isIn(['contract', 'permanent']),
+    body('engagement_type').custom(isEngagementType).withMessage('Choose whether this is a day rate or an annual salary.'),
     body('work_mode').isIn(['remote', 'hybrid', 'onsite']),
     body('country').matches(/^[A-Z]{2}$/).withMessage('Choose your country.'),
-    body('amount').isFloat({ min: 1, max: 1000000 }).withMessage('Enter the amount as a number.'),
+    /*
+     * The bound depends on the other two answers, so it cannot be a fixed range. A day
+     * rate and an annual salary share this field and are two hundred times apart; one
+     * range covering both bounds neither. `boundsFor` returns null when the engagement
+     * type or the currency is not declared — those have their own messages, and refusing
+     * here as well would print two complaints for one mistake.
+     */
+    body('amount').custom((value, { req }) => {
+      const bounds = boundsFor(req.body.engagement_type, req.body.currency);
+      if (!bounds) return true;
+      const amount = Number(value);
+      if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+        throw new Error(`Enter ${bounds.label} as a whole number.`);
+      }
+      if (amount < bounds.min || amount > bounds.max) {
+        throw new Error(
+          `For ${bounds.label} in ${req.body.currency}, enter a figure between `
+          + `${bounds.min.toLocaleString('en-GB')} and ${bounds.max.toLocaleString('en-GB')}.`
+        );
+      }
+      return true;
+    }),
     body('currency').isIn(RateSubmission.SUPPORTED_CURRENCIES).withMessage('Choose a supported currency.')
   ],
   asyncHandler(async (req, res) => {
@@ -166,10 +191,14 @@ router.post(
       return res.status(422).render('rates/submit', {
         title: 'Contribute your rate',
         own,
+        // What they typed, so a refused figure is corrected rather than retyped.
+        form: req.body,
         roleCategories: ROLE_CATEGORIES,
         currencies: RateSubmission.SUPPORTED_CURRENCIES,
         countries,
         minSample: MIN_SAMPLE,
+        amountBounds: BOUNDS,
+        amountStep: STEP,
         errors: errors.array()
       });
     }

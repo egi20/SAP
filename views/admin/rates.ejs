@@ -78,7 +78,11 @@
                       <button class="btn btn-sm btn-outline-success" type="submit">Reinstate</button>
                     <% } else { %>
                       <input type="hidden" name="hidden" value="true">
+                      <%# One of these per row, so the name goes on aria-label rather than a
+                          <label for>: a hidden label would need a unique id per row to be
+                          associated at all, and an unassociated label is decoration. %>
                       <input class="form-control form-control-sm" type="text" name="reason"
+                             aria-label="Reason for voiding this submission"
                              placeholder="Reason" maxlength="200" style="max-width: 10rem;">
                       <button class="btn btn-sm btn-outline-danger" type="submit">Void</button>
                     <% } %>

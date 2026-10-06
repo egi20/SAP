@@ -40,10 +40,16 @@
         <a class="nav-link <%= t.key === current ? 'active' : '' %>" href="<%= t.href %>"
            <%= t.key === current ? 'aria-current="page"' : '' %>>
           <i class="bi <%= t.icon %>"></i> <%= t.label %><% if (t.super) { %>
-            <span class="badge rounded-pill text-bg-dark ms-1" title="Superadmin only">S</span>
+            <%# A `title` is a tooltip, and a tooltip does not exist on a touch screen — so
+                on a phone this was an unexplained "S". The meaning is now in the icon's
+                hidden text, which a screen reader reads and the legend below repeats. %>
+            <i class="bi bi-shield-lock ms-1" aria-hidden="true"></i><span class="visually-hidden">(superadmin only)</span>
           <% } %>
         </a>
       </li>
     <% }) %>
   </ul>
+  <% if (isSuper) { %>
+    <p class="form-text mb-0 mt-1"><i class="bi bi-shield-lock" aria-hidden="true"></i> marks a section only a superadmin can open.</p>
+  <% } %>
 </nav>

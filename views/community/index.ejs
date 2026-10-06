@@ -136,7 +136,18 @@
                     <span class="text-muted-2 small" style="width:1.2rem"><%= i + 1 %></span>
                     <img class="avatar" style="width:28px;height:28px"
                          src="<%= m.profile_picture || m.logo || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
-                    <a class="small text-reset flex-grow-1 text-truncate" href="/consultants/<%= m.user_id %>"><%= m.name %></a>
+                    <%
+                      /*
+                       * The community's own author page, NOT `/consultants/:id`. This
+                       * leaderboard is a sum over `points_ledger`, which anybody can earn
+                       * — a company, an administrator, a consultant who has never
+                       * published a profile — so a link to the talent directory 404s for
+                       * everybody who is not in it. Reported with a real name on it.
+                       * `/community/author/:id` is the page these points were earned on
+                       * and publishes nothing the feed does not.
+                       */
+                    %>
+                    <a class="small text-reset flex-grow-1 text-truncate" href="/community/author/<%= m.user_id %>"><%= m.name %></a>
                     <span class="badge-hub ok"><%= m.points %></span>
                   </li>
                 <% }); %>

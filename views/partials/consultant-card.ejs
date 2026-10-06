@@ -16,7 +16,7 @@
     <div class="d-flex flex-wrap gap-1 mb-2">
       <% if (c.primary_role) { %><span class="badge-hub accent"><%= roleLabel(c.primary_role) %></span><% } %>
       <% if (c.seniority) { %><span class="badge-hub"><%= c.seniority %></span><% } %>
-      <% if (c.country) { %><span class="badge-hub"><%= c.country %></span><% } %>
+      <% if (c.country) { %><span class="badge-hub"><%= countryName(c.country) %></span><% } %>
       <% if (c.certification_count > 0) { %>
         <span class="badge-hub ok"><i class="bi bi-patch-check"></i> <%= c.certification_count %> cert<%= c.certification_count > 1 ? 's' : '' %></span>
       <% } %>

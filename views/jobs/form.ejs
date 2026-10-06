@@ -38,8 +38,11 @@
               <label class="form-label" for="<%= section.key %>">
                 <%= section.label %><% if (section.required) { %> <span aria-hidden="true">*</span><% } %>
               </label>
+              <%# The floor comes from the catalogue, so the box states the rule the server
+                  will apply rather than letting somebody find it by being refused. %>
               <textarea class="form-control" id="<%= section.key %>" name="<%= section.key %>"
-                        rows="<%= section.rows %>" <%= section.required ? 'required' : '' %>><%= values[section.key] || '' %></textarea>
+                        rows="<%= section.rows %>" <%= section.required ? 'required' : '' %>
+                        <%= section.minLength ? 'minlength="' + section.minLength + '"' : '' %>><%= values[section.key] || '' %></textarea>
               <p class="form-text">
                 <%= section.help %>
                 <% if (!section.required) { %> Leave it empty and the heading is not shown.<% } %>

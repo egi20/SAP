@@ -22,6 +22,29 @@ const pool = mysql.createPool({
   dateStrings: false
 });
 
+/*
+ * Every connection speaks UTC.
+ *
+ * `timezone: 'Z'` above tells the DRIVER to read a DATETIME back as UTC. Nothing told the
+ * SERVER to write one, so `NOW()` and every `DEFAULT CURRENT_TIMESTAMP` ran in whatever
+ * zone the database host happened to be in, and the two halves disagreed by exactly that
+ * offset. Reported from a machine in CEST: a message sent at 16:35 displayed as 18:35,
+ * because MySQL stored 16:35, the driver read it as 16:35 UTC and the template rendered it
+ * back into local time.
+ *
+ * The clock skew is the visible half. The silent half is every window computed in SQL —
+ * `DATE_SUB(NOW(), INTERVAL ? DAY)` on the stalled-application count, the error purge, the
+ * tax retention purge, `earns_until` on a referral, the rate submission's own period — all
+ * off by the host's offset, and none of them with anything on screen to compare against.
+ * It never showed in development because the containers run UTC.
+ *
+ * Set per connection rather than asked of the deployment: a rule that depends on how
+ * somebody configured their database server is a rule this application cannot check.
+ */
+pool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+00:00'");
+});
+
 const promisePool = pool.promise();
 
 /**

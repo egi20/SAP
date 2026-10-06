@@ -32,11 +32,19 @@
          */
         const path = currentPath;
         const startsWith = (p) => path === p || path.startsWith(p + '/');
-        const isConsultantArea = startsWith('/jobs') || startsWith('/consultant-hub')
+        /*
+         * Writing an advert is a company action and reading one is a consultant action,
+         * and they share a path prefix. `/jobs/new` and `/jobs/:slug/edit` lit the
+         * Consultant menu because `/jobs` matched first — the menu telling a company that
+         * the page they are on belongs to the other side of the marketplace.
+         */
+        const isJobAuthoring = path === '/jobs/new' || /^\/jobs\/[^/]+\/edit$/.test(path);
+        const isConsultantArea = (startsWith('/jobs') && !isJobAuthoring) || startsWith('/consultant-hub')
           || (currentUser && startsWith('/profile/consultant'));
         const isCompanyArea = startsWith('/consultants') || startsWith('/companies')
           || startsWith('/company-hub')
-          || startsWith('/recruiters');
+          || startsWith('/recruiters')
+          || isJobAuthoring;
         /*
          * Services is what the Hub DOES for you, as opposed to who it is for — the two
          * hubs above are audiences, this one is tools. The estimator sits here rather than
@@ -53,10 +61,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= startsWith('/community') ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= startsWith('/community') ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-people"></i> Community
-          </a>
+          </button>
           <ul class="dropdown-menu shadow-sm">
             <li><a class="dropdown-item" href="/community"><i class="bi bi-chat-square-text"></i> Questions and posts</a></li>
             <li><a class="dropdown-item" href="/community/articles"><i class="bi bi-file-earmark-text"></i> Articles</a></li>
@@ -71,10 +79,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-person-badge"></i> Consultant Hub
-          </a>
+          </button>
           <ul class="dropdown-menu shadow-sm">
             <%# The hub page first, as its own entry: the menu is also how somebody finds out
                 what the half of the site they are not in is for. %>
@@ -95,10 +103,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-building"></i> Companies Hub
-          </a>
+          </button>
           <ul class="dropdown-menu shadow-sm">
             <li><a class="dropdown-item" href="/company-hub"><i class="bi bi-building"></i> Company Hub</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -129,10 +137,10 @@
           </ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-tools"></i> Services
-          </a>
+          </button>
           <ul class="dropdown-menu shadow-sm">
             <li><a class="dropdown-item" href="/rates"><i class="bi bi-graph-up"></i> Rate &amp; salary index</a></li>
             <li><a class="dropdown-item" href="/rates/calculator"><i class="bi bi-calculator"></i> Benchmark your rate</a></li>
@@ -166,8 +174,11 @@
       <ul class="navbar-nav align-items-lg-center">
         <% if (currentUser) { %>
           <li class="nav-item">
+            <%# Below lg the menu is a vertical list, where a bare icon is a row with no
+                name on it. The label is shown there and hidden in the bar, where the
+                icons sit in a row and the space is worth more than the word. %>
             <a class="nav-link" href="/messages" aria-label="Messages">
-              <i class="bi bi-chat-dots"></i>
+              <i class="bi bi-chat-dots"></i><span class="d-lg-none ms-2" aria-hidden="true">Messages</span>
               <%# Filled by public/js/main.js, which makes no request when the element %>
               <%# is absent — so the badge and the endpoint arrive together or not at all. %>
               <span class="notif-dot d-none" id="messageCount" aria-live="polite"></span>
@@ -175,17 +186,18 @@
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/notifications" aria-label="Notifications">
-              <i class="bi bi-bell"></i>
+              <i class="bi bi-bell"></i><span class="d-lg-none ms-2" aria-hidden="true">Notifications</span>
               <span class="notif-dot d-none" id="notifCount" aria-live="polite"></span>
             </a>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button"
+            <button type="button" class="nav-link dropdown-toggle d-flex align-items-center gap-2 border-0 bg-transparent"
                data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
               <img class="avatar" style="width:30px;height:30px"
                    src="<%= currentUser.profilePicture || '/images/avatar-placeholder.svg' %>" alt="">
-              <span class="d-none d-lg-inline"><%= currentUser.name %></span>
-            </a>
+              <%# Shown in the collapsed menu too: a bare avatar is a row with no name. %>
+              <span><%= currentUser.name %></span>
+            </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
               <li><a class="dropdown-item" href="/messages"><i class="bi bi-chat-dots"></i> Messages</a></li>
@@ -212,7 +224,15 @@
             as the lesser of the two, and signing in is not a lesser action than signing up —
             it is what every returning member came here to do.
           %>
-          <li class="nav-item"><a class="btn btn-outline-light btn-sm" href="/auth/login">Sign in</a></li>
+          <%
+            /*
+             * `btn-outline-light` is white text in a white border, and this header is
+             * white. The only visible control for a signed-out visitor was "Sign up" —
+             * so the one button somebody with an account is looking for was invisible on
+             * every page of the site, in the mobile menu as well as the bar.
+             */
+          %>
+          <li class="nav-item"><a class="btn btn-outline-primary btn-sm" href="/auth/login">Sign in</a></li>
           <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-primary btn-sm" href="/auth/register">Sign up</a></li>
         <% } %>
       </ul>

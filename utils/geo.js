@@ -15,6 +15,37 @@ function countryFromIp(ip) {
   return lookup && lookup.country ? lookup.country : null;
 }
 
+/*
+ * ISO code -> country name, from the one list the forms are built from.
+ *
+ * The column stores a two-letter code, and a profile rendered "Tirana, AL" reads as an
+ * abbreviation somebody is expected to already know — on the public profile, on the
+ * consultant card and, worse, on a CV that goes to an employer. Built once at module load
+ * from `config/all-countries.json`, which is the same list every country select on the
+ * site is rendered from, so a name here can never be one the form could not have produced.
+ */
+const COUNTRY_NAMES = new Map(
+  require('../config/all-countries.json').map((c) => [c.code, c.name])
+);
+
+/**
+ * The country's name, or the code itself when it is not one we know.
+ *
+ * Falling back to the code rather than to null or an empty string: a row holding something
+ * unexpected should still render as the fact it holds, not disappear from the page.
+ */
+function countryName(code) {
+  if (!code) return null;
+  return COUNTRY_NAMES.get(String(code).toUpperCase()) || code;
+}
+
+/**
+ * A place, as a person reads it: city first, then the country's name.
+ */
+function locationLabel(city, code) {
+  return [city, countryName(code)].filter(Boolean).join(', ') || null;
+}
+
 /**
  * The client IP, honouring `X-Forwarded-For` only when Express has been told to trust
  * the proxy. Reading the header unconditionally would let any client spoof its origin.
@@ -58,4 +89,6 @@ function expandIpv6(address) {
   return groups.some((g) => !Number.isInteger(g) || g < 0 || g > 0xffff) ? null : groups;
 }
 
-module.exports = { countryFromIp, clientIp, packIp };
+module.exports = {
+  countryName,
+  locationLabel, countryFromIp, clientIp, packIp };
