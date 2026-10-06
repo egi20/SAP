@@ -1079,6 +1079,36 @@ arrive.
 so a company carried a permanently empty "Saved jobs" panel for a list it has no way of
 adding to — the dashboard telling somebody they have missed a feature they do not have.
 
+**Reading an application and deciding its outcome are different rights.** The transition
+route used to treat any administrator as the employer, so an administrator could reject a
+candidate — or mark them hired — on behalf of a company that had decided nothing, and the
+candidate's notification would still have said the employer did it. The audit event would
+have named the administrator honestly, which is exactly what makes the gap easy to miss:
+the log was never wrong, the decision was. There is no administrator branch on that route
+now. Reading is superadmin; deciding belongs to the two parties.
+
+**An application's CONTENT is superadmin, like a contributed rate.** Everywhere else on
+this site something somebody gave us is only seen inside an aggregate; the screens that
+set that aside are the narrowest in the application, and a cover letter beside a name and
+a day rate is the same class of thing. `/applications/:id` and `/applications/job/:slug`
+carry that guard for anybody who is not in the application.
+
+**`/admin/applications` shows the STATE and never the content.** It exists to answer
+whether the marketplace is working, not to read what somebody wrote to an employer — and
+the figure it exists for is `stalled`: submitted, never moved, older than fourteen days. A
+candidate spends an evening on an application, and a board where those sit untouched is
+broken in a way no count of adverts shows. "Never moved" is read from the append-only
+event log and not from `updated_at`, which any unrelated write refreshes and which would
+make an ignored application look attended to.
+
+**`unscoped` is a NAMED opt-in on `Application.buildFilter`, not a default.** The builder
+still throws for a caller that passed neither a company nor a job, because that is almost
+always a forgotten argument rather than a question. It is not the `include_hidden` escape
+hatch the job and profile builders refuse: that one would let a page forget a VISIBILITY
+rule and show rows a moderator took down, while this one cannot reveal anything a scoped
+call would have hidden — it only widens whose rows are counted, from a route carrying the
+narrowest guard there is.
+
 **Testing consequence:** `<% const x = typeof x !== 'undefined' ? x : false %>` in a partial
 reads like a default for an optional local and is a temporal dead zone error — the
 declaration shadows the local for the whole block, so `typeof` is evaluated against the

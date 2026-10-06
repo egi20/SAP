@@ -9,6 +9,7 @@ const ErrorLog = require('../models/ErrorLog');
 const RateSubmission = require('../models/RateSubmission');
 const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
+const Application = require('../models/Application');
 const AppSetting = require('../models/AppSetting');
 const Referral = require('../models/Referral');
 const SuccessStory = require('../models/SuccessStory');
@@ -32,6 +33,14 @@ const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
+
+/**
+ * How long a submitted application sits before the oversight screen calls it stalled.
+ *
+ * Two weeks: long enough that a company with a slow week is not accused of ignoring
+ * somebody, short enough that a candidate waiting that long has already given up.
+ */
+const STALLED_AFTER_DAYS = 14;
 
 const router = express.Router();
 
@@ -602,6 +611,64 @@ router.get(
     res.setHeader('Content-Disposition', 'attachment; filename="errors.csv"');
     res.setHeader('Cache-Control', 'private, no-store');
     return res.send(csv);
+  })
+);
+
+/* ------------------------------------------------------- applications oversight */
+
+/**
+ * GET /admin/applications — every application on the platform.
+ *
+ * SUPERADMIN, like `/admin/rates`, and for the same reason: this is the one screen that
+ * can enumerate what candidates wrote to employers. It shows the STATE of each application
+ * and never its content — the cover letter and the day rate live on
+ * `/applications/:id`, which carries the same guard.
+ *
+ * The question it exists to answer is not "who applied", which a company's own pipeline
+ * already answers better. It is whether the marketplace is working: a candidate spends an
+ * evening on an application, and a board where those sit untouched for a month is broken
+ * in a way no count of adverts shows. That is what `stalled` is.
+ *
+ * It goes through `Application.buildFilter` like the two pipelines do, with `unscoped`
+ * said out loud — the builder still throws for a caller that simply forgot a scope.
+ */
+router.get(
+  '/applications',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 50 });
+
+    const stalledDays = Number.parseInt(req.query.stalled, 10);
+    const filters = {
+      unscoped: true,
+      status: Application.STATUSES.includes(req.query.status) ? req.query.status : '',
+      q: typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : '',
+      reached: req.query.reached === 'interviewing' ? 'interviewing' : '',
+      include_withdrawn: req.query.withdrawn === '1',
+      stalled_days: Number.isFinite(stalledDays) && stalledDays > 0 ? stalledDays : null
+    };
+
+    const [{ rows, total }, counts, stalled] = await Promise.all([
+      Application.list(filters, { limit, offset }),
+      Application.countsFor({ ...filters, stalled_days: null }),
+      // The headline number, and it is deliberately NOT affected by the stage filter: it
+      // is the one figure somebody opens this screen for.
+      Application.list({ unscoped: true, stalled_days: STALLED_AFTER_DAYS }, { limit: 1 })
+    ]);
+
+    return res.render('admin/applications', {
+      title: 'Applications',
+      applications: rows,
+      total,
+      counts,
+      filters,
+      statuses: Application.STATUSES,
+      stalledAfterDays: STALLED_AFTER_DAYS,
+      stalledCount: stalled.total,
+      query: req.query,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (n) => pageUrl('/admin/applications', req.query, n)
+    });
   })
 );
 

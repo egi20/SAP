@@ -769,6 +769,23 @@ Writing the verifier found a contradiction between two of its own rules: the cat
 product names contain digits, so "no numerals" rejected every draft that obeyed "use these
 names". What the model was given is now cut out of the text before it is checked.
 
+## Applications oversight
+
+Built as the state of the marketplace rather than as a list of applications, which is the
+difference between a health screen and a drawer full of other people's letters. It shows
+who applied to what and whether anybody has moved it; the cover letter stays on the
+application's own page, and both carry the superadmin guard `/admin/rates` carries.
+
+Building it found the thing worth recording: `POST /applications/:id/transition` treated
+any administrator as the employer. An administrator could therefore reject a candidate, or
+mark them hired, on behalf of a company that had decided nothing — with a notification
+telling the candidate their employer had done it. The audit event named the administrator
+correctly the whole time, which is what made it easy to miss.
+
+DynamicsHub's version has a second detail page for an application. This has none: there is
+already one, it is already admin-reachable, and a second would be a second place that
+decides what an application looks like.
+
 ## Known at the start, so nobody discovers it at the end
 
 Salesforce Hub's own plan ends by noting that the real remaining work was never a feature:
