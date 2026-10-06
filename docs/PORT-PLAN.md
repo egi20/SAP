@@ -751,11 +751,23 @@ server-side draft between two requests; the second makes the CRM speak the vocab
 job board, the community tree and the estimator already share instead of inventing a fifth
 list of SAP product names.
 
-Left for the next step, deliberately: the drafts are hand-written. `crm_outreach_drafts`
-already carries `model`, `input_tokens` and `output_tokens`, NULL for every row written so
-far — the same reasoning as `hidden_at` landing three migrations before the moderation
-screen. A generated draft that could not say which model wrote it would be the
-unaccountable version of the feature.
+**The drafting came next**, into the columns migration 024 had already provided. It is the
+reference's `utils/outreachDrafting.js` with its two best ideas intact — the model is given
+no personal detail, and every draft is verified before anybody reads it — plus one check
+this ecosystem needs: a draft may name only the SAP product areas the lead was actually
+recorded against, because guessing which products a company runs is the most
+plausible-sounding invention available and the easiest for the reader to catch.
+
+Two things changed. The prompt's SAP vocabulary is generated from `config/sapProducts.js`
+rather than typed into the prompt, for the same reason the assistant's is. And
+`config/drafting.js` defaults its model and its prices from `config/assistant.js`, so the
+common deployment turns one knob rather than three — with a boot assertion that refuses a
+model overridden without its prices, which is the silent failure the whole config exists
+for. `/admin/ai` now prints both models.
+
+Writing the verifier found a contradiction between two of its own rules: the catalogue's
+product names contain digits, so "no numerals" rejected every draft that obeyed "use these
+names". What the model was given is now cut out of the text before it is checked.
 
 ## Known at the start, so nobody discovers it at the end
 

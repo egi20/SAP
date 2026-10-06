@@ -12,6 +12,7 @@ const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { readLeads } = require('../utils/crmImport');
+const outreach = require('../utils/outreachDrafting');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const {
   BULK_ACTIONS,
@@ -304,35 +305,47 @@ router.post(
   })
 );
 
+/**
+ * Everything the lead page needs.
+ *
+ * Factored out because a rejected draft is RENDERED rather than redirected to: the text
+ * the model produced and the checks it failed have to be on the screen, and a flash
+ * message cannot carry a paragraph and a list of reasons.
+ */
+async function leadPageModel(id) {
+  const lead = await CrmLead.findById(id);
+  if (!lead) return null;
+
+  const [activities, drafts] = await Promise.all([CrmLead.activitiesFor(lead.id), CrmDraft.forLead(lead.id)]);
+
+  // Shown, never acted on: a cold approach to somebody who already has an account here is
+  // the one message this site should not send, and the person writing it needs to know
+  // before they write it rather than after.
+  const member = lead.contact_email ? await User.findByEmail(lead.contact_email) : null;
+
+  return {
+    title: lead.company,
+    lead,
+    activities,
+    drafts,
+    isMember: Boolean(member),
+    moves: TRANSITIONS[lead.status] || [],
+    maxDraftLength: LIMITS.draft,
+    maxDrafts: CrmDraft.MAX_DRAFTS_PER_LEAD,
+    draftingEnabled: outreach.isConfigured(),
+    rejected: null,
+    ...catalogues()
+  };
+}
+
 /** GET /crm/:id — one lead. Declared after every fixed path above it. */
 router.get(
   '/:id',
   requireIdParam('id'),
   asyncHandler(async (req, res) => {
-    const lead = await CrmLead.findById(req.params.id);
-    if (!lead) return res.status(404).render('errors/404', { title: 'Not found' });
-
-    const [activities, drafts] = await Promise.all([
-      CrmLead.activitiesFor(lead.id),
-      CrmDraft.forLead(lead.id)
-    ]);
-
-    // Shown, never acted on: a cold approach to somebody who already has an account here
-    // is the one message this site should not send, and the person writing it needs to
-    // know before they write it rather than after.
-    const member = lead.contact_email ? await User.findByEmail(lead.contact_email) : null;
-
-    return res.render('crm/show', {
-      title: lead.company,
-      lead,
-      activities,
-      drafts,
-      isMember: Boolean(member),
-      moves: TRANSITIONS[lead.status] || [],
-      maxDraftLength: LIMITS.draft,
-      maxDrafts: CrmDraft.MAX_DRAFTS_PER_LEAD,
-      ...catalogues()
-    });
+    const model = await leadPageModel(req.params.id);
+    if (!model) return res.status(404).render('errors/404', { title: 'Not found' });
+    return res.render('crm/show', model);
   })
 );
 
@@ -428,6 +441,68 @@ router.post(
       if (!err.code) throw err;
       req.flash('error', err.message);
     }
+    return res.redirect(`/crm/${lead.id}`);
+  })
+);
+
+/**
+ * POST /crm/:id/draft/generate — ask the model for a first version.
+ *
+ * It writes a draft into the same table the hand-written ones go into, and it sends
+ * nothing. Three things stand between this button and a bill: the month-to-date cap it
+ * shares with the assistant, the ceiling on drafts per lead, and the fact that a rejected
+ * draft is not retried automatically.
+ *
+ * A draft that fails its checks is RENDERED with its reasons and never stored. Somebody
+ * should see that the model invented a relationship or an SAP module, because that is the
+ * failure this feature has to be watched for — and an automatic retry would hide it while
+ * paying for every attempt.
+ */
+router.post(
+  '/:id/draft/generate',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const lead = await CrmLead.findById(req.params.id);
+    if (!lead) return res.status(404).render('errors/404', { title: 'Not found' });
+
+    if (lead.erased_at) {
+      req.flash('error', 'There is nobody here to write to any more.');
+      return res.redirect(`/crm/${lead.id}`);
+    }
+    if (lead.contact_email && (await CrmSuppression.has(lead.contact_email))) {
+      req.flash('error', 'That address is on the do-not-contact list.');
+      return res.redirect(`/crm/${lead.id}`);
+    }
+
+    const result = await outreach.draftFor(lead, { userId: req.session.user.id });
+
+    if (!result.ok) {
+      const model = await leadPageModel(lead.id);
+      if (!model) return res.status(404).render('errors/404', { title: 'Not found' });
+      return res.status(200).render('crm/show', {
+        ...model,
+        rejected: { reason: result.reason, problems: result.problems || [], body: result.body || '' }
+      });
+    }
+
+    try {
+      await CrmDraft.create(lead.id, {
+        body: result.body,
+        channel: 'email',
+        // Which model wrote it and what it cost, recorded with the draft. A generated
+        // draft that could not say where it came from is the unaccountable version.
+        model: result.model,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        actorUserId: req.session.user.id
+      });
+      req.flash('success', 'Drafted. Read it, change what you want, then send it yourself.');
+    } catch (err) {
+      if (!err.code) throw err;
+      req.flash('error', err.message);
+    }
+
     return res.redirect(`/crm/${lead.id}`);
   })
 );

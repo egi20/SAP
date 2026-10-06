@@ -668,6 +668,69 @@ address passes once and fails on every run after. Use a fresh address per run �
 the table in `beforeAll` would "fix" it by deleting the one record this area exists to
 keep.
 
+## Drafting outreach with a model
+
+**It writes a draft and nothing else.** There is no send path in `utils/outreachDrafting.js`
+or in the route above it, and a test greps both for a transport. A generate endpoint feeding
+a queue is one scheduler away from an application that mails a thousand strangers on its
+own, which is the standing refusal this whole area is built around.
+
+**The model is given no personal detail.** `factsFor` hands over the company, the country,
+the job title and the product areas somebody recorded — not the name, not the address, not
+the phone number, not the LinkedIn profile. None of it improves a first paragraph about
+what the Hub does, and all of it would be somebody's contact details leaving for a third
+party. The name is put back by the sender afterwards, locally, from the row. A test asserts
+what is in the payload and what is not.
+
+**It spends from the SAME ledger and the same month-to-date cap as the assistant.** Two AI
+features with two budgets is two invoices and no answer to "what did this cost". The
+feature name on each `ai_usage` row is what separates them, and `/admin/ai` prints both
+models with their prices for the same reason it printed one: a model changed without its
+prices makes the breaker charge the wrong rate, silently, and the invoice is the first
+anybody hears of it. `config/drafting.js` defaults its model AND its prices from the
+assistant's, and its boot assertion refuses a model overridden without them.
+
+**The SAP vocabulary in the prompt is generated from `config/sapProducts.js`.** Same rule as
+the assistant's: a hand-typed list of SAP products in a prompt is a second catalogue, and
+here the drift is worse than a wrong link — it is a sentence somebody sends to a stranger
+under their own name.
+
+**Every draft is verified before anybody reads it, and a failed one is never stored.** The
+checks are: no fabricated familiarity ("I saw your recent…" is a lie in a first line and
+the one that gets an address blocked), no commitment terms, no numerals, no placeholders,
+word bounds, and the SAP rule below. A rejected draft is RENDERED with its reasons and the
+text it produced — never silently retried. Somebody should see that the model invented a
+relationship, because that is the failure this feature has to be watched for, and a retry
+loop would hide it while paying for every attempt.
+
+**The SAP rule: a draft may name only the product areas the lead was recorded against.**
+Guessing which SAP products a company runs is the most plausible-sounding invention
+available to a model and the easiest for the reader to catch. With nothing recorded, no
+module, component or two-letter code may appear at all. The long names are matched
+case-insensitively and the two-letter codes only as WHOLE WORDS IN UPPER CASE —
+`utils/jobMatcher.js` learned this from the other side: `includes('mm')` matches
+"committed" and `includes('fi')` matches "specific".
+
+**What the model was GIVEN is cut out of the text before it is checked**, and there are two
+things in it. The company's own name, so an SAP partner called "FI Consulting GmbH" does
+not fail every check about module codes. And the product labels the lead was recorded
+against — because the catalogue's own names contain digits. "SAP S/4HANA Finance" is a name
+the prompt tells the model to use, and the no-numerals rule would then reject every draft
+that obeyed. The two rules contradict each other unless the given names come out first, and
+a test caught exactly that.
+
+**`stop_reason: max_tokens` is never served as a draft.** Thinking is on and thinking
+tokens count against the same ceiling, so arriving here half-written is the realistic case
+rather than the odd one.
+
+**The retry is bounded by `CrmDraft.MAX_DRAFTS_PER_LEAD`**, which existed before this button
+did. A "write me another one" control with no ceiling is an unbounded bill, and the limit
+reads like tidiness only until something is paying per press.
+
+**Which model wrote it is stored with the draft**, along with its token counts, in columns
+that were on the table from migration 024. A generated draft that could not say where it
+came from is the unaccountable version of this feature.
+
 ## Referrals and commissions
 
 **There is no balance column anywhere.** A balance is `SUM(amount_minor)` over

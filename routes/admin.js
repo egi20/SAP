@@ -17,6 +17,7 @@ const Enquiry = require('../models/Enquiry');
 const ImageBlob = require('../models/ImageBlob');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
+const draftingConfig = require('../config/drafting');
 const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
 const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
@@ -462,7 +463,20 @@ router.get(
       effort: assistantConfig.EFFORT,
       configured: assistantConfig.isConfigured(),
       priceInput: assistantConfig.PRICE_PER_MTOK_INPUT,
-      priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT
+      priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT,
+      /*
+       * The CRM's drafting model and ITS prices, printed on the same page, because there
+       * are now two models spending from one budget. The failure this screen exists for —
+       * a model changed without the prices beside it, so the breaker charges the wrong
+       * rate silently — is one a second feature can have on its own.
+       */
+      drafting: {
+        model: draftingConfig.MODEL,
+        effort: draftingConfig.EFFORT,
+        priceInput: draftingConfig.PRICE_PER_MTOK_INPUT,
+        priceOutput: draftingConfig.PRICE_PER_MTOK_OUTPUT,
+        sameAsAssistant: draftingConfig.MODEL === assistantConfig.MODEL
+      }
     });
   })
 );

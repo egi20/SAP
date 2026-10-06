@@ -29,6 +29,7 @@ const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { assertEngagementIntegrity } = require('./config/engagementModels');
 const { assertJobSectionsIntegrity } = require('./config/jobSections');
 const { assertCrmIntegrity } = require('./config/crm');
+const { assertDraftingIntegrity } = require('./config/drafting');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -126,6 +127,13 @@ assertJobSectionsIntegrity();
  * the fact.
  */
 assertCrmIntegrity();
+
+/*
+ * And the drafting model's prices. The failure this one is for is changing the model
+ * without changing the prices beside it: the breaker then charges the old rate against the
+ * new model, and the first anybody hears of it is the invoice.
+ */
+assertDraftingIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the

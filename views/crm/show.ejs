@@ -120,7 +120,47 @@
             </div>
           <% }); %>
 
+          <% if (rejected) { %>
+            <%#
+              A rejected draft is SHOWN, with its reasons and the text it produced, and was
+              never stored. Hiding it and retrying would hide the one failure this feature
+              has to be watched for — and would pay for every attempt.
+            -%>
+            <div class="alert alert-warning">
+              <strong><%= rejected.reason %></strong>
+              <% if (rejected.problems.length) { %>
+                <ul class="small mb-2 mt-2">
+                  <% rejected.problems.forEach(function (p) { %><li><%= p %></li><% }); %>
+                </ul>
+              <% } %>
+              <% if (rejected.body) { %>
+                <details>
+                  <summary class="small">What it wrote</summary>
+                  <p class="small message-body mt-2 mb-0"><%= rejected.body %></p>
+                </details>
+              <% } %>
+            </div>
+          <% } %>
+
           <% if (!lead.erased_at && drafts.length < maxDrafts) { %>
+            <% if (draftingEnabled) { %>
+              <%#
+                One button, no retry loop, and the same month-to-date cap the assistant
+                spends against. The model is given the company, the country, the job title
+                and the product areas somebody recorded — never the name, the address or
+                the phone number.
+              -%>
+              <form method="post" action="/crm/<%= lead.id %>/draft/generate" class="mb-3">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-outline-primary btn-sm" type="submit">
+                  <i class="bi bi-stars"></i> Draft a first version
+                </button>
+                <span class="form-text ms-2">
+                  It gets the company, the country and the job title. Not the name, not the address.
+                </span>
+              </form>
+            <% } %>
+
             <form method="post" action="/crm/<%= lead.id %>/draft">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="mb-2">
