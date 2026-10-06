@@ -80,6 +80,18 @@ beforeAll(async () => {
     work_mode: 'remote'
   });
 
+  await ConsultantProfile.addProject(consultantId, {
+    name: 'Zyloteq three-site EWM rollout',
+    client: 'Zyloteq Confidential Client GmbH',
+    role: 'EWM lead',
+    activatePhase: 'realize',
+    isFullLifecycle: true,
+    modules: ['ewm'],
+    startedOn: '2024-02-01',
+    endedOn: '2025-03-31',
+    description: 'Wave planning across three sites.'
+  });
+
   // Publishing is gated on a completeness floor, so it is a separate call that can refuse —
   // and if it refuses here the fixture is wrong and every assertion below would be vacuous.
   const published = await ConsultantProfile.setPublic(consultantId, true);
@@ -244,5 +256,75 @@ maybe()('the profile page', () => {
     const company = await signedInAgent();
     const res = await company.get(`/consultants/${consultantId}`);
     expect(res.text).toContain('anon-con@example.test');
+  });
+});
+
+/**
+ * The delivery history, the avatar and the community block — the three things the
+ * walkthrough found missing from a profile, and the three places anonymity could leak
+ * through them.
+ */
+maybe()('the delivery history', () => {
+  it('is public, because the engagements are what this site knows that a CV does not', async () => {
+    /*
+     * The directory's module filter and the match score both read it. A hirer who filtered
+     * for EWM and opened the result could not see the EWM engagement that put it there.
+     */
+    const res = await request(app).get(`/consultants/${consultantId}`);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Delivery history');
+    expect(res.text).toContain('Zyloteq three-site EWM rollout');
+    expect(res.text).toContain('full lifecycle');
+  });
+
+  it('hides the client from a reader without an account', async () => {
+    // An employer's name beside a role, a country and a set of dates narrows "who is this"
+    // to a handful of people, and often to one.
+    const res = await request(app).get(`/consultants/${consultantId}`);
+    expect(res.text).not.toContain('Zyloteq Confidential Client GmbH');
+    expect(res.text).toContain('client hidden');
+  });
+
+  it('shows the client to an account', async () => {
+    const agent = await signedInAgent();
+    const res = await agent.get(`/consultants/${consultantId}`);
+    expect(res.text).toContain('Zyloteq Confidential Client GmbH');
+    expect(res.text).not.toContain('client hidden');
+  });
+
+  it('defaults to redacted, like redactFor', () => {
+    const rows = [{ name: 'A project', client: 'Acme' }];
+    expect(ConsultantProfile.redactProjectsFor(rows)[0].client).toBeNull();
+    expect(ConsultantProfile.redactProjectsFor(rows, 9)[0].client).toBe('Acme');
+  });
+});
+
+maybe()('the avatar', () => {
+  it('draws no initials for a reader who may not see the name', async () => {
+    /*
+     * Initials come from the name, and `redactFor` removed it — so an anonymised card
+     * falls through to the placeholder without the avatar partial knowing anything about
+     * anonymity. Deriving them from an id or an email would quietly put a hint back.
+     */
+    const res = await request(app).get(`/consultants?q=Zyloteq`);
+    expect(res.text).toContain('avatar-placeholder.svg');
+    // "ZA" would be this consultant's initials.
+    expect(res.text).not.toMatch(/<text[^>]*>ZA</);
+  });
+
+  it('draws them for an account', async () => {
+    const agent = await signedInAgent();
+    const res = await agent.get(`/consultants?q=Zyloteq`);
+    expect(res.text).toMatch(/<text[^>]*>ZA</);
+  });
+});
+
+maybe()('the community block', () => {
+  it('is not rendered to a reader without an account', async () => {
+    // It links to their community page, which carries their NAME — rendering it to
+    // somebody who may not see the name on the profile hands it over one click later.
+    const res = await request(app).get(`/consultants/${consultantId}`);
+    expect(res.text).not.toContain('In the community');
+    expect(res.text).not.toContain(`/community/author/${consultantId}`);
   });
 });

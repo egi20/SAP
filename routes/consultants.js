@@ -3,6 +3,7 @@
 const express = require('express');
 
 const ConsultantProfile = require('../models/ConsultantProfile');
+const Points = require('../models/Points');
 const ExternalIdentity = require('../models/ExternalIdentity');
 const ImageBlob = require('../models/ImageBlob');
 const Skill = require('../models/Skill');
@@ -113,10 +114,20 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const [skills, certifications, experiences, linkedInIdentity] = await Promise.all([
+    const [skills, certifications, experiences, projects, standing, linkedInIdentity] = await Promise.all([
       Skill.forConsultant(profile.user_id),
       ConsultantProfile.listCertifications(profile.user_id),
       ConsultantProfile.listExperiences(profile.user_id),
+      /*
+       * The delivery history. It was written, stored and filtered on from the first commit
+       * — the module filter in the directory and the module term in the match score both
+       * read it — and the public profile never rendered it, so the one thing this site
+       * knows that a CV does not was invisible on the page a hirer actually opens.
+       */
+      ConsultantProfile.listProjects(profile.user_id),
+      // Their community standing: a total and a level, never the ledger. Same rule as the
+      // author page.
+      Points.standingFor(profile.user_id),
       /*
        * The identity row, not just the mirrored flag, and only on this one-row page.
        * The badge says an account was confirmed; a reader deserves to see WHICH — the
@@ -151,6 +162,8 @@ router.get(
       skills,
       certifications,
       experiences,
+      projects: ConsultantProfile.redactProjectsFor(projects, viewer ? viewer.id : null),
+      standing,
       /*
        * The identity row carries the name LinkedIn returned, which is the thing the badge
        * is about — and is a name. A reader who may not see the one on the profile may not

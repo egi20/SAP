@@ -319,6 +319,24 @@ class ConsultantProfile {
     return redacted;
   }
 
+  /**
+   * The delivery history, with the parts that identify a person removed for a reader who
+   * is not signed in.
+   *
+   * The engagements themselves are the most SAP-shaped thing on a profile — which modules,
+   * which phase, how many full lifecycles — and none of that identifies anybody, so it is
+   * public. The CLIENT is different: an employer's name beside a role, a country and a set
+   * of dates narrows "who is this" to a handful of people, and often to one. So the client
+   * is redacted exactly as the name is, by the same rule and in the same place.
+   *
+   * Same default as `redactFor`: no viewer means redacted.
+   */
+  static redactProjectsFor(projects, viewerUserId = null) {
+    if (!Array.isArray(projects)) return projects;
+    if (viewerUserId) return projects;
+    return projects.map((project) => ({ ...project, client: null, clientRedacted: true }));
+  }
+
   static async browse(filters = {}, { limit = 20, offset = 0, sort = 'relevance' } = {}) {
     const { clause, params } = buildFilter(filters);
     const orderBy = SORTS[sort] || SORTS.relevance;

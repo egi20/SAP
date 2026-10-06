@@ -723,6 +723,26 @@ account. A face identifies somebody as well as a name, and the LinkedIn identity
 carries a third copy — hiding one and serving the others is anonymity that fools only the
 person relying on it. A test asserts all four.
 
+**The delivery history is on the public profile, and its CLIENT is not.** The engagements
+are the thing this site knows that a CV does not — which modules, which phase, how many
+full lifecycles — and the directory's module filter and the match score both read them, so
+a hirer who filtered for EWM and opened the result has to be able to see the EWM engagement
+that put it there. The client is different: an employer's name beside a role, a country and
+a set of dates narrows "who is this" to a handful of people and often to one, so
+`redactProjectsFor` removes it by the same rule and with the same default as `redactFor`.
+
+**An initials avatar is derived from the NAME and nothing else.** `redactFor` already
+nulled it, so an anonymised card falls through to the placeholder without
+`views/partials/avatar.ejs` knowing anything about anonymity — which is the whole point of
+putting the decision in one place. Deriving initials from an id or an email would quietly
+put the hint back. It is inline SVG: no request, no 404, and not a stored derivative that
+outlives the name it was made from.
+
+**The community block on a profile is signed-in only**, because it links to
+`/community/author/:id`, which carries the name. Rendering it to a reader who may not see
+the name on the profile hands it over one click later. It shows a total and a level, never
+the ledger.
+
 **Testing consequence:** the navigation prints the signed-in user's name on every page, so
 a negative assertion about a name must browse as somebody else. Checking that a consultant
 is ABSENT from a filtered list, while signed in as that consultant, passes from the navbar.

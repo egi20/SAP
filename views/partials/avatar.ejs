@@ -1,0 +1,46 @@
+<%
+  /*
+   * An avatar: the uploaded photograph, or initials, or the placeholder.
+   *
+   * THE ORDER MATTERS AND SO DOES THE LAST STEP. Initials are drawn from the name, and the
+   * name is null for a reader without an account — `ConsultantProfile.redactFor` removed
+   * it — so an anonymised card falls through to the placeholder without this partial
+   * knowing anything about anonymity. Deriving initials from anything else, an id or an
+   * email, would quietly put a hint back.
+   *
+   * Inline SVG rather than a route: it costs no request, it cannot 404, and it is not a
+   * stored derivative that outlives the name it was made from.
+   *
+   * The hue comes from the name so somebody looks the same on every page they appear on.
+   * hsl, not a hex, because the palette test scans the stylesheet for literal colours and
+   * a generated one has no business being a brand value either way.
+   */
+  const avatarName = (typeof name !== 'undefined' && name) ? String(name).trim() : '';
+  const avatarSrc = (typeof src !== 'undefined' && src) ? src : '';
+  const avatarSize = typeof size !== 'undefined' ? size : 40;
+  const avatarClass = typeof extraClass !== 'undefined' ? extraClass : '';
+
+  const initials = avatarName
+    ? avatarName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+    : '';
+
+  let hue = 0;
+  for (let i = 0; i < avatarName.length; i += 1) hue = (hue * 31 + avatarName.charCodeAt(i)) % 360;
+%>
+<% if (avatarSrc) { %>
+  <img class="avatar <%= avatarClass %>" style="width:<%= avatarSize %>px;height:<%= avatarSize %>px"
+       src="<%= avatarSrc %>" alt="" loading="lazy">
+<% } else if (initials) { %>
+  <%# Decorative: the name is printed beside it, so a screen reader announcing both would
+      read it twice. %>
+  <svg class="avatar <%= avatarClass %>" width="<%= avatarSize %>" height="<%= avatarSize %>"
+       viewBox="0 0 40 40" role="img" aria-hidden="true" focusable="false">
+    <rect width="40" height="40" rx="20" fill="hsl(<%= hue %>, 42%, 38%)"></rect>
+    <text x="20" y="20" fill="#fff" font-size="16" font-weight="600"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="system-ui, -apple-system, 'Segoe UI', sans-serif"><%= initials %></text>
+  </svg>
+<% } else { %>
+  <img class="avatar <%= avatarClass %>" style="width:<%= avatarSize %>px;height:<%= avatarSize %>px"
+       src="/images/avatar-placeholder.svg" alt="" loading="lazy">
+<% } %>

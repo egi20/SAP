@@ -1,7 +1,7 @@
 <a class="glass-card d-block h-100 text-reset" href="/consultants/<%= c.user_id %>">
   <div class="card-body">
     <div class="d-flex gap-3 align-items-center mb-2">
-      <img class="avatar" src="<%= c.profile_picture || '/images/avatar-placeholder.svg' %>" alt="" loading="lazy">
+      <%- include('avatar', { src: c.profile_picture, name: c.name, size: 40 }) %>
       <div class="min-w-0">
         <%# `c.name` is null for a reader who is not signed in — the route redacted it, this
             template only has to say so honestly rather than render an empty heading. %>

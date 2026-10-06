@@ -13,7 +13,9 @@
       <div class="glass-card mb-3">
         <div class="card-body">
           <div class="d-flex gap-3 mb-3">
-            <img class="avatar avatar-lg" src="<%= profile.profile_picture || '/images/avatar-placeholder.svg' %>" alt="">
+            <%- include('../partials/avatar', {
+              src: profile.profile_picture, name: profile.name, size: 72, extraClass: 'avatar-lg'
+            }) %>
             <div>
               <%# Redacted in the route for a reader who is not signed in. %>
               <h1 class="h3 mb-1">
@@ -64,6 +66,52 @@
           <% } %>
         </div>
       </div>
+
+      <%#
+        THE DELIVERY HISTORY, which is the thing this site knows that a CV does not.
+        The directory's module filter and the match score both read it, and the public
+        profile never rendered it — so a hirer who filtered for EWM and opened the result
+        could not see the EWM engagement that put it there.
+      %>
+      <% if (projects.length) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-1">Delivery history</h2>
+            <p class="small text-muted-2 mb-3">
+              Engagements, with the modules each one actually touched. This is what the
+              module filter searches — not a skills list.
+            </p>
+            <ul class="timeline">
+              <% projects.forEach(function (pr) { %>
+                <li>
+                  <strong><%= pr.name %></strong>
+                  <% if (pr.client) { %> · <%= pr.client %><% } %>
+                  <% if (pr.clientRedacted) { %>
+                    <span class="small text-muted-2">· client hidden</span>
+                  <% } %>
+                  <div class="small text-muted-2">
+                    <% if (pr.role) { %><%= pr.role %> · <% } %>
+                    <% if (pr.activate_phase) { %><%= pr.activate_phase %> · <% } %>
+                    <%= pr.started_on ? new Date(pr.started_on).toISOString().slice(0, 7) : '' %> —
+                    <%= pr.ended_on ? new Date(pr.ended_on).toISOString().slice(0, 7) : 'present' %>
+                    <% if (pr.is_full_lifecycle) { %>
+                      · <span class="badge-hub ok">full lifecycle</span>
+                    <% } %>
+                  </div>
+                  <% if (pr.modules && pr.modules.length) { %>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      <% pr.modules.forEach(function (m) { %>
+                        <a class="badge-hub text-decoration-none" href="/consultants?modules=<%= m %>"><%= moduleLabel(m) %></a>
+                      <% }) %>
+                    </div>
+                  <% } %>
+                  <% if (pr.description) { %><div class="small mt-1"><%- sanitizeRichText(pr.description) %></div><% } %>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        </div>
+      <% } %>
 
       <% if (experiences.length) { %>
         <div class="glass-card mb-3">
@@ -178,6 +226,31 @@
               <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Send</button>
             </form>
             <p class="form-text mb-0">The thread is anchored to the role you pick.</p>
+          </div>
+        </div>
+      <% } %>
+
+      <%#
+        Signed in only, and that is not decoration: the card links to their community page,
+        which carries their NAME. Rendering it to a reader who may not see the name on the
+        profile above would hand it over one click later. A total and a level, never the
+        ledger — same rule as the author page.
+      %>
+      <% if (signedIn && standing && standing.points > 0) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">In the community</h2>
+            <div class="d-flex align-items-center gap-3">
+              <div class="match-ring" style="--pct: <%= standing.progressPercent %>">
+                <span><%= standing.level %></span>
+              </div>
+              <div class="flex-grow-1">
+                <strong><%= standing.title %></strong>
+                <p class="small text-muted-2 mb-0 mt-1"><%= standing.points %> points</p>
+              </div>
+            </div>
+            <a class="btn btn-sm btn-outline-secondary w-100 mt-3"
+               href="/community/author/<%= profile.user_id %>">What they have written</a>
           </div>
         </div>
       <% } %>
