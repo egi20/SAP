@@ -20,6 +20,14 @@
     { href: '/admin/errors', key: 'errors', label: 'Errors', icon: 'bi-bug', super: false },
     { href: '/admin/referrals', key: 'referrals', label: 'Referrals', icon: 'bi-people-fill', super: true },
     { href: '/admin/rates', key: 'rates', label: 'Rates', icon: 'bi-cash-coin', super: true },
+    /*
+     * The CRM is mounted at its own root rather than under /admin, because it carries its
+     * own guard and is not an administration screen for this site's own members — it holds
+     * people who are not members at all. It appears here because this is the tab strip the
+     * people who can open it already use, and a surface reachable only by typing its URL
+     * is one nobody audits.
+     */
+    { href: '/crm', key: 'crm', label: 'Leads', icon: 'bi-person-lines-fill', super: true },
     { href: '/admin/settings', key: 'settings', label: 'Settings', icon: 'bi-sliders', super: true }
   ];
   const isSuper = Boolean(currentUser && currentUser.isSuperadmin);

@@ -28,6 +28,7 @@ const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { assertEngagementIntegrity } = require('./config/engagementModels');
 const { assertJobSectionsIntegrity } = require('./config/jobSections');
+const { assertCrmIntegrity } = require('./config/crm');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -117,6 +118,14 @@ assertEngagementIntegrity();
  * exists for.
  */
 assertJobSectionsIntegrity();
+
+/*
+ * And the CRM's own vocabulary. Two of the things this one checks are about somebody's
+ * right to be left alone — that `unsubscribed` is terminal, and that every live status can
+ * reach it in one step — which is the one thing on that screen that cannot be fixed after
+ * the fact.
+ */
+assertCrmIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the
@@ -350,6 +359,7 @@ app.use('/consultants', require('./routes/consultants'));
 app.use('/companies', require('./routes/companies'));
 app.use('/jobs', require('./routes/jobs'));
 app.use('/applications', require('./routes/applications'));
+app.use('/crm', require('./routes/crm'));
 app.use('/quotes', require('./routes/quotes'));
 app.use('/community', require('./routes/community'));
 app.use('/payments', require('./routes/payments'));

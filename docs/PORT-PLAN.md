@@ -720,6 +720,43 @@ claim link (an access grant to whoever an inbox forwards to), resolving the addr
 account at creation (an account-existence oracle any company could query), and an external
 application URL on the advert (it empties the pipeline and the public count at once).
 
+## The sales CRM
+
+Ported from Salesforce Hub, which had already done most of the thinking: the source
+requirement, the hashed suppression list with no foreign key, the count interlock on bulk
+delete, and the refusal to send. Those are taken as they are, and the count interlock is
+worth naming as something the reference got right rather than something corrected.
+
+Four things changed on the way.
+
+**The source became first-touch.** The reference's `upsert` rewrites `source` and
+`source_detail` on every re-import, so a lead acquired from an inbound enquiry quietly
+becomes one scraped from a directory the next time a file is loaded. It is the lawful-basis
+record; a record a later file can rewrite is not one. A disagreement now goes into the
+activity log, dated.
+
+**Unsubscribing erases the person.** The reference writes the suppression and leaves the
+row intact, relying on the status being read — which works until a query forgets to. Here
+it writes the suppression, nulls the contact details, and keeps the company and the
+activity log, which carry no personal data. Same shape as the account closure built
+earlier in this port.
+
+**A contacted lead cannot be bulk-deleted.** The activity log is the record that answers a
+complaint, and it cascades with the row. Those leads are reported back rather than skipped
+silently, and the way to remove one is the unsubscribe above.
+
+**The import is pasted rather than uploaded, and leads carry product lines.** The first
+keeps a file of contact details out of the image-upload middleware and out of any
+server-side draft between two requests; the second makes the CRM speak the vocabulary the
+job board, the community tree and the estimator already share instead of inventing a fifth
+list of SAP product names.
+
+Left for the next step, deliberately: the drafts are hand-written. `crm_outreach_drafts`
+already carries `model`, `input_tokens` and `output_tokens`, NULL for every row written so
+far — the same reasoning as `hidden_at` landing three migrations before the moderation
+screen. A generated draft that could not say which model wrote it would be the
+unaccountable version of the feature.
+
 ## Known at the start, so nobody discovers it at the end
 
 Salesforce Hub's own plan ends by noting that the real remaining work was never a feature:

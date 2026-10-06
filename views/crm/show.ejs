@@ -1,0 +1,242 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-building', heading: lead.company, sub: lead.contact_name || 'No named contact' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../admin/_tabs', { current: 'crm' }) %>
+  <%- include('../partials/flash') %>
+
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0 small">
+      <li class="breadcrumb-item"><a href="/crm">Leads</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= lead.company %></li>
+    </ol>
+  </nav>
+
+  <% if (lead.erased_at) { %>
+    <%#
+      What is left of an unsubscribed lead. The company stays so the same list does not get
+      re-imported blind; the person does not.
+    -%>
+    <div class="alert alert-warning">
+      Somebody here asked not to be contacted, on
+      <%= new Date(lead.erased_at).toLocaleDateString('en-GB') %>. The contact details were
+      erased and the address is on the do-not-contact list. What remains is the company and
+      the record of what was sent.
+    </div>
+  <% } %>
+
+  <% if (isMember) { %>
+    <div class="alert alert-info">
+      <strong>This address already has an account here.</strong> They are not a stranger —
+      a cold approach is the wrong message. Whatever this is about, it probably belongs in
+      a thread anchored to something real.
+    </div>
+  <% } %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Contact</h2>
+          <dl class="row small mb-0">
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8"><%= lead.contact_email || '—' %></dd>
+            <dt class="col-sm-4">Phone</dt>
+            <dd class="col-sm-8"><%= lead.contact_phone || '—' %></dd>
+            <dt class="col-sm-4">Job title</dt>
+            <dd class="col-sm-8"><%= lead.job_title || '—' %></dd>
+            <dt class="col-sm-4">Country</dt>
+            <dd class="col-sm-8"><%= lead.country || '—' %></dd>
+            <dt class="col-sm-4">Website</dt>
+            <dd class="col-sm-8">
+              <% if (lead.website) { %><a href="<%= lead.website %>" rel="noopener noreferrer nofollow" target="_blank"><%= lead.website %></a><% } else { %>—<% } %>
+            </dd>
+            <dt class="col-sm-4">LinkedIn</dt>
+            <dd class="col-sm-8">
+              <% if (lead.linkedin_url) { %><a href="<%= lead.linkedin_url %>" rel="noopener noreferrer nofollow" target="_blank">profile</a><% } else { %>—<% } %>
+            </dd>
+            <dt class="col-sm-4">What they run</dt>
+            <dd class="col-sm-8">
+              <% if (lead.product_lines.length) { %>
+                <% lead.product_lines.forEach(function (v) { %><span class="badge-hub"><%= lineLabel(v) %></span> <% }); %>
+              <% } else { %>—<% } %>
+            </dd>
+
+            <%#
+              The provenance, printed as prominently as the address it justifies. It is
+              first-touch: a later import records a disagreement in the log rather than
+              overwriting this.
+            -%>
+            <dt class="col-sm-4">Source</dt>
+            <dd class="col-sm-8">
+              <strong><%= lead.source %></strong>
+              <% if (lead.source_detail) { %><div class="text-muted-2"><%= lead.source_detail %></div><% } %>
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-1">Drafts</h2>
+          <p class="small text-muted-2 mb-3">
+            Write it here, send it from your own mail client, then mark it sent. Nothing on
+            this page sends anything. At most <%= maxDrafts %> per lead.
+          </p>
+
+          <% drafts.forEach(function (d) { %>
+            <div class="border rounded p-3 mb-3">
+              <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                <span class="badge-hub"><%= d.channel %></span>
+                <span class="small text-muted-2">
+                  <%= d.author_name %> · <%= new Date(d.created_at).toLocaleDateString('en-GB') %>
+                  <% if (d.marked_sent_at) { %>
+                    · <span class="badge-hub ok">marked sent <%= new Date(d.marked_sent_at).toLocaleDateString('en-GB') %></span>
+                  <% } else if (d.superseded_at) { %>
+                    · <span class="badge-hub">superseded</span>
+                  <% } %>
+                </span>
+              </div>
+              <form method="post" action="/crm/<%= lead.id %>/draft/<%= d.id %>/edit">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <%#
+                  `body` is what the draft started as and is never overwritten; this box
+                  edits `edited_body`, which is what somebody actually sent. Both halves
+                  survive, so what went out is checkable.
+                -%>
+                <textarea class="form-control message-body mb-2" name="edited_body" rows="6"
+                          maxlength="<%= maxDraftLength %>"><%= d.edited_body || d.body %></textarea>
+                <button class="btn btn-sm btn-outline-secondary" type="submit">Save the edit</button>
+              </form>
+              <% if (!d.marked_sent_at) { %>
+                <form method="post" action="/crm/<%= lead.id %>/draft/<%= d.id %>/sent" class="d-inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="channel" value="<%= d.channel %>">
+                  <button class="btn btn-sm btn-outline-primary mt-2" type="submit">I sent this</button>
+                </form>
+              <% } %>
+            </div>
+          <% }); %>
+
+          <% if (!lead.erased_at && drafts.length < maxDrafts) { %>
+            <form method="post" action="/crm/<%= lead.id %>/draft">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="mb-2">
+                <label class="form-label" for="draft-channel">Channel</label>
+                <select class="form-select" id="draft-channel" name="channel">
+                  <% channels.forEach(function (c) { %><option value="<%= c.value %>"><%= c.label %></option><% }); %>
+                </select>
+              </div>
+              <textarea class="form-control mb-2" name="body" rows="6" required
+                        maxlength="<%= maxDraftLength %>" placeholder="Write it in your own words."></textarea>
+              <button class="btn btn-primary btn-sm" type="submit">Save a draft</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">What has happened</h2>
+          <% if (activities.length === 0) { %>
+            <p class="small text-muted-2 mb-0">Nothing recorded yet.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% activities.forEach(function (a) { %>
+                <li class="border-bottom py-2">
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge-hub"><%= a.outcome %></span>
+                    <% if (a.channel) { %><span class="badge-hub"><%= a.channel %></span><% } %>
+                    <% if (a.to_status) { %><span class="small text-muted-2"><%= a.from_status || '—' %> → <%= a.to_status %></span><% } %>
+                    <span class="small text-muted-2 ms-auto">
+                      <%= a.actor_name %> · <%= new Date(a.created_at).toLocaleString('en-GB') %>
+                    </span>
+                  </div>
+                  <% if (a.note) { %><p class="small mb-0 mt-1 message-body"><%= a.note %></p><% } %>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-lg-5">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Stage</h2>
+          <p class="mb-3"><span class="badge-hub"><%= lead.status %></span></p>
+
+          <% if (moves.length === 0) { %>
+            <p class="small text-muted-2 mb-0">Nothing moves from here.</p>
+          <% } else { %>
+            <form method="post" action="/crm/<%= lead.id %>/status">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="mb-2">
+                <label class="form-label" for="to">Move to</label>
+                <select class="form-select" id="to" name="to" required>
+                  <% moves.forEach(function (m) { %><option value="<%= m %>"><%= m %></option><% }); %>
+                </select>
+              </div>
+              <textarea class="form-control mb-2" name="note" rows="2" maxlength="2000" placeholder="Why (optional)"></textarea>
+              <button class="btn btn-outline-primary btn-sm w-100" type="submit">Move</button>
+            </form>
+            <p class="form-text mb-0">
+              <%#
+                Said before the control, because it is the one move here that cannot be
+                undone and the one that does more than it looks like it does.
+              -%>
+              "unsubscribed" puts the address on the do-not-contact list and erases the
+              contact details from this lead. The company and this log stay.
+            </p>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Record what happened</h2>
+          <form method="post" action="/crm/<%= lead.id %>/activity">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-2">
+              <label class="form-label" for="outcome">What</label>
+              <select class="form-select" id="outcome" name="outcome" required>
+                <% outcomes.forEach(function (o) { %><option value="<%= o.value %>"><%= o.label %></option><% }); %>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="channel">Through</label>
+              <select class="form-select" id="channel" name="channel">
+                <option value="">—</option>
+                <% channels.forEach(function (c) { %><option value="<%= c.value %>"><%= c.label %></option><% }); %>
+              </select>
+            </div>
+            <textarea class="form-control mb-2" name="note" rows="3" maxlength="2000" placeholder="Note"></textarea>
+            <button class="btn btn-outline-primary btn-sm w-100" type="submit">Record it</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Owner</h2>
+          <p class="small text-muted-2 mb-3">
+            <%= lead.owner_user_id === currentUser.id ? 'Yours.' : (lead.owner_user_id ? 'Somebody else has this.' : 'Nobody has this.') %>
+          </p>
+          <form method="post" action="/crm/<%= lead.id %>/owner">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="claim" value="<%= lead.owner_user_id === currentUser.id ? '0' : '1' %>">
+            <button class="btn btn-outline-secondary btn-sm w-100" type="submit">
+              <%= lead.owner_user_id === currentUser.id ? 'Release it' : 'Claim it' %>
+            </button>
+          </form>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

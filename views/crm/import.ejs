@@ -1,0 +1,150 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-filetype-csv', heading: 'Import leads', sub: 'Preview first, write second' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../admin/_tabs', { current: 'crm' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <form method="post" action="/crm/import" class="glass-card mb-4">
+        <div class="card-body">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <%#
+            PASTED, not uploaded. An upload path would hand a file full of other people's
+            contact details to middleware configured for profile photographs, and would put
+            it somewhere — a temp file, a buffer, a disk — for the length of a request.
+            Pasted text lives in one request body and is written or discarded.
+          -%>
+          <div class="mb-3">
+            <label class="form-label" for="csv">Paste the CSV</label>
+            <textarea class="form-control" id="csv" name="csv" rows="10" required
+                      placeholder="company,contact,email,phone,title,country,website,linkedin"><%= values.csv || '' %></textarea>
+            <p class="form-text">
+              The first row names the columns. Only <code>company</code> is required; the
+              others are matched by name and anything else is ignored. Nothing is uploaded
+              and nothing is stored between the preview and the import.
+            </p>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-5 mb-3">
+              <label class="form-label" for="source">Where did this file come from? <span aria-hidden="true">*</span></label>
+              <select class="form-select" id="source" name="source" required>
+                <option value="">Choose one</option>
+                <% sources.forEach(function (s) { %>
+                  <option value="<%= s.value %>" <%= values.source === s.value ? 'selected' : '' %>><%= s.label %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-7 mb-3">
+              <label class="form-label" for="source_detail">Specifically where</label>
+              <input class="form-control" id="source_detail" name="source_detail" maxlength="300"
+                     value="<%= values.source_detail || '' %>">
+              <p class="form-text">
+                <%# One import is one provenance. A per-row source column would be a
+                    provenance nobody checked. -%>
+                It applies to every row in this file.
+              </p>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Preview</button>
+          <a class="btn btn-outline-secondary" href="/crm">Cancel</a>
+        </div>
+      </form>
+
+      <% if (preview) { %>
+        <% if (preview.problems.length) { %>
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              <% preview.problems.forEach(function (p) { %><li><%= p %></li><% }); %>
+            </ul>
+          </div>
+        <% } %>
+
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-3">What this would do</h2>
+            <ul class="small">
+              <li><strong><%= preview.writable %></strong> would be written.</li>
+              <% if (preview.suppressed.length) { %>
+                <li class="text-danger">
+                  <strong><%= preview.suppressed.length %></strong> are on the do-not-contact
+                  list and are refused — not imported and flagged, refused. A row that exists
+                  is a row somebody eventually writes to.
+                </li>
+              <% } %>
+              <% if (preview.members.length) { %>
+                <li>
+                  <strong><%= preview.members.length %></strong> already have an account here.
+                  They will be imported, but a cold approach is the wrong message for them.
+                </li>
+              <% } %>
+              <% if (preview.skipped.length) { %>
+                <li><strong><%= preview.skipped.length %></strong> rows could not be read.</li>
+              <% } %>
+              <% if (preview.truncated) { %>
+                <li class="text-danger">
+                  The file is longer than one import takes. Only the first rows are shown —
+                  split it, so that what you confirm is what you read.
+                </li>
+              <% } %>
+            </ul>
+
+            <% if (preview.skipped.length) { %>
+              <details class="mb-3">
+                <summary class="small">Which rows, and why</summary>
+                <ul class="small mt-2">
+                  <% preview.skipped.forEach(function (s) { %><li>Line <%= s.line %>: <%= s.reason %></li><% }); %>
+                </ul>
+              </details>
+            <% } %>
+
+            <% if (preview.leads.length) { %>
+              <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                  <thead><tr><th>Line</th><th>Company</th><th>Contact</th><th>Email</th><th></th></tr></thead>
+                  <tbody>
+                    <% preview.leads.forEach(function (l) { %>
+                      <tr>
+                        <td class="small"><%= l.line %></td>
+                        <td><%= l.company %></td>
+                        <td class="small"><%= l.contact_name || '—' %></td>
+                        <td class="small"><%= l.contact_email || '—' %></td>
+                        <td class="small">
+                          <% if (l.contact_email && preview.suppressed.includes(l.contact_email)) { %>
+                            <span class="badge-hub warn">do not contact</span>
+                          <% } else if (l.contact_email && preview.members.includes(l.contact_email)) { %>
+                            <span class="badge-hub">already a member</span>
+                          <% } %>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <% if (!preview.problems.length && preview.writable > 0) { %>
+          <form method="post" action="/crm/import">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="csv" value="<%= values.csv %>">
+            <input type="hidden" name="source" value="<%= values.source %>">
+            <input type="hidden" name="source_detail" value="<%= values.source_detail %>">
+            <input type="hidden" name="confirm" value="1">
+            <button class="btn btn-primary" type="submit">Import <%= preview.writable %></button>
+          </form>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

@@ -573,6 +573,101 @@ though it were a finished answer.
 in a moment" is true; a 400 is the request shape being wrong, which fails identically
 forever, and the generic message would otherwise be a lie sitting in the log for weeks.
 
+## The sales CRM
+
+**Read this before changing anything in `models/Crm*.js`.** Every other table in this
+schema holds something somebody gave us — an account they created, a profile they
+published, a rate they contributed, an enquiry they sent. `crm_leads` holds the names,
+addresses, phone numbers and job titles of people who have NOT asked to be contacted, so
+that somebody can contact them. That is a different kind of object and every rule below
+follows from it.
+
+**SUPERADMIN ONLY**, the narrowest guard in the application alongside `/admin/rates`, and
+for the same reason: moderating a forum is not a reason to read the contact details of
+people who are not members. It is mounted at `/crm` rather than under `/admin` because it
+is not an administration screen for this site's own members, and it appears in the admin
+tab strip because a surface reachable only by typing its URL is one nobody audits.
+
+**NOTHING HERE SENDS ANYTHING.** A draft is written, a person sends it from their own mail
+client, and a person records that they did. There is no mail call, no queue and no
+scheduler, and a test greps the route, the models and the views for one. `marked_sent_at`
+is named for what it is — a note somebody made — so nobody later reads it as a delivery
+receipt. This is the standing refusal the port plan opens with, and it is the reason this
+area is a CRM rather than a sending tool.
+
+**A lead cannot exist without a source.** `source` is NOT NULL, validated against
+`config/crm.js`, and most values require a detail — "a public directory" means something
+only with the directory named. "Where did you get this person's address" is the first
+question anybody will ask and it cannot be reconstructed from memory a year later.
+
+**The source is FIRST-TOUCH and permanent.** A re-import corrects a phone number and never
+the provenance; where the two disagree the second answer is written to the activity log,
+dated and visible, instead of silently replacing the first. Same argument as
+`referral_attributions`: a record a later file can rewrite is not one. The reference
+overwrites it on every import, so a lead acquired from an inbound enquiry quietly becomes
+one scraped from a directory.
+
+**Suppression outlives the row.** `crm_suppressions` is keyed on a SHA-256 of the
+lower-cased address and holds no address, because a suppression list full of plaintext
+addresses IS a mailing list of people who asked not to be mailed. It has NO foreign key to
+`crm_leads` and nothing anywhere deletes from it: deleting a lead is exactly how an
+application forgets its subject asked to be left alone, and the next quarterly import
+writes them straight back in. The hash is unsalted on purpose — a salt would make the list
+useless for its only job, checking an address somebody is about to import.
+
+**The suppression check runs on every write path, not at send time.** By the time something
+is about to go out the address is already in the database, already in an export, and
+already in somebody's list. A suppressed address is REFUSED, never "imported and flagged":
+a row that exists is a row somebody eventually writes to.
+
+**Unsubscribing does three things in one transaction, and any two without the third is a
+half-kept promise:** it writes the suppression, it ERASES the contact details from the lead
+row, and it keeps the company and the activity log. Same shape as
+`models/AccountClosure.js` — erase the identity, keep the record. The reference keeps the
+row intact and relies on the status being read, which works exactly until somebody writes a
+query that forgets to. `unsubscribed` is terminal and reachable from every live status in
+ONE step, and the boot assertion checks both: somebody asking to be left alone must never
+depend on the pipeline being in the right place first.
+
+**A lead somebody has actually contacted is never bulk-deleted.** Its activity log is the
+answer to a complaint about that contact and the log cascades with the row, so the bulk
+action reports those rows back rather than skipping them silently. The way to remove one is
+`unsubscribed`, which erases the person and keeps the record. The count interlock is
+ported as-is from the reference, which got it right: the screen posts the number it showed
+and the model aborts on a mismatch.
+
+**`crm_lead_activities` carries no contact details of its own**, which is what makes
+erasing a lead leave an intact, personal-data-free record behind. Append-only, no edit, no
+delete.
+
+**One filter builder**, used by the list, the count, the CSV export and both bulk actions —
+the rule exists for exactly that last case: a bulk delete and the screen that showed what
+it would delete must provably target the same rows.
+
+**Product lines come from `config/sapProducts.js`**, not a new taxonomy. A CRM with its own
+list of "what they run" is the fifth place SAP's product names would be written down and
+the first to drift. Filtered with `JSON_CONTAINS` + `JSON_QUOTE` and the serialised string
+bound directly, never `CAST(? AS JSON)` — the MariaDB lesson from the agency directory.
+
+**The import is pasted, not uploaded, and previewed before it writes.** An upload path
+would hand a file full of other people's contact details to middleware configured for
+profile photographs and would put it somewhere for the length of a request; pasted text
+lives in one request body and is written or discarded. Two posts of the same text — the
+first shows what would happen, the second does it — so there is no server-side draft
+holding contact details between requests. CSV only: the reference sniffs every sheet of an
+.xlsx and guesses which tabs are leads, and guessing at the shape of a file full of other
+people's details is the wrong place to be clever. One import is one provenance, so the
+source describes the FILE and there is no per-row source column.
+
+**A lead whose address already has an account here is flagged, never blocked.** A cold
+approach to somebody who is already a member is the one message this site should not send,
+and the person writing it needs to know before they write it.
+
+**Testing consequence:** a suppression is permanent, so a suite that suppresses a FIXED
+address passes once and fails on every run after. Use a fresh address per run — clearing
+the table in `beforeAll` would "fix" it by deleting the one record this area exists to
+keep.
+
 ## Referrals and commissions
 
 **There is no balance column anywhere.** A balance is `SUM(amount_minor)` over
