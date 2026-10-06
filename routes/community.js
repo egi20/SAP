@@ -284,7 +284,10 @@ router.get(
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
-    const replies = await Post.replies(post.id, viewerId);
+    // Checked against the model's own table, never passed through — a sort value out of a
+    // query string must not be able to reach an ORDER BY.
+    const answerSort = Post.REPLY_SORTS.includes(req.query.answers) ? req.query.answers : 'top';
+    const replies = await Post.replies(post.id, viewerId, { sort: answerSort });
     // A hidden post must not accumulate views from the moderators checking it.
     if (!post.hidden_at && (!viewerId || viewerId !== post.author_user_id)) Post.incrementViews(post.id);
 
@@ -293,6 +296,8 @@ router.get(
       post,
       replies,
       kind: postKind(post.kind),
+      answerSort,
+      answerSorts: Post.REPLY_SORTS,
       isAuthor: Boolean(viewerId && viewerId === post.author_user_id),
       canModerate: isAdmin
     });

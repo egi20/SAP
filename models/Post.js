@@ -76,6 +76,16 @@ function buildFilter(filters = {}) {
   return { clause: where.length ? where.join(' AND ') : '1 = 1', params };
 }
 
+/**
+ * How the replies under a post may be ordered. A fixed table, so a sort value out of a
+ * query string can never reach the statement — the key is looked up, never interpolated.
+ */
+const REPLY_SORTS = {
+  top: 'r.vote_score DESC, r.created_at ASC',
+  oldest: 'r.created_at ASC',
+  newest: 'r.created_at DESC'
+};
+
 const SORTS = {
   recent: 'p.is_pinned DESC, p.last_activity_at DESC',
   newest: 'p.is_pinned DESC, p.created_at DESC',
@@ -274,7 +284,15 @@ class Post {
    * would silently disagree with `posts.reply_count`; showing "removed" is both honest and
    * the only version a threaded conversation still reads correctly.
    */
-  static async replies(postId, viewerUserId = null) {
+  /**
+   * @param {string} sort  'top' (default), 'oldest' or 'newest'.
+   *
+   * THE SOLUTION IS FIRST IN ALL THREE. A thread whose accepted answer sorts to the bottom
+   * under "Newest" is a thread hiding the one reply somebody came for — and the sort
+   * control is a reading preference, not permission to bury the answer. Everything below
+   * the solution is ordered as asked.
+   */
+  static async replies(postId, viewerUserId = null, { sort = 'top' } = {}) {
     const [rows] = await promisePool.query(
       `SELECT r.id, r.post_id, r.author_user_id, r.parent_reply_id, r.vote_score,
               r.is_solution, r.created_at, r.updated_at, r.hidden_at,
@@ -288,7 +306,7 @@ class Post {
          LEFT JOIN consultant_profiles cp ON cp.user_id = r.author_user_id
          LEFT JOIN company_profiles comp ON comp.user_id = r.author_user_id
         WHERE r.post_id = ?
-        ORDER BY r.is_solution DESC, r.vote_score DESC, r.created_at ASC`,
+        ORDER BY r.is_solution DESC, ${REPLY_SORTS[sort] || REPLY_SORTS.top}`,
       viewerUserId ? [viewerUserId, postId] : [postId]
     );
     return rows;
@@ -520,5 +538,7 @@ class Post {
     return result.affectedRows === 1;
   }
 }
+
+Post.REPLY_SORTS = Object.freeze(Object.keys(REPLY_SORTS));
 
 module.exports = Post;

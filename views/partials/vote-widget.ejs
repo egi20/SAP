@@ -1,0 +1,53 @@
+<%
+  /*
+   * Up and down, with the score between them.
+   *
+   * ONE partial for posts and replies, because the pair was written out twice and a dead
+   * `voteForm` helper sat above it that nothing ever called — the shape of a thing somebody
+   * meant to factor out and did not.
+   *
+   * A repeated value CLEARS the vote, which is what `Post.vote` does with it: the button
+   * already pressed posts 0. So each button's payload depends on the current state, and the
+   * title says which of the two it will do.
+   *
+   * DOWNVOTING TAKES NO POINTS AWAY beyond removing the upvote's own award. `Points.settleTo`
+   * pays while an upvote STANDS and settles to zero otherwise; it never settles negative.
+   * A community this size cannot afford a button that lets one reader cost somebody
+   * standing, and "this is wrong" is worth saying without it being worth money.
+   */
+  const canVote = currentUser && currentUser.id !== authorUserId;
+  const action = `/community/vote/${targetType}/${id}`;
+%>
+<div class="vote-widget d-inline-flex align-items-center gap-1">
+  <% if (canVote) { %>
+    <form method="post" action="<%= action %>" class="d-inline">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="redirectTo" value="<%= backTo %>">
+      <input type="hidden" name="value" value="<%= myVote === 1 ? 0 : 1 %>">
+      <button class="btn btn-sm <%= myVote === 1 ? 'btn-primary' : 'btn-outline-primary' %>" type="submit"
+              aria-pressed="<%= myVote === 1 %>"
+              title="<%= myVote === 1 ? 'Remove your vote' : 'This is useful' %>">
+        <i class="bi bi-arrow-up" aria-hidden="true"></i>
+        <span class="visually-hidden"><%= myVote === 1 ? 'Remove your upvote' : 'Upvote' %></span>
+      </button>
+    </form>
+
+    <span class="vote-score small <%= score < 0 ? 'text-danger' : '' %>"><%= score %></span>
+
+    <form method="post" action="<%= action %>" class="d-inline">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="redirectTo" value="<%= backTo %>">
+      <input type="hidden" name="value" value="<%= myVote === -1 ? 0 : -1 %>">
+      <button class="btn btn-sm <%= myVote === -1 ? 'btn-danger' : 'btn-outline-secondary' %>" type="submit"
+              aria-pressed="<%= myVote === -1 %>"
+              title="<%= myVote === -1 ? 'Remove your vote' : 'This is not useful' %>">
+        <i class="bi bi-arrow-down" aria-hidden="true"></i>
+        <span class="visually-hidden"><%= myVote === -1 ? 'Remove your downvote' : 'Downvote' %></span>
+      </button>
+    </form>
+  <% } else { %>
+    <%# The author's own, or a visitor's: a score and no buttons. Voting on your own post is
+        refused by the model, so offering the button would be offering an error. %>
+    <span class="badge-hub"><i class="bi bi-arrow-up"></i> <%= score %></span>
+  <% } %>
+</div>

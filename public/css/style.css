@@ -1066,6 +1066,9 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   .cookie-notice, .back-to-top { display: none !important; }
 }
 
+/* The up/down vote pair, with the score between them. */
+.vote-widget .vote-score { min-width: 1.75rem; text-align: center; font-variant-numeric: tabular-nums; }
+
 /* The feed card's "Show more". A <details>, so it needs no script. */
 /* No literal fallback: the palette test scans this file for reference-palette colours, and
    a hard-coded hex here is exactly the drift it exists to catch. --bs-link-color is set

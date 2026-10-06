@@ -218,6 +218,28 @@ public breakdown of somebody's awards and reversals publishes a moderation histo
 not ask to have read out. An inactive or missing account is a 404, never an empty page: a
 page that renders for any id confirms which ids exist.
 
+**Downvoting takes no points away beyond removing the upvote's own award.**
+`Points.settleTo` pays while an upvote STANDS and settles to zero otherwise; it never
+settles negative. A community this size cannot afford a button that lets one reader cost
+somebody their standing, and "this is wrong" is worth saying without it being worth money.
+The score itself does go negative, which is the signal doing its job.
+
+**The accepted answer is first under every reply sort.** `top`, `oldest` and `newest` order
+everything BELOW the solution; the solution is pinned in all three. A thread whose answer
+sorts to the bottom under "Newest" is hiding the one reply somebody came for — the sort is
+a reading preference, not permission to bury it. The sort key is looked up in
+`REPLY_SORTS`, never interpolated, so a query string cannot reach an ORDER BY.
+
+**A vote returns to the sort the reader was in.** Without the query string, somebody who
+chose "Oldest" is dropped back into "Top" by the act of voting, which reads as the page
+losing their place.
+
+**One vote widget for posts and replies.** `views/partials/vote-widget.ejs`. The pair was
+written out twice with a dead `voteForm` helper above it that nothing called — the shape of
+something somebody meant to factor out and did not. It renders a score and no buttons for
+the author's own content, because `Post.vote` refuses a self-vote and offering the button
+would be offering an error.
+
 **`levelFor` must survive a negative total.** Reversals can take an account below zero, and
 the next level is the one above the CURRENT band — not the first threshold above the point
 total, which at -100 is level 1's own floor and renders as "100 points to level 1" at

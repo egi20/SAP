@@ -12,6 +12,15 @@
   <div class="container">
     <%- include('../partials/flash') %>
 
+    <% if (typeof category !== 'undefined' && category) { %>
+      <nav aria-label="Breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+          <li class="breadcrumb-item"><a href="/community">Community</a></li>
+          <li class="breadcrumb-item active" aria-current="page"><%= category.name %></li>
+        </ol>
+      </nav>
+    <% } %>
+
     <div class="row g-4">
       <div class="col-lg-8">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
