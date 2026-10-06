@@ -95,6 +95,8 @@ router.get(
     const { rows, total } = await User.list({
       search: req.query.q || '',
       role: User.ALL_ROLES.includes(req.query.role) ? req.query.role : '',
+      // Checked against a fixed pair in the model as well; this is the screen's half.
+      status: ['active', 'inactive'].includes(req.query.status) ? req.query.status : '',
       limit,
       offset
     });
@@ -198,12 +200,20 @@ router.get(
   asyncHandler(async (req, res) => {
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
     const status = Job.STATUSES.includes(req.query.status) ? req.query.status : 'open';
-    const { rows, total } = await Job.browse({ status }, { limit, offset, sort: 'newest' });
+    /*
+     * The status parameter has been honoured here since this screen was written and the
+     * page offered no control for it — a filter nothing can reach is a filter nobody uses.
+     * The search goes through the same builder, so the list and its count agree.
+     */
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : '';
+    const { rows, total } = await Job.browse({ status, q }, { limit, offset, sort: 'newest' });
 
     return res.render('admin/jobs', {
       title: 'Jobs',
       jobs: rows,
       status,
+      q,
+      query: req.query,
       statuses: Job.STATUSES,
       roleLabel,
       pagination: paginationMeta({ page, perPage, total }),
@@ -481,6 +491,120 @@ router.get(
   })
 );
 
+/**
+ * POST /admin/users/:id/talent — take a consultant profile out of the public directory,
+ * or put it back.
+ *
+ * ADMIN, not superadmin, and that is deliberate: this is moderation, which is what an
+ * ordinary administrator is for. It is also why it is not the deactivate button — the
+ * account keeps working, and the only thing that goes is the public listing.
+ *
+ * `Moderation.setProfileHidden` is the single writer, so the decision lands in the same
+ * log as every other one and the directory, the search source and the match all drop the
+ * profile through `ConsultantProfile.buildFilter` without any of them knowing why.
+ */
+router.post(
+  '/users/:id/talent',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    // The same rule as the roles form and the deactivate button: not on your own account.
+    if (req.params.id === req.session.user.id) {
+      req.flash('error', 'That is your own profile.');
+      return res.redirect(returnTo(req, '/admin/users'));
+    }
+
+    const hidden = req.body.hidden === 'on';
+    try {
+      const result = await Moderation.setProfileHidden(req.params.id, hidden, {
+        actorUserId: req.session.user.id,
+        reason: req.body.reason
+      });
+      if (!result.changed) {
+        req.flash('info', 'Somebody had already done that.');
+      } else {
+        req.flash(
+          'success',
+          hidden
+            ? 'Taken out of the directory. The account still works; only the public listing is gone.'
+            : 'Our decision is cleared. Whether it appears again is their own publish switch.'
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'NOT_FOUND') throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect(returnTo(req, '/admin/users'));
+  })
+);
+
+/**
+ * POST /admin/jobs/:id/hidden — take an advert out of the board, or put it back.
+ *
+ * NOT "delete the job", and not a status change. The applications made to it, their audit
+ * events and the conversations anchored to it belong to other people; and an advertiser
+ * moves their own `status` freely, so a moderator writing `closed` there would be overruled
+ * by the next press of Reopen.
+ *
+ * There is also no admin path that CREATES or EDITS an advert, deliberately. An advert
+ * belongs to a company account: it carries that company's "About the company" box, its
+ * applications land in that account's pipeline, and the threads about it are anchored to
+ * that account. An advert written here would name a company that did not write it.
+ */
+router.post(
+  '/jobs/:id/hidden',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const hidden = req.body.hidden === 'on';
+    try {
+      const result = await Moderation.setJobHidden(req.params.id, hidden, {
+        actorUserId: req.session.user.id,
+        reason: req.body.reason
+      });
+      if (!result.changed) {
+        req.flash('info', 'Somebody had already done that.');
+      } else {
+        req.flash(
+          'success',
+          hidden
+            ? `"${result.job.title}" is off the board. The applications already made to it stay.`
+            : 'Our decision is cleared. Whether it is live again is the advertiser\'s own status.'
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'NOT_FOUND') throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect(returnTo(req, '/admin/jobs'));
+  })
+);
+
+/**
+ * GET /admin/errors/export.csv — the same rows the screen showed.
+ *
+ * The stack trace is left out deliberately. It is the one field here that can carry a file
+ * path, a query fragment or a value from the request that produced it, and an export is a
+ * file that leaves the machine and gets attached to things.
+ */
+router.get(
+  '/errors/export.csv',
+  asyncHandler(async (req, res) => {
+    const rows = await ErrorLog.exportRows(errorFiltersFrom(req.query));
+
+    const header = ['created_at', 'status_code', 'method', 'path', 'message', 'user_id'];
+    // Every cell quoted and every quote doubled: a message containing a comma is the
+    // ordinary case here, not the odd one.
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [header.join(','), ...rows.map((r) => header.map((h) => cell(r[h])).join(','))].join('\r\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="errors.csv"');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(csv);
+  })
+);
+
 /* ---------------------------------------------------------------- referrals */
 
 /**
@@ -610,15 +734,41 @@ router.post(
 
 /* ------------------------------------------------------------------- errors */
 
+/**
+ * What the error screen reads out of the query string, in one place — the list, the top
+ * paths and the export all take the same object, so the summary cannot describe a
+ * different set of rows from the table under it.
+ */
+function errorFiltersFrom(query) {
+  return {
+    q: typeof query.q === 'string' ? query.q.trim().slice(0, 200) : '',
+    statusCode: query.status_code || '',
+    from: query.from || '',
+    to: query.to || ''
+  };
+}
+
 router.get(
   '/errors',
   asyncHandler(async (req, res) => {
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 50 });
-    const { rows, total } = await ErrorLog.list({ limit, offset });
+    const filters = errorFiltersFrom(req.query);
+
+    const [{ rows, total }, topPaths, statusCodes] = await Promise.all([
+      ErrorLog.list(filters, { limit, offset }),
+      // Of what is on the screen, not of everything ever recorded — which is the number
+      // somebody wants when they have just narrowed to one day.
+      ErrorLog.topPaths(filters, { limit: 10 }),
+      ErrorLog.statusCodes()
+    ]);
 
     return res.render('admin/errors', {
       title: 'Error log',
       errors: rows,
+      topPaths,
+      statusCodes,
+      filters,
+      query: req.query,
       pagination: paginationMeta({ page, perPage, total }),
       pageUrl: (n) => pageUrl('/admin/errors', req.query, n)
     });

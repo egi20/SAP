@@ -11,6 +11,79 @@
   <%- include('./_tabs', { current: 'errors' }) %>
   <%- include('../partials/flash') %>
 
+  <div class="glass-card mb-4">
+    <div class="card-body">
+      <form class="row g-2 align-items-end" method="get" action="/admin/errors">
+        <div class="col-md-4">
+          <label class="form-label" for="q">Search the message or the path</label>
+          <input class="form-control" type="search" id="q" name="q" maxlength="200" value="<%= filters.q %>">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label" for="status_code">Status</label>
+          <%#
+            Only the codes this table actually holds. A dropdown of every HTTP status would
+            be mostly options that match nothing, and there is no "error type" column here
+            to offer instead — inventing a category would mean guessing at one.
+          -%>
+          <select class="form-select" id="status_code" name="status_code">
+            <option value="">Any</option>
+            <% statusCodes.forEach(function (c) { %>
+              <option value="<%= c %>" <%= String(filters.statusCode) === String(c) ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label" for="from">From</label>
+          <input class="form-control" type="date" id="from" name="from" value="<%= filters.from %>">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label" for="to">To</label>
+          <%# Inclusive of the day typed — see the note in ErrorLog.buildFilter. -%>
+          <input class="form-control" type="date" id="to" name="to" value="<%= filters.to %>">
+        </div>
+        <div class="col-md-2 d-grid gap-2">
+          <button class="btn btn-primary" type="submit">Filter</button>
+          <a class="btn btn-outline-secondary btn-sm" href="/admin/errors">Clear</a>
+        </div>
+      </form>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/admin/errors/export.csv?<%= new URLSearchParams(query).toString() %>">Export these</a>
+        <span class="form-text">
+          <strong><%= pagination.total %></strong> match. The export leaves out the stack
+          trace — it is the one field that can carry a value from the request behind it.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <% if (topPaths.length) { %>
+    <%#
+      One repeated path is the difference between "the site is broken" and "one route is
+      broken", and a page of fifty rows that are all the same path reads as the former.
+      These are the top paths of WHAT IS FILTERED, through the same builder as the table.
+    -%>
+    <div class="glass-card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Where they are</h2>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Path</th><th class="text-end">Errors</th><th>Last</th></tr></thead>
+            <tbody>
+              <% topPaths.forEach(function (t) { %>
+                <tr>
+                  <td class="small font-monospace"><%= t.path %></td>
+                  <td class="text-end"><%= t.total %></td>
+                  <td class="small text-muted-2"><%= new Date(t.last_seen).toLocaleString('en-GB') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
   <% if (currentUser && currentUser.isSuperadmin) { %>
     <div class="glass-card mb-4">
       <div class="card-body">

@@ -364,7 +364,14 @@ router.get(
 
     const isOwner = req.session.user && req.session.user.id === job.company_user_id;
     // A draft, paused or closed job is visible to its owner and to admins only.
-    if (job.status !== 'open' && !isOwner && !(req.session.user && req.session.user.isAdmin)) {
+    /*
+     * Two switches again. `status` is the advertiser's own; `admin_hidden_at` is a
+     * moderator's. Either one closes the page to everybody but the advertiser and an
+     * administrator — the advertiser still sees what they wrote, and an administrator has
+     * to be able to look at what they took down.
+     */
+    const publiclyVisible = job.status === 'open' && !job.admin_hidden_at;
+    if (!publiclyVisible && !isOwner && !(req.session.user && req.session.user.isAdmin)) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 

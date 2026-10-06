@@ -13,16 +13,31 @@
 
   <div class="glass-card mb-4">
     <div class="card-body">
-      <ul class="nav nav-pills flex-wrap gap-1">
+      <ul class="nav nav-pills flex-wrap gap-1 mb-3">
         <% statuses.forEach(function (s) { %>
           <li class="nav-item">
-            <a class="nav-link <%= status === s ? 'active' : '' %>" href="/admin/jobs?status=<%= s %>"><%= s %></a>
+            <a class="nav-link <%= status === s ? 'active' : '' %>"
+               href="/admin/jobs?status=<%= s %><%= q ? '&q=' + encodeURIComponent(q) : '' %>"><%= s %></a>
           </li>
         <% }) %>
       </ul>
+
+      <form class="row g-2 align-items-end" method="get" action="/admin/jobs">
+        <input type="hidden" name="status" value="<%= status %>">
+        <div class="col-md-9">
+          <label class="form-label" for="q">Search the advert or the company</label>
+          <input class="form-control" type="search" id="q" name="q" maxlength="120" value="<%= q %>">
+        </div>
+        <div class="col-md-3 d-grid">
+          <button class="btn btn-primary" type="submit">Filter</button>
+        </div>
+      </form>
+
       <p class="small text-muted-2 mb-0 mt-3">
         These are the same rows the board itself selects — one filter builder, so this list
-        and an employer’s list cannot disagree about what exists.
+        and an employer’s list cannot disagree about what exists. An advert taken down is
+        not here for the same reason: it is on the
+        <a href="/admin/moderation">moderation screen</a>, with what was decided.
       </p>
     </div>
   </div>
@@ -43,6 +58,7 @@
               <th scope="col">Status</th>
               <th scope="col" class="text-end">Applications</th>
               <th scope="col">Published</th>
+              <th scope="col" class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -63,6 +79,41 @@
                 %>
                 <td class="small text-muted-2">
                   <%= j.published_at ? new Date(j.published_at).toLocaleDateString('en-GB') : '—' %>
+                </td>
+                <td class="text-end">
+                  <%#
+                    Taking an advert down is a moderation action, not a status change and
+                    not a deletion: the advertiser moves their own status freely, and the
+                    applications made to this advert belong to the people who made them.
+                    There is no Create or Edit here on purpose — an advert belongs to the
+                    company account whose box it carries and whose pipeline it fills.
+                  -%>
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#hide-<%= j.id %>"
+                          aria-expanded="false" aria-controls="hide-<%= j.id %>">Take down</button>
+                </td>
+              </tr>
+              <tr class="collapse" id="hide-<%= j.id %>">
+                <td colspan="7" class="bg-body-tertiary">
+                  <form class="row g-2 align-items-end" method="post" action="/admin/jobs/<%= j.id %>/hidden">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="hidden" value="on">
+                    <input type="hidden" name="redirectTo" value="<%= currentPath %>?<%= new URLSearchParams(query).toString() %>">
+                    <div class="col-md-9">
+                      <label class="form-label" for="hide-reason-<%= j.id %>">Why</label>
+                      <input class="form-control form-control-sm" id="hide-reason-<%= j.id %>"
+                             name="reason" maxlength="200">
+                    </div>
+                    <div class="col-md-3 d-grid">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Take it off the board</button>
+                    </div>
+                    <div class="col-12">
+                      <p class="small text-muted-2 mb-0">
+                        The applications already made to it stay, and so do the conversations
+                        anchored to it. Putting it back is on the moderation screen.
+                      </p>
+                    </div>
+                  </form>
                 </td>
               </tr>
             <% }) %>

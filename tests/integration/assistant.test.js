@@ -403,3 +403,240 @@ maybe()('the spend ledger and the circuit-breaker', () => {
     clearBudgetCache();
   });
 });
+
+/* ===========================================================================
+ * Outreach drafting lives in THIS FILE, beside the assistant, and that is isolation
+ * rather than organisation.
+ *
+ * Both features spend from one `ai_usage` ledger and one month-to-date cap, and the tests
+ * above manipulate that global total directly: they empty it, they put a row above the cap
+ * into it, and they assert sums over it. Jest runs test FILES in parallel, so a second file
+ * doing the same thing is a second owner of one global number — and the two take turns
+ * failing, each blaming the other's feature. A globally-summed ledger gets exactly one
+ * owning suite.
+ * =========================================================================== */
+
+const User = require('../../models/User');
+const CrmLead = require('../../models/CrmLead');
+const CrmDraft = require('../../models/CrmDraft');
+const CrmSuppression = require('../../models/CrmSuppression');
+const outreach = require('../../utils/outreachDrafting');
+
+const DRAFT_PASSWORD = 'Draft-Test-Pass-1';
+const DRAFT_OWN = ['draft-super@example.test'];
+const DRAFT_MARK = 'Drafttest';
+/*
+ * A FRESH ADDRESS PER RUN. Two cases here suppress an address, and nothing in this
+ * application removes a suppression — that is the design. A suite that used a fixed
+ * address would pass once and then fail for ever, because the second run cannot create the
+ * lead it needs; clearing the table would "fix" it by deleting the one record the CRM
+ * exists to keep.
+ */
+const DRAFT_RUN = Date.now();
+
+let draftSuperId;
+let draftAgent;
+
+const CLEAN_DRAFT =
+  'We run a marketplace where companies hire SAP consultants for contract work, and where a '
+  + 'scope estimate can be produced before anybody commits to a programme of work. I am getting '
+  + 'in touch because that may be useful to your team. Would it be worth a short conversation '
+  + 'about whether it fits?';
+
+/** The form field, not the meta tag the assistant widget reads. */
+function formCsrf(html) {
+  const m = html.match(/name="_csrf" value="([^"]+)"/);
+  return m ? m[1] : '';
+}
+
+function draftReply(text, { stopReason = 'end_turn', inputTokens = 900, outputTokens = 120 } = {}) {
+  return {
+    model: 'claude-test-model',
+    stop_reason: stopReason,
+    content: [{ type: 'thinking', thinking: 'internal' }, { type: 'text', text }],
+    usage: {
+      input_tokens: inputTokens,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      output_tokens: outputTokens
+    }
+  };
+}
+
+function useFakeDraftClient(handler) {
+  const calls = [];
+  outreach.setClientForTests({
+    beta: {
+      messages: {
+        create: async (params) => {
+          calls.push(params);
+          return handler(params, calls.length);
+        }
+      }
+    }
+  });
+  return calls;
+}
+
+async function newDraftLead(company, over = {}) {
+  const created = await CrmLead.upsert(
+    {
+      company: `${DRAFT_MARK} ${company}`,
+      contact_name: 'Petra Klein',
+      contact_email: `draft-${company.toLowerCase()}-${DRAFT_RUN}@example.test`,
+      job_title: 'CIO',
+      country: 'DE',
+      source: 'event',
+      source_detail: 'SAP Sapphire, June',
+      ...over
+    },
+    { actorUserId: draftSuperId }
+  );
+  return created.id;
+}
+
+maybe()('outreach drafting', () => {
+  beforeAll(async () => {
+    await promisePool.query('DELETE FROM crm_leads WHERE company LIKE ?', [`${DRAFT_MARK}%`]);
+    await promisePool.query('DELETE FROM users WHERE email IN (?)', [DRAFT_OWN]);
+
+    const su = await User.create({
+      email: DRAFT_OWN[0], password: DRAFT_PASSWORD, name: 'Draft Super', roles: ['admin']
+    });
+    draftSuperId = su.id;
+    await User.setEmailVerified(draftSuperId);
+    await User.adminSetRoles(draftSuperId, ['admin'], { primary: 'admin' });
+    await User.setSuperadmin(draftSuperId, true);
+
+    draftAgent = request.agent(app);
+    const page = await draftAgent.get('/auth/login');
+    await draftAgent.post('/auth/login').type('form')
+      .send({ _csrf: formCsrf(page.text), email: DRAFT_OWN[0], password: DRAFT_PASSWORD });
+  });
+
+  beforeEach(() => {
+    // The budget cases above leave the cached total where they found it; this makes sure.
+    clearBudgetCache();
+  });
+
+  describe('a draft that passes its checks', () => {
+    it('is stored with the model that wrote it and its token counts', async () => {
+      const calls = useFakeDraftClient(() => draftReply(CLEAN_DRAFT));
+      const id = await newDraftLead('Alpha');
+
+      const page = await draftAgent.get(`/crm/${id}`);
+      const res = await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+        .send({ _csrf: formCsrf(page.text) });
+      expect(res.status).toBe(302);
+
+      const [draft] = await CrmDraft.forLead(id);
+      expect(draft.body).toContain('marketplace');
+      /*
+       * A generated draft that could not say where it came from is the unaccountable
+       * version of this feature. The columns were on the table before the feature existed.
+       */
+      expect(draft.model).toBe('claude-test-model');
+      expect(draft.input_tokens).toBe(900);
+      expect(draft.output_tokens).toBe(120);
+      expect(draft.marked_sent_at).toBeNull();
+
+      // And nothing personal left this process.
+      const sent = calls[0].messages[0].content;
+      expect(sent).toContain(`${DRAFT_MARK} Alpha`);
+      expect(sent).not.toContain('Petra');
+      expect(sent).not.toContain(`draft-alpha-${DRAFT_RUN}@example.test`);
+    });
+
+    it('charges the shared ledger, under its own feature name', async () => {
+      const [[row]] = await promisePool.query(
+        "SELECT COUNT(*) AS n, SUM(input_tokens) AS input FROM ai_usage WHERE feature = 'crm_outreach'"
+      );
+      expect(Number(row.n)).toBeGreaterThan(0);
+      expect(Number(row.input)).toBeGreaterThan(0);
+    });
+  });
+
+  describe('a draft that fails its checks', () => {
+    it('is shown with its reasons and never stored', async () => {
+      /*
+       * Not silently retried: somebody should see that the model invented a relationship,
+       * because that is the failure this feature has to be watched for — and a retry loop
+       * would hide it while paying for every attempt.
+       */
+      useFakeDraftClient(() => draftReply(`I saw your recent S/4HANA rollout and we guarantee results. ${CLEAN_DRAFT}`));
+      const id = await newDraftLead('Beta');
+
+      const page = await draftAgent.get(`/crm/${id}`);
+      const res = await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+        .send({ _csrf: formCsrf(page.text) });
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('failed its checks');
+      expect(res.text).toMatch(/familiarity/i);
+      expect(res.text).toMatch(/commitment/i);
+
+      expect(await CrmDraft.forLead(id)).toHaveLength(0);
+    });
+
+    it('is not served when the model ran out of room mid-sentence', async () => {
+      useFakeDraftClient(() => draftReply(CLEAN_DRAFT, { stopReason: 'max_tokens' }));
+      const id = await newDraftLead('Gamma');
+
+      const page = await draftAgent.get(`/crm/${id}`);
+      const res = await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+        .send({ _csrf: formCsrf(page.text) });
+
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/ran past its ceiling/i);
+      expect(await CrmDraft.forLead(id)).toHaveLength(0);
+    });
+  });
+
+  describe('what happens before any money is spent', () => {
+    it('a suppressed address is refused without calling the model', async () => {
+      const calls = useFakeDraftClient(() => draftReply(CLEAN_DRAFT));
+      const id = await newDraftLead('Delta');
+      await CrmSuppression.add(`draft-delta-${DRAFT_RUN}@example.test`, {
+        reason: 'requested', actorUserId: draftSuperId
+      });
+
+      const page = await draftAgent.get(`/crm/${id}`);
+      const res = await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+        .send({ _csrf: formCsrf(page.text) });
+
+      expect(res.status).toBe(302);
+      expect(calls).toHaveLength(0);
+      expect(await CrmDraft.forLead(id)).toHaveLength(0);
+    });
+
+    it('an erased lead has nobody left to write to', async () => {
+      const calls = useFakeDraftClient(() => draftReply(CLEAN_DRAFT));
+      const id = await newDraftLead('Epsilon');
+      await CrmLead.setStatus(id, 'unsubscribed', { actorUserId: draftSuperId, note: 'Asked.' });
+
+      const page = await draftAgent.get(`/crm/${id}`);
+      const res = await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+        .send({ _csrf: formCsrf(page.text) });
+
+      expect(res.status).toBe(302);
+      expect(calls).toHaveLength(0);
+    });
+  });
+
+  describe('the ceiling on drafts per lead', () => {
+    it('bounds the retries, because the button is the unbounded part', async () => {
+      useFakeDraftClient(() => draftReply(CLEAN_DRAFT));
+      const id = await newDraftLead('Zeta');
+
+      /* eslint-disable no-await-in-loop */
+      for (let i = 0; i < CrmDraft.MAX_DRAFTS_PER_LEAD + 1; i += 1) {
+        const page = await draftAgent.get(`/crm/${id}`);
+        await draftAgent.post(`/crm/${id}/draft/generate`).type('form')
+          .send({ _csrf: formCsrf(page.text) });
+      }
+      /* eslint-enable no-await-in-loop */
+
+      expect(await CrmDraft.forLead(id)).toHaveLength(CrmDraft.MAX_DRAFTS_PER_LEAD);
+    });
+  });
+});

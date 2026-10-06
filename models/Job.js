@@ -60,6 +60,16 @@ function buildFilter(filters = {}) {
   const where = [];
   const params = [];
 
+  /*
+   * An advert a moderator has taken down leaves every list, whatever its own status says.
+   * The board, the feed, the search source and the match all come through here, so none of
+   * them has to know this rule exists — and there is no `include_hidden` option, because
+   * the one screen that has to see what was taken down reads it from
+   * `Moderation.hiddenContent()` instead. An escape hatch on the builder is how the rule
+   * ends up off on the page that forgets to pass it.
+   */
+  where.push('j.admin_hidden_at IS NULL');
+
   // `status` defaults to the public view. An explicit status is only honoured for
   // callers that pass one (the employer's own list, admin).
   if (filters.status) {

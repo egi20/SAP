@@ -86,6 +86,21 @@ router.get(
      */
     if (!req.session.user) return res.redirect('/images/avatar-placeholder.svg');
 
+    /*
+     * And the photograph of a profile that is not publicly visible is refused as well as
+     * its page. Same rule as an unpublished story's image: a page taken down whose picture
+     * is still served by id is a page that was not taken down. This route only ever
+     * checked that the reader was signed in, so an unlisted profile's photograph was
+     * reachable by anybody with an account and a number.
+     */
+    const viewer = req.session.user;
+    const subject = await ConsultantProfile.findByUserId(req.params.id);
+    const visible =
+      subject && subject.is_public && !subject.admin_hidden_at;
+    if (!visible && viewer.id !== req.params.id && !viewer.isAdmin) {
+      return res.redirect('/images/avatar-placeholder.svg');
+    }
+
     const etag = await ImageBlob.getEtag('consultant_photos', req.params.id);
     if (!etag) return res.redirect('/images/avatar-placeholder.svg');
 
@@ -110,7 +125,14 @@ router.get(
     const isSelf = viewer && viewer.id === req.params.id;
 
     // A profile that is not public is visible to its owner and to admins only.
-    if (!profile || (!profile.is_public && !isSelf && !(viewer && viewer.isAdmin))) {
+    /*
+     * TWO switches, not one. `is_public` is the member's; `admin_hidden_at` is a
+     * moderator's. Either one closes the page to everybody but its owner and an
+     * administrator — the owner still sees what they wrote, and an administrator has to be
+     * able to look at what they took down.
+     */
+    const publiclyVisible = profile && profile.is_public && !profile.admin_hidden_at;
+    if (!profile || (!publiclyVisible && !isSelf && !(viewer && viewer.isAdmin))) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 

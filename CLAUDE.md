@@ -491,6 +491,57 @@ content's own subject to zero and restoring settles it back, so hide → restore
 leaves the author exactly one award down however many times the flag moved, and a reversal
 of something that was never awarded cannot happen. A test drives three half-cycles.
 
+**An administrator can take a profile or an advert out of public view, and that is a
+FOURTH and FIFTH thing `Moderation` writes.** Before migrations 025 and 026 the only way to
+remove an inappropriate consultant profile or job advert was to deactivate the whole
+account — which also ends their applications, their messages and their community standing.
+That is a sledgehammer for a headline somebody should not have written, and an
+administrator offered only that makes the wrong choice or none.
+
+**Each one writes its OWN column, never the member's.** `consultant_profiles.admin_hidden_at`
+sits beside `is_public`, and `jobs.admin_hidden_at` beside `status`. If a moderator wrote to
+the member's column the member would undo the decision from their own page — press Publish,
+press Reopen — and nothing on their screen would even have said a decision was made. Same
+shape as `posts.hidden_at` beside the author's own control. `ConsultantProfile.setPublic`
+refuses while the moderator's column is set, and reports `adminHidden` so the member's page
+can say so rather than silently failing.
+
+**Both filter builders require both switches clear, and NEITHER has an `include_hidden`
+option.** The directory, the search source, the match, the board and the feed all come
+through `ConsultantProfile.buildFilter` and `Job.buildFilter`, so a takedown reaches every
+one of them without any of them knowing the rule exists. The one screen that has to see
+what was taken down reads `Moderation.hiddenContent()` instead — an option on the builder
+is how the rule ends up switched off on whichever page forgets to pass it. A test asserts
+the option does not exist.
+
+**The page and the PHOTOGRAPH both go.** `/consultants/photo/:id` only ever checked that the
+reader was signed in, so an unlisted profile's photograph was reachable by anybody with an
+account and a number. Same rule as a draft story's image: a page taken down whose picture is
+still served by id is a page that was not taken down.
+
+**Restoring clears our decision and nothing else.** Whether the profile or the advert
+reappears is still the member's own switch — an administrator undoing a removal does not
+publish somebody's profile for them, exactly as restoring a reply gives back the writing
+points but not the accepted-answer mark.
+
+**There is no admin path that creates or edits a job advert.** An advert belongs to a
+company account: it carries that company's "About the company" box, its applications land
+in that account's pipeline, and the threads about it are anchored to that account. An
+advert written from the admin screen would name a company that did not write it.
+
+**The user list shows the country the member STATED, never `users.signup_country`.** That
+column is derived from the address a request arrived from and the member has never seen it;
+a VPN, a holiday and an office abroad all produce the wrong answer and nothing on the screen
+could tell. A guess presented under a heading that says "Country" is worse than no column.
+
+**The error log has one filter builder too**, used by the list, the count, the top-paths
+summary and the export — so "where they are" describes the rows on the screen rather than
+everything ever recorded, which is the number somebody wants once they have narrowed to one
+day. `to` is `< DATE_ADD(?, INTERVAL 1 DAY)` and not `<= ?`: the obvious spelling means
+midnight at the START of that day and silently drops everything that happened on it. The
+export leaves out the stack trace — it is the one field that can carry a value from the
+request behind it, in a file that leaves the machine.
+
 **A rate submission is VOIDED, never hidden, and there is no "correct the value" path.**
 The wording is the decision: hiding is about speech, voiding is about arithmetic. An
 aggregate whose inputs an administrator can retype is an aggregate nobody should trust.
@@ -1634,6 +1685,19 @@ Clear fixtures on the way IN, which also makes a run independent of how the last
 Two `afterAll`s in one file both ending the pool is the same trap one step earlier: every
 test in the describe after the first one queries a closed pool, and it surfaces as a 500
 from the route, which reads exactly like an application bug.
+
+**A globally-summed ledger gets exactly ONE owning suite.** The assistant's budget tests
+empty `ai_usage`, put a row above the cap into it and assert sums over it. Jest runs test
+FILES in parallel, so a second file doing the same thing is a second owner of one global
+number, and the two take turns failing — each blaming the other's feature. Outreach drafting
+therefore lives in `tests/integration/assistant.test.js`, which is isolation rather than
+organisation.
+
+**Do not pin an ENUM test to the migration that created the column.** `subject_type` was
+created in 011 and widened twice; a test comparing the code against `011_moderation.sql`
+failed on the second widening while the code was correct and the file it was checked
+against was stale. `effectiveEnumValues` walks every migration in order and takes the last
+definition, exactly as the runner does.
 
 **A hard-coded hex in `public/css/style.css` fails the palette test**, which scans that
 file for colours from the two reference palettes. `var(--token, #fallback)` counts: the

@@ -286,7 +286,7 @@ class User {
     };
   }
 
-  static async list({ search = '', role = '', limit = 20, offset = 0 } = {}) {
+  static async list({ search = '', role = '', status = '', limit = 20, offset = 0 } = {}) {
     const where = ['1 = 1'];
     const params = [];
 
@@ -302,27 +302,51 @@ class User {
      * shape; it survived because nobody re-read a builder that was already working.
      */
     if (search) {
-      where.push('(email LIKE ? OR name LIKE ?)');
+      where.push('(u.email LIKE ? OR u.name LIKE ?)');
       const pattern = containsPattern(search);
       params.push(pattern, pattern);
     }
     if (role && ALL_ROLES.includes(role)) {
       const column = ROLE_FLAG_COLUMN[role];
-      where.push(column ? `(user_type = ? OR ${column} = 1)` : 'user_type = ?');
+      where.push(column ? `(u.user_type = ? OR u.${column} = 1)` : 'u.user_type = ?');
       params.push(role);
     }
+    // Checked against a fixed pair rather than coerced: `?status=anything` must narrow to
+    // nothing surprising, and `Boolean('0')` is true.
+    if (status === 'active') where.push('u.is_active = 1');
+    if (status === 'inactive') where.push('u.is_active = 0');
 
     const clause = where.join(' AND ');
+    /*
+     * The country is the one the member STATED on a profile, not `users.signup_country`.
+     * That column is derived from the address a request arrived from and the member has
+     * never seen it; showing it under a heading that says "Country" would be presenting a
+     * guess as a fact about somebody. A VPN, a holiday and an office in another country
+     * all produce the wrong answer, and nobody looking at the screen could tell.
+     *
+     * `talent_hidden` comes back so the screen can offer the right button. It is the
+     * moderator's column, never the member's `is_public`.
+     */
     const [rows] = await promisePool.query(
-      `SELECT id, email, name, user_type, is_consultant, is_company, is_recruiter, is_partner,
-              is_superadmin, is_active, email_verified, created_at, last_login_at
-         FROM users
+      `SELECT u.id, u.email, u.name, u.user_type, u.is_consultant, u.is_company, u.is_recruiter,
+              u.is_partner, u.is_superadmin, u.is_active, u.email_verified,
+              u.created_at, u.last_login_at,
+              COALESCE(cp.country, comp.country) AS stated_country,
+              cp.user_id IS NOT NULL AS has_consultant_profile,
+              cp.is_public AS talent_listed,
+              cp.admin_hidden_at AS talent_hidden_at
+         FROM users u
+         LEFT JOIN consultant_profiles cp ON cp.user_id = u.id
+         LEFT JOIN company_profiles comp ON comp.user_id = u.id
         WHERE ${clause}
-        ORDER BY created_at DESC
+        ORDER BY u.created_at DESC
         LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
-    const [[{ total }]] = await promisePool.query(`SELECT COUNT(*) AS total FROM users WHERE ${clause}`, params);
+    const [[{ total }]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM users u WHERE ${clause}`,
+      params
+    );
     return { rows, total };
   }
 }
