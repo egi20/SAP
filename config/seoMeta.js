@@ -60,6 +60,11 @@ const PAGE_META = {
     description:
       'What an SAP role is worth: a published day-rate model by role, experience, region, certifications and contract type — with the arithmetic shown.'
   },
+  '/cv-generator': {
+    title: 'Build your SAP CV',
+    description:
+      'A CV built from your SAP Hub profile — delivery history, modules and Activate phases included. Nothing to retype and nothing written for you.'
+  },
   '/about': {
     title: 'About SAP Hub',
     description: 'What SAP Hub is, who it is for, and what it deliberately does not do.'
@@ -95,7 +100,7 @@ const PAGE_META = {
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
   '/rates/calculator', '/community', '/community/articles', '/success-stories',
-  '/consultant-hub', '/company-hub', '/about', '/blog', '/faq', '/contact', '/report-issue',
+  '/consultant-hub', '/company-hub', '/cv-generator', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

@@ -1,0 +1,93 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-file-earmark-person',
+  heading: 'Build your SAP CV',
+  sub: 'From the profile you already filled in. No wizard, and nothing written for you.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-9">
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5 mb-3">There is no form to fill in twice</h2>
+      <p>
+        Your profile here already holds what a CV needs: the headline, the years, the full
+        lifecycles, the skills, the certifications, the employment — and the delivery
+        history, engagement by engagement, with the modules each one actually touched.
+      </p>
+      <p class="mb-0">
+        So the CV is a rendering of that, produced when you click and never stored. It is
+        always what your profile says at that moment, which means there is no second copy
+        quietly going stale behind the one companies are searching.
+      </p>
+    </div></div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="glass-card h-100"><div class="card-body">
+          <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-diagram-3"></i></span>
+          <h3 class="h6 mb-1">It knows what a module is</h3>
+          <p class="small text-muted-2 mb-0">
+            A general CV builder cannot ask which modules an engagement touched, or which
+            SAP Activate phase it ran in, because it has no idea those exist. This one puts
+            them on the page.
+          </p>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="glass-card h-100"><div class="card-body">
+          <span class="icon-tile icon-tile-sm icon-success mb-2"><i class="bi bi-ui-checks"></i></span>
+          <h3 class="h6 mb-1">Readable by the software that screens it</h3>
+          <p class="small text-muted-2 mb-0">
+            One column of headings, paragraphs and bullets, with no table, no text box and
+            nothing a reader needs hidden in a page header. Those three are where an
+            applicant-tracking system's parsing goes wrong.
+          </p>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="glass-card h-100"><div class="card-body">
+          <span class="icon-tile icon-tile-sm icon-navyblue mb-2"><i class="bi bi-sort-down"></i></span>
+          <h3 class="h6 mb-1">Ordered against a role</h3>
+          <p class="small text-muted-2 mb-0">
+            Open it from an advert and the engagements that touched that advert's modules
+            come first, marked as the relevant ones. Nothing is added or reworded.
+          </p>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5 mb-3">What it does not do</h2>
+      <p>
+        <strong>It writes nothing for you.</strong> Every line is something you typed or a
+        label from the SAP catalogue. A generated summary is a claim you would be sending to
+        an employer under your own name — and the first you would hear of a sentence you
+        cannot stand behind is in the interview.
+      </p>
+      <p class="mb-0">
+        There is no cover letter yet, for the same reason. Without your own words it would
+        be a form letter, and a form letter is worse than no letter: it tells the reader
+        you did not write to them.
+      </p>
+    </div></div>
+
+    <div class="glass-card glass-card-tinted"><div class="card-body text-center py-4">
+      <% if (currentUser && currentUser.isConsultant) { %>
+        <a class="btn btn-primary" href="/profile/cv">Build your CV</a>
+      <% } else if (currentUser) { %>
+        <p class="text-muted-2 mb-0">
+          The builder reads a consultant profile. Add the consultant role in
+          <a href="/profile/settings">your settings</a> and it appears.
+        </p>
+      <% } else { %>
+        <p class="text-muted-2 mb-3">Free, like everything else a consultant does here.</p>
+        <a class="btn btn-primary" href="/auth/register">Create a free account</a>
+        <a class="btn btn-outline-secondary" href="/jobs">Browse roles first</a>
+      <% } %>
+    </div></div>
+
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

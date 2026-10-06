@@ -16,10 +16,13 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { singleImage } = require('../middleware/fileUpload');
 const { requireIdParam } = require('../utils/ids');
 const { sanitizeRichText } = require('../utils/sanitize');
+const { slugify } = require('../utils/slug');
+const Job = require('../models/Job');
+const { buildCv, cvGaps } = require('../utils/cvData');
+const { buildCvDocx } = require('../utils/documents/cvDocx');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
 const { PRODUCT_LINES, ALL_MODULES, isModule } = require('../config/sapProducts');
-const Job = require('../models/Job');
 const countries = require('../config/all-countries.json');
 
 const router = express.Router();
@@ -92,6 +95,95 @@ router.post(
     await User.updatePassword(user.id, req.body.password);
     req.flash('success', 'Password updated.');
     return res.redirect('/profile/settings');
+  })
+);
+
+/**
+ * THE CV, built from the profile and nothing else.
+ *
+ * There is no wizard. The reference asks people to type their career into a form, which
+ * produces a second copy of a CV that starts drifting from the profile the directory
+ * searches the moment either is edited. Everything a CV needs is already on the profile —
+ * including the delivery history, which is the part a generic CV builder cannot ask for
+ * because it does not know what a module is.
+ *
+ * Both routes are consultant-only and read THIS member's own rows. There is no id in the
+ * path: a CV endpoint that takes one is a CV endpoint somebody will enumerate.
+ */
+async function cvFor(userId, jobSlug, options) {
+  const profile = await ConsultantProfile.findByUserId(userId);
+  if (!profile) return null;
+
+  const [skills, certifications, experiences, projects] = await Promise.all([
+    Skill.forConsultant(userId),
+    ConsultantProfile.listCertifications(userId),
+    ConsultantProfile.listExperiences(userId),
+    ConsultantProfile.listProjects(userId)
+  ]);
+
+  /*
+   * The advert is loaded only to ORDER the engagements, and only when it is one anybody
+   * could read: `Job.findBySlug` plus the open check, so a draft cannot be probed through
+   * the CV builder by somebody guessing slugs.
+   */
+  let job = null;
+  if (jobSlug) {
+    const found = await Job.findBySlug(jobSlug);
+    if (found && found.status === 'open') {
+      job = { ...found, modules: await Job.modulesFor(found.id) };
+    }
+  }
+
+  return buildCv({ profile, skills, certifications, experiences, projects, job }, options);
+}
+
+function cvOptionsFrom(query) {
+  return {
+    // Both off unless asked for, every time. A CV travels further than the person who
+    // wrote it expects, and a day rate on a document that reaches a procurement team is a
+    // negotiating position given away before the conversation starts.
+    includeRate: query.rate === '1',
+    includeContact: query.contact === '1'
+  };
+}
+
+router.get(
+  '/cv',
+  isConsultant,
+  asyncHandler(async (req, res) => {
+    const options = cvOptionsFrom(req.query);
+    const jobSlug = req.query.job ? String(req.query.job).slice(0, 220) : '';
+    const cv = await cvFor(req.session.user.id, jobSlug, options);
+    if (!cv) return res.redirect('/profile/consultant');
+
+    return res.render('profile/cv', {
+      title: 'Your CV',
+      cv,
+      gaps: cvGaps(cv),
+      options,
+      jobSlug
+    });
+  })
+);
+
+router.get(
+  '/cv.docx',
+  isConsultant,
+  asyncHandler(async (req, res) => {
+    const options = cvOptionsFrom(req.query);
+    const jobSlug = req.query.job ? String(req.query.job).slice(0, 220) : '';
+    const cv = await cvFor(req.session.user.id, jobSlug, options);
+    if (!cv) return res.redirect('/profile/consultant');
+
+    const buffer = await buildCvDocx(cv);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    // Slugified, so a name with a quote, a slash or a newline in it cannot reach the header.
+    res.setHeader('Content-Disposition', `attachment; filename="${slugify(cv.name || 'cv')}-cv.docx"`);
+    res.setHeader('Content-Length', buffer.length);
+    // Generated on demand from a profile that can change in the next minute; never cached.
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(buffer);
   })
 );
 

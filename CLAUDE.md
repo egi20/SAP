@@ -138,6 +138,41 @@ re-derives a percentage or re-rounds a cost is how a document ends up contradict
 page it came from. Where a total is printed it is a summation of the very rows above it —
 and in the workbook it is a real Excel `SUM`, not the stored figure typed in again.
 
+**The CV has no wizard, because the profile IS the CV.** The reference asks people to
+type their career into a form, which produces a second copy that starts drifting from the
+profile the directory searches the moment either is edited. `utils/cvData.js` reads the
+profile and nothing else — including the delivery history, which is the part a generic CV
+builder cannot ask for because it does not know what a module is.
+
+**It invents nothing.** No generated summary, no rewritten bullet, no inferred seniority:
+every line is something the member typed or a label from a config catalogue. A document
+that puts sentences in somebody's mouth is a document they send to an employer under their
+own name, and the first they hear of a claim they cannot stand behind is in the interview.
+There is no cover letter for the same reason — without their own words it is a form letter,
+which tells the reader you did not write to them.
+
+**Targeting REORDERS, it does not rewrite.** Given an advert, the engagements that touched
+its modules come first and are marked; nothing is added, removed or reworded. A test asserts
+every string on a targeted CV is also on the untargeted one. The advert is loaded only when
+it is open, so the builder cannot be used to probe for drafts by watching whether the
+ordering changed. The document SAYS which advert it was ordered against: a CV is forwarded,
+and without that line "Relevant here" is a claim with no subject.
+
+**The rate and the contact details are off by default, every time.** A CV travels further
+than the person who wrote it expects, and a day rate on one that reaches a procurement team
+is a negotiating position given away before the conversation starts. The preview renders
+everything the file will contain — a preview that omits a field the download includes is a
+preview that lies about the document, and the field it would omit is that one.
+
+**ATS-friendly is a shape, not a claim.** The reference advertises it and lays its CV out
+in a two-column table. An applicant-tracking system reads the document in linear order, so
+columns interleave, text boxes are skipped and a page header repeats as though it were
+content. `cvDocx.js` is a single column of headings, paragraphs and bullets with no table
+anywhere, and a test opens the generated file and fails on `<w:tbl>`.
+
+**The route takes no id.** It reads the signed-in member's own rows; a CV endpoint with an
+id in the path is one somebody will enumerate.
+
 **Never serve a document nobody has opened.** DOCX, XLSX and PPTX are zip containers of XML
 parts, and a generator that produces one subtly broken part yields a file that downloads
 fine and then fails to open — which the recipient experiences as "you sent me a corrupt

@@ -228,6 +228,22 @@ router.get(
 );
 
 /**
+ * GET /cv-generator
+ *
+ * The public page for a thing only members can use. It exists because the builder is one
+ * of the few answers to "why would I fill in a profile here rather than anywhere else",
+ * and a feature nobody can read about before signing up is a feature that persuades
+ * nobody.
+ *
+ * It describes what the builder does NOT do as plainly as what it does. The reference
+ * sells an "AI CV builder"; this one writes nothing, and saying so is the point rather
+ * than an apology.
+ */
+router.get('/cv-generator', (req, res) => {
+  res.render('legal/cv-generator', { title: 'Build your SAP CV' });
+});
+
+/**
  * GET /about
  *
  * What the Hub is, who it is for and what it deliberately does not do. The last part is

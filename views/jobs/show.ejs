@@ -260,6 +260,27 @@
         </div>
       </div>
 
+      <%#
+        Only for a consultant, and only for somebody who has not already applied: offering
+        to build a CV for a role they are already in the pipeline for is the site forgetting
+        what it was told a minute ago. The advert's slug rides along, so the engagements
+        that touched its modules come first.
+      %>
+      <% if (currentUser && currentUser.isConsultant && !application) { %>
+        <div class="glass-card mt-3">
+          <div class="card-body">
+            <h2 class="h6">Applying for this role?</h2>
+            <p class="small text-muted-2 mb-3">
+              Build a CV from your profile, ordered against this advert — the engagements
+              that touched these modules come first. Nothing is reworded.
+            </p>
+            <a class="btn btn-sm btn-outline-primary w-100" href="/profile/cv?job=<%= job.slug %>">
+              <i class="bi bi-file-earmark-person"></i> Build my CV for this role
+            </a>
+          </div>
+        </div>
+      <% } %>
+
       <div class="glass-card mt-3">
         <div class="card-body">
           <h2 class="h6">Share this job</h2>
