@@ -60,23 +60,22 @@
           <a class="nav-link <%= path === '/' ? 'active' : '' %>" href="/"><i class="bi bi-house"></i> Home</a>
         </li>
 
-        <li class="nav-item dropdown">
-          <button type="button" class="nav-link dropdown-toggle <%= startsWith('/community') ? 'active' : '' %> border-0 bg-transparent"
-             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-            <i class="bi bi-people"></i> Community
-          </button>
-          <ul class="dropdown-menu shadow-sm">
-            <li><a class="dropdown-item" href="/community"><i class="bi bi-chat-square-text"></i> Questions and posts</a></li>
-            <li><a class="dropdown-item" href="/community/articles"><i class="bi bi-file-earmark-text"></i> Articles</a></li>
-            <li><a class="dropdown-item" href="/community?kind=question&amp;unanswered=1"><i class="bi bi-patch-question"></i> Unanswered questions</a></li>
-            <li><a class="dropdown-item" href="/challenges"><i class="bi bi-lightning"></i> Daily challenge</a></li>
-            <% if (currentUser) { %>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a></li>
-              <li><a class="dropdown-item" href="/payments/history"><i class="bi bi-receipt"></i> Payments &amp; invoices</a></li>
-            <% } %>
-          </ul>
-        </li>
+        <%#
+          There is no Community tab, because Home IS the community.
+
+          Every item that dropdown held already existed somewhere else. "Questions and
+          posts", "Articles" and "Unanswered questions" are the kind filters on the home
+          feed, which is the same `Post.browse` behind the same controls — a menu entry
+          that re-asks a question the page below it is already asking. "Write a post" and
+          "Payments and invoices" are both in the account menu, where the second one
+          actually belongs: an invoice is not community content and was only ever there
+          because the menu had room. "Daily challenge" was the one thing with nowhere else
+          to go, and it is a tool, so it sits under Services.
+
+          `/community` itself keeps its categories, its author picker and its sort, which
+          the feed does not have, so it is linked from the feed's own heading and from the
+          footer — reachable, but not a second front door competing with the first.
+        %>
 
         <li class="nav-item dropdown">
           <button type="button" class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %> border-0 bg-transparent"
@@ -146,6 +145,7 @@
             <li><a class="dropdown-item" href="/rates/calculator"><i class="bi bi-calculator"></i> Benchmark your rate</a></li>
             <li><a class="dropdown-item" href="/tax"><i class="bi bi-building-check"></i> Talk to a tax specialist</a></li>
             <li><a class="dropdown-item" href="/payments"><i class="bi bi-tag"></i> Pricing</a></li>
+            <li><a class="dropdown-item" href="/challenges"><i class="bi bi-lightning"></i> Daily challenge</a></li>
             <% if (currentUser) { %>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimator</a></li>

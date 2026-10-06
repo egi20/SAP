@@ -926,6 +926,17 @@ members see the activity hides the only evidence the claims are true, from exact
 person who needs it. The landing material survives around the feed, above and below, and
 renders for nobody who is signed in.
 
+**There is no Community tab in the navigation, because `/` is it.** The dropdown held six
+items and five already existed somewhere else: "Questions and posts", "Articles" and
+"Unanswered questions" are the kind filters on the feed, over the same `Post.browse` with
+the same defaults — a menu entry re-asking the question the page below it is already
+asking; "Write a post" and "Payments and invoices" are both in the account menu, where the
+second one belongs, since an invoice is not community content and was only there because
+the menu had room. The daily challenge was the one item with nowhere else to go, and it is
+a tool, so it joined Services. `/community` keeps its categories, its author picker and its
+sort — which the feed has none of — so it is one click from the feed's own heading and
+from the footer, reachable without being a second front door competing with the first.
+
 **`services/feed.js` adds no filter of its own, for the same reason `services/search.js`
 does not.** Both sources go through the same `browse` their own list pages call, so a draft
 advert and a hidden post are invisible on the front page without anything in the feed

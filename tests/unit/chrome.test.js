@@ -122,6 +122,39 @@ describe('C6 — fields that had only a placeholder', () => {
   });
 });
 
+describe('Home is the community, so there is no Community tab', () => {
+  const nav = source('views/partials/navigation.ejs');
+  const footer = source('views/partials/footer.ejs');
+  const feed = source('views/feed/index.ejs');
+
+  it('carries no Community dropdown', () => {
+    /*
+     * Everything it held existed somewhere else: its first three items are the kind
+     * filters on the home feed, over the same `Post.browse`; "Write a post" and
+     * "Payments and invoices" are in the account menu. A menu entry that re-asks the
+     * question the page below it is already asking is a second front door.
+     */
+    expect(nav).not.toMatch(/bi-people"><\/i> Community/);
+  });
+
+  it('keeps every page that dropdown reached one click away', () => {
+    // `/community` has categories, an author picker and a sort the feed does not, so it
+    // stays reachable — from the feed's own heading and from the footer.
+    expect(feed).toContain('href="/community"');
+    ['/community', '/community/articles', '/challenges'].forEach((href) => {
+      expect(footer).toContain(`href="${href}"`);
+    });
+    expect(nav).toContain('href="/community/new"');
+    expect(nav).toContain('href="/payments/history"');
+  });
+
+  it('gives the daily challenge the one home it did not already have', () => {
+    // A game is a tool, and Services is where the tools are.
+    const services = nav.slice(nav.indexOf('bi-tools'), nav.indexOf('bi-tools') + 1200);
+    expect(services).toContain('href="/challenges"');
+  });
+});
+
 describe('C1 — confirming before something is destroyed', () => {
   it('goes through one attribute rather than one handler per button', () => {
     const main = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'js', 'main.js'), 'utf8');
