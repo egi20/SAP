@@ -18,6 +18,7 @@ const { requireIdParam } = require('../utils/ids');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { slugify } = require('../utils/slug');
 const Job = require('../models/Job');
+const AccountClosure = require('../models/AccountClosure');
 const { buildCv, cvGaps } = require('../utils/cvData');
 const { buildCvDocx } = require('../utils/documents/cvDocx');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -578,6 +579,78 @@ router.post(
       req.flash('error', 'That file could not be read as an image.');
     }
     return res.redirect('/profile/company');
+  })
+);
+
+/**
+ * Closing an account.
+ *
+ * Two steps, and the first one is the point: a page that says exactly what will be removed
+ * and exactly what will be kept, with the reason beside each. Both lists come from
+ * `AccountClosure`, so the promises on the page are made by the code that keeps them —
+ * a list maintained separately from the operation is worse than no list.
+ */
+router.get(
+  '/settings/close',
+  asyncHandler(async (req, res) => {
+    const user = await User.findById(req.session.user.id);
+    if (!user) return res.status(404).render('errors/404', { title: 'Not found' });
+
+    const { ok, problems } = await AccountClosure.blockers(user);
+
+    return res.render('profile/close', {
+      title: 'Close your account',
+      user,
+      canClose: ok,
+      problems,
+      removed: AccountClosure.REMOVED,
+      kept: AccountClosure.KEPT
+    });
+  })
+);
+
+router.post(
+  '/settings/close',
+  passwordLimiter,
+  [
+    body('current_password').notEmpty().withMessage('Enter your password to confirm.'),
+    body('understood').equals('on').withMessage('Tick the box to confirm you have read what happens.')
+  ],
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      req.flash('error', errors.array()[0].msg);
+      return res.redirect('/profile/settings/close');
+    }
+
+    const user = await User.findById(req.session.user.id);
+    /*
+     * The password again, on the page that does the irreversible thing. The session alone
+     * is not enough for this one: an unattended browser is the ordinary way somebody
+     * else's hands end up on an account, and every other button here is recoverable.
+     */
+    if (!user || !(await User.verifyPassword(user, req.body.current_password))) {
+      req.flash('error', 'That password is not correct.');
+      return res.redirect('/profile/settings/close');
+    }
+
+    try {
+      await AccountClosure.close(user.id, { reason: req.body.reason });
+
+      /*
+       * Signed out by destroying the session rather than by clearing the user off it: a
+       * half-emptied session is one somebody could still be partly signed in on. It also
+       * takes the flash queue with it, which is why the confirmation is a PAGE rather than
+       * a message — there is nowhere left to put a message.
+       */
+      return req.session.destroy(() => res.redirect('/account-closed'));
+    } catch (err) {
+      if (['BLOCKED', 'ALREADY_CLOSED', 'NOT_FOUND'].includes(err.code)) {
+        req.flash('error', err.message);
+        return res.redirect('/profile/settings/close');
+      }
+      throw err;
+    }
   })
 );
 

@@ -1,0 +1,43 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-door-closed',
+  heading: 'Your account is closed',
+  sub: 'Your name, your email address and your profile have been removed.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <p>
+            You are signed out, and the address you used is free again — if you ever want to
+            come back, you can register with it.
+          </p>
+          <%#
+            Repeated here, after the button, because somebody who has just pressed an
+            irreversible one is the least likely to have read the list carefully before it,
+            and the first question afterwards is always this one.
+          -%>
+          <h2 class="h6 mt-4 mb-3">What we kept, and why</h2>
+          <dl class="mb-0">
+            <% kept.forEach(function (item) { %>
+              <dt class="small"><%= item.what %></dt>
+              <dd class="small text-muted-2"><%= item.why %></dd>
+            <% }); %>
+          </dl>
+        </div>
+      </div>
+
+      <p class="small text-muted-2">
+        If something here is not what you expected, write to
+        <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> and a person will read it.
+      </p>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

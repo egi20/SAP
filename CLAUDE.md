@@ -876,6 +876,67 @@ declaration shadows the local for the whole block, so `typeof` is evaluated agai
 uninitialised binding and throws. `npm run validate-boot` compiles every template without
 rendering one, so only an integration test that actually renders the page catches it.
 
+## Closing an account
+
+**`models/AccountClosure.js` is the single writer, and a closure is an ERASURE, never a
+DELETE.** Deleting the user row would cascade into a points ledger that is append-only so
+totals can be audited, a commission ledger recording money somebody is owed, invoices that
+must not rewrite themselves, one half of conversations the other party wrote, and the
+pipeline rows an employer is working from. Every one of those is a record this file has
+already argued must survive its subject changing their mind.
+
+**The page says what is kept, by name, with the reason, BEFORE the button.** A closure
+screen that promises "your data will be deleted" and leaves an invoice standing is the one
+version of this that is actually dishonest. `REMOVED` and `KEPT` live on the model and the
+template iterates them — a list of promises maintained separately from the code that keeps
+them goes on saying the old thing after the operation changes, and a test fails if either
+list is retyped into the view.
+
+**The order is other people first, identity last.** Open adverts are closed, because an
+open advert on a closed account is a role nobody is hiring for and people spend evenings on
+those. Live applications are withdrawn through `Application.transition`, so each one writes
+its audit event and the employer watching that pipeline can see what happened. Only then is
+the identity erased. A closure that erased the identity first and then failed would leave an
+anonymous account still advertising.
+
+**Votes are kept, and that is not an oversight.** An upvote was settled to the author while
+it STANDS. Deleting it without settling would leave somebody holding points for a vote that
+no longer exists; settling it back would take points off a third party because a second
+person left. Neither is a thing a closure gets to do.
+
+**Contributed rates are kept, because they were never identifying.** The index never shows
+who gave a figure and only publishes a bucket over at least three people. Removing one
+person's rows moves a published number for everybody — the same reason `voided_at` exists
+and there is no "correct the value" path.
+
+**The tombstone address is `closed-<id>@accounts.invalid`.** `.invalid` is reserved by
+RFC 2606, so it can never be delivered to or mistaken for real — and writing it FREES the
+member's own address, so somebody who comes back can register with it rather than finding it
+taken by a row they cannot reach. The name becomes a neutral label and never the email local
+part: `Conversation`'s display-name fallback exists because the reference leaked a
+`firstname.lastname` prefix that way, and a closure that reintroduced it would undo that fix
+for exactly the people asking to be forgotten.
+
+**Two things block a closure, and both name what is in the way.** An administrator account
+is closed by another administrator — same reasoning as the admin screens refusing to act on
+your own account. An unpaid commission balance blocks it with the figure printed, because
+closing removes the only page on which the person could check what they are owed.
+
+**Sessions are not deleted.** `validateActiveAccount` rebuilds the session user from the
+database on every request, so a surviving cookie is dead on its next one. Reaching into the
+session store would mean matching on the shape of somebody else's serialised JSON, which
+silently stops matching the day that shape changes.
+
+**The confirmation is a PAGE, `/account-closed`, not a flash.** Closing destroys the
+session and the flash queue goes with it. It repeats the kept list, because somebody who has
+just pressed an irreversible button is the least likely to have read it beforehand.
+
+**Settings LINKS to the profiles rather than duplicating them.** The reference puts company
+details — phone, LinkedIn, a description — into its settings page as well as into the
+company profile: two forms writing the same columns and two answers to "where do I change
+this". Settings is the account; a profile is content, with its own validation and its own
+completeness floor.
+
 ## The talent directory is anonymous
 
 **Names and photographs are behind an account; everything else is not.** The consultants

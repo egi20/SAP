@@ -1,0 +1,108 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-door-closed',
+  heading: 'Close your account',
+  sub: 'What happens, in full, before anything happens'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <nav aria-label="Breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0 small">
+          <li class="breadcrumb-item"><a href="/profile/settings">Account settings</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Close your account</li>
+        </ol>
+      </nav>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-3">What is removed</h2>
+          <ul class="small mb-0">
+            <% removed.forEach(function (line) { %><li><%= line %></li><% }); %>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-1">What is kept, and why</h2>
+          <%#
+            This list is the honest half, and it is the reason the page exists. A closure
+            screen that promises "your data will be deleted" and leaves an invoice standing
+            is the one version of this that is actually dishonest — so every kept thing is
+            named, with the reason beside it, before the button rather than after.
+          -%>
+          <p class="small text-muted-2 mb-3">
+            Not everything here is only about you. These stay:
+          </p>
+          <dl class="mb-0">
+            <% kept.forEach(function (item) { %>
+              <dt class="small"><%= item.what %></dt>
+              <dd class="small text-muted-2"><%= item.why %></dd>
+            <% }); %>
+          </dl>
+        </div>
+      </div>
+
+      <% if (!canClose) { %>
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Not yet</h2>
+            <%#
+              NAMES what is in the way, including the figure. "You cannot close your
+              account" with no reason is the message people assume is a bug.
+            -%>
+            <ul class="small mb-0">
+              <% problems.forEach(function (problem) { %><li><%= problem %></li><% }); %>
+            </ul>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="glass-card">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Close it</h2>
+            <form method="post" action="/profile/settings/close">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+              <div class="mb-3">
+                <label class="form-label" for="reason">Why are you leaving? (optional)</label>
+                <input class="form-control" id="reason" name="reason" maxlength="200">
+                <p class="form-text">One line. Nobody will reply to it; it is read when we look at why people go.</p>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label" for="current_password">Your password</label>
+                <%#
+                  The password again on the page that does the irreversible thing. The
+                  session alone is not enough for this one: an unattended browser is the
+                  ordinary way somebody else's hands end up on an account, and every other
+                  button in settings is recoverable.
+                -%>
+                <input class="form-control" id="current_password" name="current_password"
+                       type="password" required autocomplete="current-password">
+              </div>
+
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="understood" name="understood" required>
+                <label class="form-check-label small" for="understood">
+                  I have read what is removed and what is kept. This cannot be undone.
+                </label>
+              </div>
+
+              <button class="btn btn-outline-danger" type="submit">Close my account</button>
+              <a class="btn btn-outline-secondary" href="/profile/settings">Keep it</a>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

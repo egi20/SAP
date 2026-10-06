@@ -176,6 +176,66 @@
       </div>
     </div>
   </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-lg-6">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Your profiles</h2>
+          <%#
+            LINKED, not duplicated. The reference puts company details — phone, LinkedIn, a
+            description — into its settings page as well as into the company profile, which
+            is two forms writing the same columns and two answers to "where do I change
+            this". Settings is the ACCOUNT; a profile is content, and it has its own page
+            with its own validation and its own completeness floor.
+          -%>
+          <p class="small text-muted-2 mb-3">
+            Settings is your account. What the Hub shows about you lives on its own page.
+          </p>
+          <div class="d-grid gap-2">
+            <% if (user.is_consultant) { %>
+              <a class="btn btn-outline-primary btn-sm" href="/profile/consultant">
+                <i class="bi bi-person-badge"></i> Consultant profile
+              </a>
+            <% } %>
+            <% if (user.is_company) { %>
+              <a class="btn btn-outline-primary btn-sm" href="/profile/company">
+                <i class="bi bi-building-gear"></i> Company profile
+              </a>
+            <% } %>
+            <% if (user.is_recruiter) { %>
+              <a class="btn btn-outline-primary btn-sm" href="/recruiters/profile">
+                <i class="bi bi-person-rolodex"></i> Agency profile
+              </a>
+            <% } %>
+            <a class="btn btn-outline-secondary btn-sm" href="/profile">
+              <i class="bi bi-person"></i> Account overview
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Close your account</h2>
+          <%#
+            A link to a page, never a button here. The page says what is removed and what is
+            kept before anything can be pressed, and this is the one control in settings
+            that cannot be undone — it does not belong beside the ones that can.
+          -%>
+          <p class="small text-muted-2 mb-3">
+            Your name, your email address and your profile are removed. Some records stay,
+            and the next page says exactly which and why, before you decide.
+          </p>
+          <a class="btn btn-outline-danger btn-sm" href="/profile/settings/close">
+            What happens if I close my account
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 </section>
 

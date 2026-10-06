@@ -20,6 +20,20 @@
     <section class="mb-5">
       <h2 class="h5 mb-3">Consultant</h2>
 
+      <%#
+        The same row of ways on as the hiring half has. It was only on the company side,
+        so a consultant's dashboard showed them what had happened and offered nowhere to
+        go next — the pages exist, and the one place somebody lands after signing in did
+        not name them.
+      -%>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-primary btn-sm" href="/jobs"><i class="bi bi-briefcase"></i> Browse roles</a>
+        <a class="btn btn-outline-primary btn-sm" href="/dashboard/applications"><i class="bi bi-send"></i> Your applications</a>
+        <a class="btn btn-outline-primary btn-sm" href="/profile/cv"><i class="bi bi-file-earmark-text"></i> Your CV</a>
+        <a class="btn btn-outline-primary btn-sm" href="/consultants/<%= currentUser.id %>"><i class="bi bi-eye"></i> Your public profile</a>
+        <a class="btn btn-outline-primary btn-sm" href="/rates/calculator"><i class="bi bi-calculator"></i> Benchmark your rate</a>
+      </div>
+
       <% if (consultant.profile.completeness < 60) { %>
         <div class="glass-card mb-3"><div class="card-body">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">

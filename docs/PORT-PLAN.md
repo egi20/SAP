@@ -701,6 +701,20 @@ with its pipeline — is an organisation model where two accounts are provably t
 employer, not a bigger form. Until then a handover is for an advert nobody has applied to
 yet, which is the common case it was asked for.
 
+**The dashboard and settings, last.** DynamicsHub's dashboard is a grid of action cards;
+ours showed the numbers and, on the consultant half, offered nowhere to go from them — the
+pages existed and the one place somebody lands after signing in did not name them. Both
+halves now carry the same row of ways on, and the hiring stage tiles are links to the rows
+they count.
+
+Settings gained the one thing it was genuinely missing: **Danger Zone → Delete Account**,
+built as a closure rather than a delete. The reasoning is in CLAUDE.md; the short version is
+that a hard delete here would cascade into two append-only ledgers, invoices, half of other
+people's conversations and an employer's pipeline, so the account is erased and deactivated
+and the page names every record that stays, with the reason, before the button. DynamicsHub's
+"Company Details" block in settings was refused: it is a second form writing the columns the
+company profile already owns, and settings now links there instead.
+
 Everything else in the shape of DynamicsHub's version was refused for a stated reason: the
 claim link (an access grant to whoever an inbox forwards to), resolving the address to an
 account at creation (an account-existence oracle any company could query), and an external

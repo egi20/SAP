@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const AccountClosure = require('../models/AccountClosure');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -259,6 +260,24 @@ router.get('/cv-generator', (req, res) => {
  */
 router.get('/about', (req, res) => {
   res.render('legal/about', { title: `About ${config.app.name}` });
+});
+
+/**
+ * GET /account-closed
+ *
+ * Where somebody lands after closing their account. It is a page and not a flash message
+ * because closing destroys the session, and the flash queue goes with it — there is
+ * nowhere left to put a message.
+ *
+ * It repeats what was kept. Somebody who has just pressed an irreversible button is the
+ * least likely person to have read the list carefully beforehand, and the first question
+ * afterwards is always the same one.
+ */
+router.get('/account-closed', (req, res) => {
+  res.render('legal/account-closed', {
+    title: 'Your account is closed',
+    kept: AccountClosure.KEPT
+  });
 });
 
 /**
