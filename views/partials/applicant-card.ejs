@@ -1,0 +1,57 @@
+<%#
+  One applicant, rendered the same way wherever applicants are listed: the per-job
+  pipeline, the cross-job pipeline and the board. The three pages were going to grow
+  three copies of this markup, and the copy that falls behind is the one showing a
+  stale badge next to a correct status.
+
+  `showJob` is on where the list spans more than one advert; without it the cross-job
+  pipeline is a list of people with no indication of what they applied for.
+-%>
+<%#
+  The locals are read into differently-named constants on purpose. `const compact =
+  typeof compact !== 'undefined' ? ... ` reads like a default and is a temporal dead zone
+  error: the declaration shadows the local for the whole block, so `typeof` is evaluated
+  against the uninitialised binding and throws. `npm run validate-boot` compiles templates
+  without running them, so it cannot catch this — only rendering can.
+-%>
+<% const withPhoto = typeof compact === 'undefined' || !compact; %>
+<% const withJob = typeof showJob !== 'undefined' && showJob; %>
+<div class="glass-card mb-3">
+  <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+    <% if (withPhoto) { %>
+      <%- include('./avatar', { name: a.consultant_name, src: a.profile_picture, size: 48 }) %>
+    <% } %>
+    <div class="flex-grow-1 min-w-0">
+      <h2 class="h6 mb-1">
+        <a href="/consultants/<%= a.consultant_user_id %>"><%= a.consultant_name %></a>
+        <% if (a.linkedin_verified) { %>
+          <i class="bi bi-patch-check-fill text-primary" title="LinkedIn confirmed" aria-label="LinkedIn confirmed"></i>
+        <% } %>
+      </h2>
+      <% if (withJob) { %>
+        <p class="small mb-1">
+          <i class="bi bi-briefcase"></i>
+          <a href="/applications/job/<%= a.job_slug %>"><%= a.job_title %></a>
+        </p>
+      <% } %>
+      <p class="small text-muted-2 mb-1"><%= a.headline || roleLabel(a.primary_role) %></p>
+      <div class="d-flex flex-wrap gap-1">
+        <% if (a.seniority) { %><span class="badge-hub"><%= a.seniority %></span><% } %>
+        <% if (a.country) { %><span class="badge-hub"><%= a.country %></span><% } %>
+        <% if (a.certification_count > 0) { %><span class="badge-hub ok"><%= a.certification_count %> certs</span><% } %>
+        <% if (a.day_rate) { %><span class="badge-hub"><%= Math.round(a.day_rate) %> <%= a.currency %>/day</span><% } %>
+        <%#
+          Shown because the filter beside it exists: "has interviewed" reads the event log,
+          so a row that matched it on a rejected application has to be able to say why.
+        -%>
+        <% if (a.first_interviewed_at && a.status !== 'interviewing') { %>
+          <span class="badge-hub">interviewed <%= new Date(a.first_interviewed_at).toLocaleDateString('en-GB') %></span>
+        <% } %>
+      </div>
+    </div>
+    <div class="text-end">
+      <span class="badge-hub status-<%= a.status %> d-block mb-2"><%= a.status %></span>
+      <a class="btn btn-sm btn-primary" href="/applications/<%= a.id %>">Review</a>
+    </div>
+  </div>
+</div>

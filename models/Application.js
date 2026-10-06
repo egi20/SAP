@@ -1,6 +1,7 @@
 'use strict';
 
 const { promisePool, withTransaction } = require('../config/database');
+const { containsPattern } = require('../utils/likePattern');
 
 /**
  * The hiring pipeline state machine.
@@ -25,6 +26,109 @@ const TERMINAL = Object.freeze(['hired', 'rejected']);
 /** Which side of the table may make a given transition. */
 const CONSULTANT_TRANSITIONS = Object.freeze(['withdrawn', 'submitted']);
 
+/**
+ * And which side may make the others.
+ *
+ * This used to be half a rule: the consultant's moves were declared and the employer's
+ * were "everything else", so an employer could move an application to `withdrawn` —
+ * withdrawing, on somebody's behalf, the application they made. That is the one status in
+ * this machine that means an act by the candidate, and `countForJob` excludes it on
+ * exactly that reading ("somebody who pulled out is not competition"). An employer able to
+ * set it can quietly change what the public count on their own advert means.
+ *
+ * Declaring both sides also means the board can ask what a given actor may do with a row
+ * instead of guessing, so a control is never offered for a move the model will refuse.
+ */
+const EMPLOYER_TRANSITIONS = Object.freeze(['reviewing', 'shortlisted', 'interviewing', 'offered', 'hired', 'rejected']);
+
+/**
+ * The status vocabulary, in pipeline order, derived from the state machine above rather
+ * than written out again.
+ *
+ * It mirrors the ENUM in migration 003 and a unit test compares the two, for the reason
+ * `Job.STATUSES` exists: this list was typed out by hand in the route that validates
+ * `?status=` and again in the template that renders the tab strip, which is how a stage
+ * gets added to a filter and silently rejected behind it.
+ */
+const STATUSES = Object.freeze(Object.keys(TRANSITIONS));
+
+/**
+ * The columns of the board.
+ *
+ * The six live stages, and NOT `rejected` or `withdrawn`. A board is for the work in
+ * progress; a closed-outcome column only grows, and within a month it is the widest thing
+ * on the screen and the live stages are off the edge of it. Both outcomes keep their place
+ * in the list view, which is the one that can filter and page.
+ */
+const BOARD_COLUMNS = Object.freeze(['submitted', 'reviewing', 'shortlisted', 'interviewing', 'offered', 'hired']);
+
+/**
+ * THE filter builder for applications — the only one.
+ *
+ * The per-job pipeline, the cross-job pipeline, the board and the stage counts all come
+ * through here, so the number on a tab provably counts the rows the tab opens. The job
+ * pipeline assembled its own two-line WHERE before this existed, which was fine while
+ * there was one list; the second list is where a divergence starts.
+ *
+ * Every query using it joins `applications a`, `jobs j` and `users u` under those aliases.
+ */
+function buildFilter(filters = {}) {
+  const where = [];
+  const params = [];
+
+  // Scoping. A caller that passes neither is asking for every application on the site,
+  // so say so rather than answering it.
+  if (filters.company_user_id) {
+    where.push('j.company_user_id = ?');
+    params.push(filters.company_user_id);
+  }
+  if (filters.job_id) {
+    where.push('a.job_id = ?');
+    params.push(filters.job_id);
+  }
+  if (!filters.company_user_id && !filters.job_id) {
+    throw new Error('An application filter must be scoped to a company or a job.');
+  }
+
+  if (filters.status && STATUSES.includes(filters.status)) {
+    where.push('a.status = ?');
+    params.push(filters.status);
+  } else if (Array.isArray(filters.statuses) && filters.statuses.length) {
+    const valid = filters.statuses.filter((s) => STATUSES.includes(s));
+    if (valid.length === 0) throw new Error('No recognised status in the filter.');
+    where.push(`a.status IN (${valid.map(() => '?').join(',')})`);
+    params.push(...valid);
+  } else if (!filters.include_withdrawn) {
+    /*
+     * Withdrawn is hidden unless it is asked for, by name or by the toggle. The same
+     * reading as `countForJob`: a pipeline answers "who is in play", and somebody who
+     * pulled out is not. They are one checkbox away, never gone — a row that cannot be
+     * reached at all is a row an employer cannot work out what happened to.
+     */
+    where.push("a.status <> 'withdrawn'");
+  }
+
+  if (filters.q) {
+    // Through likePattern, like every other LIKE in this codebase. A search for `%`
+    // is a search for a per-cent sign, not a full scan of the applications table.
+    where.push('u.name LIKE ?');
+    params.push(containsPattern(filters.q));
+  }
+
+  /*
+   * "Has reached this stage", from the append-only event log rather than from the current
+   * status. Somebody who interviewed and was then turned down HAS interviewed, and a
+   * filter reading `status = 'interviewing'` answers a narrower question than the one its
+   * label asks — which matters most for the stage people most want to look back at.
+   */
+  if (filters.reached && STATUSES.includes(filters.reached)) {
+    where.push('EXISTS (SELECT 1 FROM application_events ae WHERE ae.application_id = a.id AND ae.to_status = ?)');
+    params.push(filters.reached);
+  }
+
+  return { clause: where.join(' AND '), params };
+}
+
 function canTransition(from, to) {
   return Boolean(TRANSITIONS[from] && TRANSITIONS[from].includes(to));
 }
@@ -36,6 +140,26 @@ function isTerminal(status) {
 class Application {
   static get TRANSITIONS() {
     return TRANSITIONS;
+  }
+
+  static get STATUSES() {
+    return STATUSES;
+  }
+
+  static get BOARD_COLUMNS() {
+    return BOARD_COLUMNS;
+  }
+
+  static get EMPLOYER_TRANSITIONS() {
+    return EMPLOYER_TRANSITIONS;
+  }
+
+  static buildFilter = buildFilter;
+
+  /** What this actor may move this application to, so a control is never offered in vain. */
+  static transitionsFor(status, { actorIsEmployer = false } = {}) {
+    const allowed = actorIsEmployer ? EMPLOYER_TRANSITIONS : CONSULTANT_TRANSITIONS;
+    return (TRANSITIONS[status] || []).filter((to) => allowed.includes(to));
   }
 
   static canTransition = canTransition;
@@ -123,8 +247,13 @@ class Application {
         throw err;
       }
 
-      if (!actorIsEmployer && !CONSULTANT_TRANSITIONS.includes(toStatus)) {
-        const err = new Error('Only the hiring company can make this change.');
+      const allowedForActor = actorIsEmployer ? EMPLOYER_TRANSITIONS : CONSULTANT_TRANSITIONS;
+      if (!allowedForActor.includes(toStatus)) {
+        const err = new Error(
+          actorIsEmployer
+            ? 'Only the applicant can make this change.'
+            : 'Only the hiring company can make this change.'
+        );
         err.code = 'FORBIDDEN';
         throw err;
       }
@@ -154,32 +283,79 @@ class Application {
     return rows[0] || null;
   }
 
-  static async listForJob(jobId, { status = '', limit = 50, offset = 0 } = {}) {
-    const where = ['a.job_id = ?'];
-    const params = [jobId];
-    if (status) {
-      where.push('a.status = ?');
-      params.push(status);
-    }
-    const clause = where.join(' AND ');
+  /**
+   * The rows behind every applicant list on the site.
+   *
+   * One SELECT, one filter builder, one ordering. The per-job pipeline, the cross-job
+   * pipeline and the board are three layouts over this, so a candidate who is invisible
+   * on one is invisible on all three without any of them knowing why.
+   */
+  static async list(filters = {}, { limit = 50, offset = 0 } = {}) {
+    const { clause, params } = buildFilter(filters);
 
     const [rows] = await promisePool.query(
       `SELECT a.*, u.name AS consultant_name,
+              j.title AS job_title, j.slug AS job_slug, j.status AS job_status,
               cp.headline, cp.primary_role, cp.seniority, cp.country, cp.profile_picture,
               cp.linkedin_verified,
-              (SELECT COUNT(*) FROM consultant_certifications cc WHERE cc.user_id = a.consultant_user_id) AS certification_count
+              (SELECT COUNT(*) FROM consultant_certifications cc WHERE cc.user_id = a.consultant_user_id) AS certification_count,
+              (SELECT MIN(ae.created_at) FROM application_events ae
+                WHERE ae.application_id = a.id AND ae.to_status = 'interviewing') AS first_interviewed_at
          FROM applications a
+         JOIN jobs j ON j.id = a.job_id
          JOIN users u ON u.id = a.consultant_user_id
          LEFT JOIN consultant_profiles cp ON cp.user_id = a.consultant_user_id
         WHERE ${clause}
         ORDER BY FIELD(a.status,'offered','interviewing','shortlisted','reviewing','submitted','hired','rejected','withdrawn'),
-                 a.created_at DESC
+                 a.updated_at DESC
         LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
 
-    const [[{ total }]] = await promisePool.query(`SELECT COUNT(*) AS total FROM applications a WHERE ${clause}`, params);
+    const [[{ total }]] = await promisePool.query(
+      `SELECT COUNT(*) AS total
+         FROM applications a
+         JOIN jobs j ON j.id = a.job_id
+         JOIN users u ON u.id = a.consultant_user_id
+        WHERE ${clause}`,
+      params
+    );
+
     return { rows, total };
+  }
+
+  /** One advert's applicants. */
+  static async listForJob(jobId, filters = {}, options = {}) {
+    return Application.list({ ...filters, job_id: jobId }, options);
+  }
+
+  /**
+   * Every applicant for every one of this company's adverts, one row per application.
+   *
+   * The company id is applied HERE rather than being left to the caller, so there is no
+   * version of this call that returns somebody else's pipeline.
+   */
+  static async listForCompany(companyUserId, filters = {}, options = {}) {
+    return Application.list({ ...filters, company_user_id: companyUserId }, options);
+  }
+
+  /**
+   * Stage counts over the SAME filter as the list, so the number on a tab counts the rows
+   * the tab opens. A count assembled from its own WHERE is the first thing to disagree
+   * with the page under it, and it disagrees silently.
+   */
+  static async countsFor(filters = {}) {
+    const { clause, params } = buildFilter({ ...filters, status: '', statuses: null });
+    const [rows] = await promisePool.query(
+      `SELECT a.status, COUNT(*) AS count
+         FROM applications a
+         JOIN jobs j ON j.id = a.job_id
+         JOIN users u ON u.id = a.consultant_user_id
+        WHERE ${clause}
+        GROUP BY a.status`,
+      params
+    );
+    return Object.fromEntries(rows.map((r) => [r.status, Number(r.count)]));
   }
 
   /**

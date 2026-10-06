@@ -29,7 +29,40 @@ const router = express.Router();
 
 router.use(isAuthenticated);
 
-router.get('/', (req, res) => res.redirect('/profile/settings'));
+/**
+ * The account overview.
+ *
+ * This URL used to redirect to `/profile/settings`, which answered the question "what can
+ * I change about my account" to somebody who asked "what IS my account". They are
+ * different questions: the facts a person comes here to check — which email address this
+ * is, which roles the account holds, whether the address is confirmed, when they joined,
+ * when they were last in — are on no form, because none of them is editable from one.
+ *
+ * It computes nothing and stores nothing. Every panel is a link to the page that owns the
+ * thing it names, so there is no second place that decides what a profile says.
+ */
+router.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const sessionUser = req.session.user;
+    const user = await User.findById(sessionUser.id);
+    if (!user) return res.status(404).render('errors/404', { title: 'Not found' });
+
+    // Only what this account actually has. A consultant has no company page and a company
+    // has no CV, and offering either is offering a 404 with an encouraging label on it.
+    const [consultantProfile, companyProfile] = await Promise.all([
+      user.is_consultant ? ConsultantProfile.findByUserId(user.id) : Promise.resolve(null),
+      user.is_company ? CompanyProfile.findByUserId(user.id) : Promise.resolve(null)
+    ]);
+
+    return res.render('profile/index', {
+      title: 'Your account',
+      user,
+      consultantProfile,
+      companyProfile
+    });
+  })
+);
 
 router.get(
   '/settings',

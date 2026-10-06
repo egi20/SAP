@@ -353,6 +353,13 @@ model never strips markup, because then two places would decide what a message s
 CSS keeps the author's newlines with `white-space: pre-wrap` and breaks long tokens with
 `overflow-wrap: anywhere`, or a pasted URL widens the page on a phone.
 
+**A company with no open role is told why, not shown nothing.** The approach form on a
+consultant profile is anchored to one of the reader's own open adverts, so a company with
+none had no way to get in touch and no explanation — which reads as a missing feature
+rather than as the rule it is. It says which it is, and offers the thing that would fix it.
+There is still no button that opens an unanchored thread, and there is no id-taking
+endpoint that would.
+
 `isNavigation` from `middleware/auth.js` decides JSON-versus-redirect here too. The
 reference declares a private `wantsJson` in `routes/messages.js` that disagrees with the
 auth guard about a request carrying no `Sec-Fetch-Dest`, so a plain Node client is
@@ -735,6 +742,67 @@ silence.** The columns are `about` and `company_size`; writing `description` and
 `size_band` succeeds, changes nothing, and the page renders blank. Same shape as the
 certification that asked for `name` when the model returns `label`: in this codebase a
 wrong field name is not an error, it is an empty string.
+
+## The candidate pipeline
+
+**One filter builder, `Application.buildFilter`, and three layouts over it.** The per-job
+pipeline, the cross-job pipeline at `/applications` and the board are the same rows asked
+for three ways, so a candidate hidden on one is hidden on all three. The per-job list had
+its own two-line WHERE, which was fine while there was one list; the second list is where a
+divergence starts, and the first thing to diverge is which rows a stage count counts.
+`Application.countsFor` runs the same builder, so the number on a control counts the rows
+the control opens.
+
+**`Application.STATUSES` is derived from the state machine, and a test compares it with the
+ENUM in migration 003.** It was written out by hand in the route that validates `?status=`
+and again in the template that drew the tab strip — the `Job.STATUSES` problem, with the
+same failure: a stage offered in a filter and rejected by the handler behind it. A unit test
+also fails if a status literal reappears in `routes/applications.js`.
+
+**Withdrawn is hidden by default and one checkbox away.** The same reading as
+`countForJob`: a pipeline answers "who is in play", and somebody who pulled out is not. A
+row that cannot be reached at all is a row an employer cannot work out what happened to,
+so it is a toggle and never a deletion. There is no "withdrawn" tab, because a tab showing
+a count the list below it is hiding is the two disagreeing in public.
+
+**"Interviewed" reads the append-only event log, not the current status.** Somebody who
+interviewed and was then turned down HAS interviewed, and that is usually the person being
+looked for. A filter on `status = 'interviewing'` answers a narrower question than its own
+label — and narrower in the direction that loses the rows somebody opened the filter for.
+
+**Both sides of the state machine are declared.** `CONSULTANT_TRANSITIONS` was declared and
+the employer's moves were "everything else", so an employer could move an application to
+`withdrawn` — withdrawing, on somebody's behalf, the application they made. That is the one
+status that means an act by the candidate, and the public application count excludes it on
+exactly that reading, so an employer who can set it can quietly change what the number on
+their own advert means. `Application.transitionsFor(status, { actorIsEmployer })` is what
+the views ask, so a control is never offered for a move the model will refuse.
+
+**The board has no drag-and-drop, and that is the feature.** A drop target offers every
+column, including the ones `TRANSITIONS` refuses, so the gesture promises moves the server
+then rejects — and a drag is a gesture the keyboard cannot make at all. Each card carries
+its declared transitions as real buttons in real forms, which work with scripting off.
+
+**The board shows the live stages only** — not `rejected`, not `withdrawn`. A closed-outcome
+column only grows; within a month it is the widest thing on the screen and the live stages
+are off the edge of it. Both outcomes keep their place in the list, which can filter and
+page. The board cannot page — half a column is a lie about the column — so it is capped,
+and when it reaches the cap it says so and points at the list.
+
+**An empty pipeline is two different pages.** No open advert at all means there is nothing
+for anybody to apply to; an open advert with no applicants is a waiting room. Telling the
+first person to wait for applications is telling them to wait for something that cannot
+arrive.
+
+**Saved jobs are a consultant's shortlist.** The dashboard fetched them for every account,
+so a company carried a permanently empty "Saved jobs" panel for a list it has no way of
+adding to — the dashboard telling somebody they have missed a feature they do not have.
+
+**Testing consequence:** `<% const x = typeof x !== 'undefined' ? x : false %>` in a partial
+reads like a default for an optional local and is a temporal dead zone error — the
+declaration shadows the local for the whole block, so `typeof` is evaluated against the
+uninitialised binding and throws. `npm run validate-boot` compiles every template without
+rendering one, so only an integration test that actually renders the page catches it.
 
 ## The talent directory is anonymous
 

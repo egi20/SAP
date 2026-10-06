@@ -22,9 +22,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const user = req.session.user;
 
+    /*
+     * Saved jobs are a CONSULTANT's shortlist, and this fetched them for everybody — so a
+     * company dashboard carried a "Saved jobs" card, empty and permanent, for a list it
+     * has no way of adding to. A panel that cannot apply to the account reading it is the
+     * dashboard telling somebody they have missed a feature they do not have.
+     */
     const [unread, savedJobs] = await Promise.all([
       Notification.unreadCount(user.id),
-      Job.listSaved(user.id, { limit: 5 })
+      user.isConsultant ? Job.listSaved(user.id, { limit: 5 }) : Promise.resolve([])
     ]);
 
     let consultant = null;
@@ -54,7 +60,7 @@ router.get(
         Job.browse({ company_user_id: user.id, status: 'open' }, { limit: 5 }),
         Application.statusCountsForCompany(user.id)
       ]);
-      company = { jobs, totalOpen: total, statusCounts };
+      company = { jobs, totalOpen: total, statusCounts, stages: Application.BOARD_COLUMNS };
     }
 
     res.render('dashboard/index', {
@@ -71,7 +77,7 @@ router.get(
   '/jobs',
   isCompany,
   asyncHandler(async (req, res) => {
-    const status = ['draft', 'open', 'paused', 'filled', 'closed'].includes(req.query.status) ? req.query.status : '';
+    const status = Job.STATUSES.includes(req.query.status) ? req.query.status : '';
     const filters = { company_user_id: req.session.user.id, status: status || 'open' };
 
     const { page, perPage, limit, offset } = paginationFrom(req.query);

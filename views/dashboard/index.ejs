@@ -82,15 +82,28 @@
     <section class="mb-5">
       <h2 class="h5 mb-3">Hiring</h2>
 
+      <%#
+        The stages come from `Application.BOARD_COLUMNS`, not from a list typed here, and
+        each tile is a LINK to the rows it counts. A number somebody cannot open is a
+        number they have to go and look for by hand, which on this dashboard meant there
+        was no way to reach the candidates at all.
+      -%>
       <div class="row g-3 mb-3">
-        <% ['submitted','reviewing','shortlisted','interviewing','offered','hired'].forEach(function (s) { %>
+        <% company.stages.forEach(function (s) { %>
           <div class="col-4 col-lg-2">
-            <div class="stat-tile">
+            <a class="stat-tile d-block text-reset text-decoration-none" href="/applications?status=<%= s %>">
               <div class="value"><%= company.statusCounts[s] || 0 %></div>
               <div class="label"><%= s %></div>
-            </div>
+            </a>
           </div>
         <% }); %>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-primary btn-sm" href="/applications"><i class="bi bi-funnel"></i> Candidate pipeline</a>
+        <a class="btn btn-outline-primary btn-sm" href="/applications?view=board"><i class="bi bi-kanban"></i> Board</a>
+        <a class="btn btn-outline-primary btn-sm" href="/consultants"><i class="bi bi-people"></i> Browse talent</a>
+        <a class="btn btn-outline-primary btn-sm" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimate</a>
       </div>
 
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -108,6 +121,7 @@
     </section>
   <% } %>
 
+  <% if (currentUser.isConsultant) { %>
   <section>
     <h2 class="h5 mb-3">Saved jobs</h2>
     <% if (savedJobs.length === 0) { %>
@@ -120,6 +134,7 @@
       </div>
     <% } %>
   </section>
+  <% } %>
 </div>
 </section>
 

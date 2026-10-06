@@ -205,6 +205,29 @@
         </div>
       </div>
 
+      <%#
+        A thread is anchored to a role, always — there is no open inbox here, and that is
+        the rule the schema, the model and the route each hold separately.
+
+        So a company with no OPEN advert has nothing to anchor to, and this card used to
+        render nothing at all in that case: the page simply had no way to get in touch and
+        no explanation, which reads as a missing feature rather than a rule. It says which
+        it is, and what to do about it.
+      -%>
+      <% if (signedIn && currentUser.isCompany && !isSelf && (!hiringJobs || !hiringJobs.length)) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Approach about a role</h2>
+            <p class="small text-muted-2 mb-3">
+              Every conversation here is attached to a role, so the person you write to can
+              see what it is about before they open it. You have no open role to attach one
+              to yet.
+            </p>
+            <a class="btn btn-outline-primary w-100 btn-sm" href="/jobs/new">Post a role</a>
+          </div>
+        </div>
+      <% } %>
+
       <% if (hiringJobs && hiringJobs.length && !isSelf) { %>
         <div class="glass-card mb-3">
           <div class="card-body">

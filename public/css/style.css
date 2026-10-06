@@ -1546,3 +1546,47 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 @media print {
   .assistant { display: none !important; }
 }
+
+/* ---------------------------------------------------------------------------
+   The candidate board.
+
+   A horizontal strip of columns, each one scrolling on its own. There is no
+   drag-and-drop: the moves a card may make are declared in Application.TRANSITIONS,
+   and a drop target offers every column including the ones that machine refuses —
+   so the gesture would promise moves the server rejects. The buttons on each card
+   say exactly what is allowed, and the keyboard reaches them, which a drag never is.
+   --------------------------------------------------------------------------- */
+.pipeline-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 1fr);
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scroll-snap-type: x proximity;
+}
+
+.pipeline-column {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+.pipeline-column-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-transform: capitalize;
+  padding: 0.5rem 0.25rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--glass-border-tinted);
+  background: var(--glass-bg-heavy);
+  backdrop-filter: var(--glass-blur-sm);
+}
+
+/* On a phone the board is one column wide and scrolls like a list, which is the
+   only honest thing six columns can do at that width. */
+@media (max-width: 575.98px) {
+  .pipeline-board {
+    grid-auto-columns: 85vw;
+  }
+}

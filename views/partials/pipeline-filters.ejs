@@ -1,0 +1,65 @@
+<%#
+  The controls both pipeline pages carry, from the one place that decides what they are.
+
+  A plain GET form: it works with scripting off, the browser remembers what was typed,
+  and the result is a URL somebody can bookmark or send to a colleague — which is what a
+  shortlist filter is mostly for.
+
+  There is no "withdrawn" tab. The toggle beside the strip is what reveals those rows, and
+  a tab that showed a count the list below it is hiding would be the two disagreeing in
+  public. Every tab here counts the rows it opens: `Application.countsFor` runs the same
+  builder as the list.
+
+  `action`, `filters`, `counts`, `statuses` and `total` are required; `boardHref` adds the
+  layout switch where there is one.
+-%>
+<form class="glass-card mb-3" method="get" action="<%= action %>">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      <div class="flex-grow-1" style="min-width: 14rem;">
+        <label class="form-label" for="pipeline-q">Search by name</label>
+        <input class="form-control" id="pipeline-q" name="q" type="search" maxlength="120"
+               value="<%= filters.q || '' %>" placeholder="Candidate name">
+      </div>
+      <div>
+        <label class="form-label" for="pipeline-status">Stage</label>
+        <select class="form-select" id="pipeline-status" name="status">
+          <option value="">All stages</option>
+          <% statuses.filter(function (s) { return s !== 'withdrawn'; }).forEach(function (s) { %>
+            <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>>
+              <%= s %> (<%= counts[s] || 0 %>)
+            </option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="d-flex flex-column gap-1">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="pipeline-reached" name="reached" value="interviewing"
+                 <%= filters.reached ? 'checked' : '' %>>
+          <label class="form-check-label small" for="pipeline-reached">Interviewed</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="pipeline-withdrawn" name="withdrawn" value="1"
+                 <%= filters.include_withdrawn ? 'checked' : '' %>>
+          <label class="form-check-label small" for="pipeline-withdrawn">Include withdrawn</label>
+        </div>
+      </div>
+      <% if (typeof boardHref !== 'undefined' && boardHref) { %>
+        <input type="hidden" name="view" value="<%= typeof board !== 'undefined' && board ? 'board' : '' %>">
+      <% } %>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Filter</button>
+        <a class="btn btn-outline-secondary" href="<%= action %>">Clear</a>
+      </div>
+    </div>
+    <p class="form-text mb-0 mt-2">
+      <%#
+        "Interviewed" reads the event log, not the current status: somebody who interviewed
+        and was then turned down has still interviewed, and that is usually the person being
+        looked for when somebody reaches for this box.
+      -%>
+      <strong><%= total %></strong> <%= total === 1 ? 'candidate' : 'candidates' %> match.
+      "Interviewed" means they reached that stage at some point, not that they are in it now.
+    </p>
+  </div>
+</form>

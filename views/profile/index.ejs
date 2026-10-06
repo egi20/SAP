@@ -1,0 +1,128 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-person-badge', heading: 'Your account', sub: user.email }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Account</h2>
+          <dl class="row mb-0 small">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8"><%= user.name %></dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">
+              <%= user.email %>
+              <% if (user.email_verified) { %>
+                <span class="badge-hub ok">confirmed</span>
+              <% } else { %>
+                <span class="badge-hub warn">not confirmed</span>
+              <% } %>
+            </dd>
+
+            <dt class="col-sm-4">Roles</dt>
+            <dd class="col-sm-8">
+              <%#
+                The flags, not `user_type`. An account can hold several roles at once and
+                the primary one is only the first; listing it alone would tell a consultant
+                who also hires that they are not a company account, while every guard on the
+                site reads the flag and says otherwise.
+              -%>
+              <% if (user.is_consultant) { %><span class="badge-hub">consultant</span> <% } %>
+              <% if (user.is_company) { %><span class="badge-hub">company</span> <% } %>
+              <% if (user.is_recruiter) { %><span class="badge-hub">agency</span> <% } %>
+              <% if (user.is_partner) { %><span class="badge-hub">partner</span> <% } %>
+              <% if (user.is_superadmin) { %><span class="badge-hub">superadmin</span> <% } %>
+            </dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">
+              <% if (user.is_active) { %><span class="badge-hub ok">active</span>
+              <% } else { %><span class="badge-hub warn">deactivated</span><% } %>
+            </dd>
+
+            <dt class="col-sm-4">Member since</dt>
+            <dd class="col-sm-8"><%= new Date(user.created_at).toLocaleDateString('en-GB') %></dd>
+
+            <dt class="col-sm-4">Last signed in</dt>
+            <dd class="col-sm-8">
+              <%#
+                "Never" is not right for somebody reading this page in a session, so the
+                fallback is the honest one: the column was added later and old accounts have
+                no value in it.
+              -%>
+              <%= user.last_login_at ? new Date(user.last_login_at).toLocaleString('en-GB') : 'Not recorded' %>
+            </dd>
+          </dl>
+          <a class="btn btn-outline-primary btn-sm mt-3" href="/profile/settings">
+            <i class="bi bi-gear"></i> Account settings
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <% if (consultantProfile) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Consultant profile</h2>
+            <p class="small text-muted-2 mb-3">
+              <% if (consultantProfile.is_public) { %>
+                Listed in the talent directory. Your name and photograph are shown to
+                signed-in accounts only.
+              <% } else { %>
+                Not listed yet — nobody can find you in the directory.
+              <% } %>
+            </p>
+            <div class="d-grid gap-2">
+              <a class="btn btn-outline-primary btn-sm" href="/profile/consultant"><i class="bi bi-pencil-square"></i> Edit your profile</a>
+              <a class="btn btn-outline-primary btn-sm" href="/consultants/<%= user.id %>"><i class="bi bi-eye"></i> View it as a hirer sees it</a>
+              <a class="btn btn-outline-primary btn-sm" href="/profile/cv"><i class="bi bi-file-earmark-text"></i> Your CV</a>
+              <a class="btn btn-outline-primary btn-sm" href="/dashboard/applications"><i class="bi bi-send"></i> Your applications</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (companyProfile) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Company</h2>
+            <p class="small text-muted-2 mb-3"><%= companyProfile.company_name %></p>
+            <div class="d-grid gap-2">
+              <a class="btn btn-outline-primary btn-sm" href="/profile/company"><i class="bi bi-building-gear"></i> Edit the company profile</a>
+              <%#
+                The public page has existed since the job advert gained its "About the
+                company" box, and nothing in the signed-in half of the site linked to it —
+                so the one person who most needs to see what it looks like could not.
+              -%>
+              <a class="btn btn-outline-primary btn-sm" href="/companies/<%= companyProfile.slug %>"><i class="bi bi-eye"></i> Your public page</a>
+              <a class="btn btn-outline-primary btn-sm" href="/dashboard/jobs"><i class="bi bi-briefcase"></i> Your roles</a>
+              <a class="btn btn-outline-primary btn-sm" href="/applications"><i class="bi bi-funnel"></i> Candidate pipeline</a>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Everywhere else</h2>
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/messages"><i class="bi bi-chat-dots"></i> Messages</a>
+            <a class="btn btn-outline-secondary btn-sm" href="/notifications"><i class="bi bi-bell"></i> Notifications</a>
+            <a class="btn btn-outline-secondary btn-sm" href="/payments/history"><i class="bi bi-receipt"></i> Payments and invoices</a>
+            <a class="btn btn-outline-secondary btn-sm" href="/referrals"><i class="bi bi-share"></i> Refer someone</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

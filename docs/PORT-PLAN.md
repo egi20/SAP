@@ -628,6 +628,68 @@ And one the tests found in the tests: the integration suite decided whether to s
 seven skipped tests against a database that was running — a green run that tested nothing.
 The decision now happens in `tests/globalSetup.js`, in the parent process.
 
+## The company role, compared against DynamicsHub
+
+A page-by-page comparison of the hiring side produced twelve things DynamicsHub has and
+this did not. Four were built, one was already here and unreachable, and seven are refused
+or deferred with the reason stated — the ledger matters more than the count.
+
+**Built.**
+
+- **Talent Pipeline** → `/applications`. Every candidate for every one of the company's
+  roles, one row each, with a name search, a stage filter, "Interviewed" and "Include
+  withdrawn". DynamicsHub's "Interviewed only" filters the current status; this reads the
+  event log, so somebody who interviewed and was turned down still matches.
+- **Applications board** → `/applications?view=board`, the same route and the same filter
+  builder, which is why the board cannot show a row the list hides. No drag-and-drop: see
+  CLAUDE.md. Six live columns, capped, and it says when it has reached the cap.
+- **The account overview** → `/profile`, which redirected to `/profile/settings`. "What can
+  I change about my account" and "what IS my account" are different questions, and none of
+  the facts people come here to check — which address this is, which roles the account
+  holds, whether the address is confirmed, when they joined, when they were last in — is
+  editable from a form, so none of them was on one.
+- **The dashboard's stage tiles are links**, and the company block offers the pipeline, the
+  board, the directory and the estimator. The numbers were already there with no way to
+  open the rows behind them.
+
+**Already here, and unreachable.** The approach form on a consultant profile has been
+anchored to one of the reader's own open adverts since messaging landed, and a company with
+no open advert saw nothing at all — so the feature read as missing. It now says why, and
+links to the thing that would fix it. The public company page had the same shape: it has
+existed since the advert gained its "About the company" box and nothing signed-in linked to
+it, so the person who most needs to see it could not.
+
+**Refused.**
+
+- **An unanchored "Message Consultant" button.** The whole messaging design is that every
+  thread has a subject that is true by construction; a button on a profile is the
+  recruiting-spam channel the three enforcement points exist to refuse. The anchored
+  version is one click further and is the same button for anybody who actually has a role.
+- **Document templates with uploaded `.docx`** — already on the standing refusal list.
+  A template upload is arbitrary user-supplied Open XML rendered into documents this site
+  puts its name on, and `{company_name}`-style placeholders are a template language nobody
+  owns.
+- **A tax optimisation calculator with a savings figure** — the refusal this project has
+  held from the first commit, and the second time it has arrived wearing a different hat.
+- **A budget planner that prices roles per day, week, month and quarter.** The rate
+  benchmark already answers it from the employer's side, prints its working, and is checked
+  against its own anchor. A second figure for the same question with nothing reconciling
+  the two is the thing `config/payments.js` exists to prevent.
+- **An external application URL on an advert.** It sends the candidate off-site, so the
+  pipeline, the application count, the withdrawn exclusion and the anchored thread all stop
+  working at once — and the count on the page would read zero forever while people were
+  applying.
+- **A welcome tour.** A tour is a workaround for navigation that does not explain itself,
+  and it is shown exactly once to the person who needs it least.
+- **AI-written CVs and cover letters** — settled when the CV builder landed. The profile is
+  the CV and it invents nothing.
+
+**Deferred, with the question stated.** Job transfer to a colleague by email is an
+ownership change on a row that owns applications, messages and possibly a paid feature
+window; it needs an audit trail and an email path, and neither exists yet. Splitting the
+advert's description into Requirements / Responsibilities / What we offer is three columns
+and a migration, and worth doing only if the advert form is being revisited anyway.
+
 ## Known at the start, so nobody discovers it at the end
 
 Salesforce Hub's own plan ends by noting that the real remaining work was never a feature:
