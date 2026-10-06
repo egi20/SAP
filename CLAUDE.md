@@ -743,6 +743,78 @@ silence.** The columns are `about` and `company_size`; writing `description` and
 certification that asked for `name` when the model returns `label`: in this codebase a
 wrong field name is not an error, it is an empty string.
 
+## The advert's sections, and handing one over
+
+**`config/jobSections.js` is the only list of the advert's prose, and it is asserted at
+boot.** `description` was the whole advert in one box; "Responsibilities", "Requirements"
+and "What we offer" are three more columns, which is three more places the text of one job
+lives. That cost is only worth paying because EVERY reader of an advert reads all four from
+the same list: the form builds its boxes from it, the page renders from it,
+`Job.buildFilter` assembles the `q` clause from it and `utils/jobMatcher.js` builds its
+haystack through `sectionText`. A section added to the schema and the form alone is the
+silent failure — an advert naming EWM only under "Requirements" would score zero against an
+EWM consultant, appear in no search for EWM, and nothing anywhere would say why. The list
+lives in config rather than on the model because a util must not reach into a model; `Job`
+re-exports it, exactly as it re-exports `ACTIVATE_PHASES`.
+
+**The three are optional and NULL when empty.** An untouched box posts an empty string and
+is stored as NULL, so "not asked" and "answered with nothing" stay the same fact in the
+column — the same distinction migration 018 holds for the issue fields. An empty section
+renders nothing at all, not an empty heading: same rule as "About the company".
+
+**There is no external application URL**, and that is a refusal rather than an omission. An
+advert that sends the candidate to somebody else's site has no applications here, so the
+pipeline, the public application count, the withdrawn exclusion and the anchored thread all
+stop working at once — and the count on the page would read zero forever while people were
+applying.
+
+**A transfer is an OFFER addressed to an email, never a link that moves anything.** The
+reference emails a claim link. An advert owns applications — cover letters, day rates,
+names — and a link in an inbox is an access grant to whoever that inbox forwards to. Here
+nothing moves until somebody signed in at that address presses Accept.
+
+**An advert with applications or a thread cannot be handed over at all, and the refusal
+NAMES why.** This application has no notion of an organisation: two colleagues are two
+unrelated company accounts whose profiles merely happen to share a name, so nothing here
+can establish that the recipient works for the employer those people applied to. Moving
+their applications to an account the system cannot connect to that employer is a disclosure
+nobody asked them about. `JobTransfer.eligibility` is re-checked INSIDE the accepting
+transaction with the advert locked, because somebody applying between the offer and the
+acceptance is precisely the case the rule exists for — and there it is a refusal rather
+than an inconvenience.
+
+**The address is not resolved to an account until acceptance.** Resolving it at creation
+would let any company account ask this table whether a given email has an account here, one
+offer at a time. The sender is told the MECHANISM — it waits, it expires after seven days —
+and never the answer for the address they typed. A notification IS sent when an account
+matches; that lookup happens in the handler and nothing about its result reaches the
+sender's page. A test posts to a known address and an unknown one and compares the two
+sentences.
+
+**One pending offer per advert, held by the schema.** `pending_job_id` is a generated column
+that is NULL for every settled row, under a UNIQUE key — so any number of settled offers
+coexist and a second live one is refused by the database. Same technique as `cert_key` in
+migration 002, and for the same reason. Nothing in `job_transfers` is ever deleted: the row
+is the audit trail for an advert changing hands.
+
+**An expired offer is settled by the next person to act, not by a scheduled job.** A status
+column that needs a cron to be true is wrong between runs; here `offer` expires a lapsed row
+in its own transaction, which is also what makes a second offer possible, and the sender's
+list computes the lapse rather than trusting the column. **The settlement after a refused
+acceptance happens OUTSIDE that transaction** — writing it next to the check looks right and
+is not: the throw that reports the refusal rolls the transaction back, so the row goes back
+to `pending` on the way out. A test caught exactly that.
+
+**An open advert is paused when it moves.** The public page names the company that posted
+the role and renders their "About the company" box, and that sentence changing under its
+readers with nobody having looked at the advert is the one thing a handover must not do
+silently. A draft stays a draft — there is nothing live to take down.
+
+**"You cannot accept your own offer" is not a CHECK**, and that is a limitation rather than
+a choice: MariaDB refuses a CHECK over a column carrying an `ON DELETE SET NULL` foreign
+key. It is held inside `JobTransfer.accept` with both rows locked, in the same transaction
+that moves the advert, so there is no window even without a constraint behind it.
+
 ## The candidate pipeline
 
 **One filter builder, `Application.buildFilter`, and three layouts over it.** The per-job

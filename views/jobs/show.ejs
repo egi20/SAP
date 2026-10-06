@@ -76,8 +76,18 @@
             </div>
           <% } %>
 
-          <hr>
-          <div class="job-description"><%- sanitizeRichText(job.description) %></div>
+          <%#
+            Every section that has something in it, in the order config/jobSections.js
+            declares. An empty one renders NOTHING — not an empty heading, which reads as
+            an employer who could not be bothered. Same rule as "About the company".
+          -%>
+          <% sections.forEach(function (section) { %>
+            <% if (job[section.key] && String(job[section.key]).trim()) { %>
+              <hr>
+              <% if (!section.required) { %><h2 class="h6"><%= section.label %></h2><% } %>
+              <div class="job-description"><%- sanitizeRichText(job[section.key]) %></div>
+            <% } %>
+          <% }); %>
         </div>
       </div>
     </div>
@@ -104,6 +114,49 @@
               </div>
             </form>
             <p class="small text-muted-2 mt-3 mb-0"><%= job.view_count %> views</p>
+
+            <hr>
+            <h2 class="h6">Hand this role over</h2>
+            <%#
+              An offer addressed to an email, and nothing moves until somebody signed in at
+              that address accepts. There is no link that transfers anything: an advert
+              carries other people's data, and a claim link in an inbox is an access grant
+              to whoever that inbox forwards to.
+            -%>
+            <% if (pendingTransfer) { %>
+              <p class="small mb-2">
+                Offered to <strong><%= pendingTransfer.to_email %></strong>, waiting until
+                <%= new Date(pendingTransfer.expires_at).toLocaleDateString('en-GB') %>.
+              </p>
+              <a class="btn btn-outline-secondary btn-sm w-100" href="/dashboard/transfers">Manage the offer</a>
+            <% } else if (transferable && transferable.ok) { %>
+              <form method="post" action="/jobs/<%= job.slug %>/transfer">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label class="form-label" for="to_email">Colleague's email</label>
+                <input class="form-control mb-2" id="to_email" name="to_email" type="email" required
+                       maxlength="255" autocomplete="off">
+                <label class="form-label" for="transfer_message">Note (optional)</label>
+                <textarea class="form-control mb-2" id="transfer_message" name="message" rows="2"
+                          maxlength="500"></textarea>
+                <button class="btn btn-outline-primary btn-sm w-100" type="submit">Offer this role</button>
+              </form>
+              <p class="form-text mb-0">
+                They need a company account at that address. The offer expires after
+                <%= transferWindowDays %> days, and a live advert is paused when it moves.
+              </p>
+            <% } else if (transferable) { %>
+              <%#
+                NAMES what is in the way. "This role cannot be transferred" with no reason
+                is the message people bounce off, and here the reason is the whole point —
+                it is about the candidates, not about the advert.
+              -%>
+              <p class="small text-muted-2 mb-0">
+                This role can no longer be handed over.
+                <% transferable.reasons.forEach(function (reason) { %>
+                  <br><%= reason %>
+                <% }); %>
+              </p>
+            <% } %>
 
             <hr>
             <h2 class="h6">Featured placement</h2>

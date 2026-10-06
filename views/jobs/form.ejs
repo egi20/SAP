@@ -26,11 +26,27 @@
                    value="<%= values.title || '' %>" placeholder="Senior S/4HANA FI Consultant — 6 month contract">
           </div>
 
-          <div class="mb-3">
-            <label class="form-label" for="description">Description <span aria-hidden="true">*</span></label>
-            <textarea class="form-control" id="description" name="description" rows="12" required><%= values.description || '' %></textarea>
-            <p class="form-text">Basic formatting is kept; scripts and unknown tags are removed.</p>
-          </div>
+          <%#
+            The advert's prose, every box built from `config/jobSections.js`. A box typed
+            in here instead would be a section the search clause and the match haystack
+            know nothing about — an advert naming EWM only under "Requirements" would
+            appear in no search for EWM and score zero against an EWM consultant, with
+            nothing anywhere saying why.
+          -%>
+          <% sections.forEach(function (section) { %>
+            <div class="mb-3">
+              <label class="form-label" for="<%= section.key %>">
+                <%= section.label %><% if (section.required) { %> <span aria-hidden="true">*</span><% } %>
+              </label>
+              <textarea class="form-control" id="<%= section.key %>" name="<%= section.key %>"
+                        rows="<%= section.rows %>" <%= section.required ? 'required' : '' %>><%= values[section.key] || '' %></textarea>
+              <p class="form-text">
+                <%= section.help %>
+                <% if (!section.required) { %> Leave it empty and the heading is not shown.<% } %>
+              </p>
+            </div>
+          <% }); %>
+          <p class="form-text mb-3">Basic formatting is kept; scripts and unknown tags are removed.</p>
 
           <div class="mb-3">
             <label class="form-label" for="skills">Skills</label>

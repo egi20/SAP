@@ -2,6 +2,7 @@
 
 const { promisePool, withTransaction } = require('../config/database');
 const { containsPattern } = require('../utils/likePattern');
+const { SECTIONS, SECTION_KEYS } = require('../config/jobSections');
 const { uniqueSlug } = require('../utils/slug');
 const { isRole } = require('../config/roleTaxonomy');
 const { isModule } = require('../config/sapProducts');
@@ -149,11 +150,13 @@ function buildFilter(filters = {}) {
     // mostly short tokens — and this ecosystem's tokens are very short, "FI", "MM", "SD" —
     // makes boolean-mode results worse than a plain substring match. MySQL's default
     // minimum word length would drop every module code on the board.
-    where.push('(j.title LIKE ? OR j.description LIKE ?)');
+    // Every section, built from SECTION_KEYS. A job whose modules are named only under
+    // "Requirements" has to be findable by searching for them.
+    where.push(`(j.title LIKE ? OR ${SECTION_KEYS.map((k) => `j.${k} LIKE ?`).join(' OR ')})`);
     // Escaped, so a search for "50%" looks for "50%" and a search for "%" is not a scan
     // of the whole table. See utils/likePattern.js.
     const like = containsPattern(filters.q);
-    params.push(like, like);
+    params.push(...new Array(SECTION_KEYS.length + 1).fill(like));
   }
 
   return { clause: where.join(' AND '), params };
@@ -176,6 +179,19 @@ class Job {
    */
   static get STATUSES() {
     return STATUSES;
+  }
+
+  /**
+   * Re-exported from `config/jobSections.js` so a route or a view can ask the model it is
+   * already holding. The list lives there because `utils/jobMatcher.js` needs it too, and
+   * a util must not reach into a model. Same arrangement as ACTIVATE_PHASES.
+   */
+  static get SECTIONS() {
+    return SECTIONS;
+  }
+
+  static get SECTION_KEYS() {
+    return SECTION_KEYS;
   }
 
   /** The windows the "posted" filter offers, in days. The control renders this list. */
@@ -201,15 +217,23 @@ class Job {
     const slug = await uniqueSlug(`${data.title}`, Job.slugTaken);
     const [result] = await promisePool.query(
       `INSERT INTO jobs
-         (company_user_id, title, slug, description, role, seniority, engagement_type, work_mode,
+         (company_user_id, title, slug, description, responsibilities, requirements, what_we_offer,
+          role, seniority, engagement_type, work_mode,
           country, city, rate_min, rate_max, currency, rate_visible, duration_months, starts_on,
           activate_phase, status, published_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         companyUserId,
         data.title,
         slug,
         data.description,
+        // `?? null` and not `|| null`: an empty string is what an untouched box posts, and
+        // it must land as NULL so "not filled in" and "answered with nothing" stay the
+        // same fact. The page renders neither, so the difference is only in the column —
+        // which is exactly where a later question about it will be asked.
+        data.responsibilities || null,
+        data.requirements || null,
+        data.what_we_offer || null,
         data.role,
         data.seniority,
         data.engagement_type,
@@ -233,7 +257,7 @@ class Job {
 
   static async update(jobId, companyUserId, data) {
     const allowed = [
-      'title', 'description', 'role', 'seniority', 'engagement_type', 'work_mode',
+      'title', ...SECTION_KEYS, 'role', 'seniority', 'engagement_type', 'work_mode',
       'country', 'city', 'rate_min', 'rate_max', 'currency', 'rate_visible',
       'duration_months', 'starts_on', 'activate_phase', 'expires_at'
     ];

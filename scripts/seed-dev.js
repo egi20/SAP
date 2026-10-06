@@ -45,6 +45,7 @@ const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const RecruiterProfile = require('../models/RecruiterProfile');
 const Job = require('../models/Job');
+const JobTransfer = require('../models/JobTransfer');
 const Skill = require('../models/Skill');
 const Post = require('../models/Post');
 const RateSubmission = require('../models/RateSubmission');
@@ -248,12 +249,17 @@ const JOBS = [
     engagement_type: 'contract', work_mode: 'remote', country: 'DE', city: 'Munich',
     rate_min: 850, rate_max: 1050, activate_phase: 'realize', status: 'open',
     modules: ['fi-gl', 'fi-aa'], skills: ['New GL', 'FI-AA'],
-    description: 'Twelve-month conversion programme. You will own the FI stream through Realize and Deploy, working alongside an existing CO lead.' },
+    description: 'Twelve-month conversion programme. You will own the FI stream through Realize and Deploy, working alongside an existing CO lead.',
+    responsibilities: 'Own the FI design through Realize and Deploy.\nRun the parallel ledger workshops with group finance.\nSign off the cutover plan for the FI stream.',
+    requirements: 'New GL and FI-AA on S/4HANA, two brownfield conversions.\nParallel ledger for IFRS and local GAAP is essential.\nGerman is useful and not required.',
+    what_we_offer: 'A programme already past Explore, a client-side counterpart in every workshop, and a team that writes things down.' },
   { title: 'EWM Lead — three distribution centres', role: 's4-ewm', seniority: 'lead',
     engagement_type: 'contract', work_mode: 'hybrid', country: 'SE', city: 'Gothenburg',
     rate_min: 950, rate_max: 1150, activate_phase: 'explore', status: 'open',
     modules: ['ewm'], skills: ['EWM', 'MFS'],
-    description: 'Decentralised EWM across three sites, with material flow to two conveyor systems. Explore starts in six weeks.' },
+    description: 'Decentralised EWM across three sites, with material flow to two conveyor systems. Explore starts in six weeks.',
+    responsibilities: 'Lead the EWM design across three distribution centres.\nOwn the MFS interface to two conveyor suppliers.',
+    requirements: 'Decentralised EWM, at least one full lifecycle.\nMFS experience is essential — this is most of the risk.' },
   { title: 'MM/Ariba Consultant', role: 's4-mm', seniority: 'mid',
     engagement_type: 'contract', work_mode: 'onsite', country: 'IT', city: 'Milan',
     rate_min: 650, rate_max: 800, activate_phase: 'realize', status: 'open',
@@ -431,6 +437,29 @@ async function seed() {
     jobCount += 1;
   }
   console.log(`  ${jobCount} job adverts (one draft, one closed, on purpose)`);
+
+  /*
+   * One live handover offer, so `/dashboard/transfers` is not an empty page in a seeded
+   * database. It is made on an advert NOBODY HAS APPLIED TO, because that is the only kind
+   * that can be offered — seeding one that the application itself would have refused is
+   * exactly the failure `seed through the models` exists to prevent.
+   */
+  const [[offerable]] = await promisePool.query(
+    `SELECT j.id, j.title FROM jobs j
+      WHERE j.company_user_id = ?
+        AND j.status = 'open'
+        AND NOT EXISTS (SELECT 1 FROM applications a WHERE a.job_id = j.id)
+        AND NOT EXISTS (SELECT 1 FROM conversations c WHERE c.job_id = j.id)
+      ORDER BY j.id DESC LIMIT 1`,
+    [employer.id]
+  );
+  if (offerable) {
+    await JobTransfer.offer(offerable.id, employer.id, {
+      toEmail: partner.email,
+      message: 'Taking parental leave from next month — would you pick this one up?'
+    });
+    console.log(`  1 handover offered to ${partner.email}`);
+  }
 
   /* Community ---------------------------------------------------------- */
   const [categories] = await promisePool.query('SELECT id, slug FROM post_categories WHERE is_active = 1');

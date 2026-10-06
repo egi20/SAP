@@ -4,12 +4,15 @@ const express = require('express');
 
 const Job = require('../models/Job');
 const Application = require('../models/Application');
+const JobTransfer = require('../models/JobTransfer');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const Skill = require('../models/Skill');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { isAuthenticated, isCompany, isConsultant } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { writeLimiter } = require('../middleware/rateLimit');
+const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { matchScore } = require('../utils/jobMatcher');
 
@@ -124,6 +127,85 @@ router.get(
       pagination: paginationMeta({ page, perPage, total: jobs.length + offset }),
       pageUrl: (p) => pageUrl('/dashboard/saved', req.query, p)
     });
+  })
+);
+
+/**
+ * Adverts offered to you, and adverts you have offered.
+ *
+ * Both halves on one page on purpose: a handover has two sides and the question somebody
+ * arrives with ("where did that role go?") is answered by whichever half they did not
+ * think of first.
+ */
+router.get(
+  '/transfers',
+  isCompany,
+  asyncHandler(async (req, res) => {
+    const [incoming, outgoing] = await Promise.all([
+      JobTransfer.pendingForUser(req.session.user),
+      JobTransfer.listForSender(req.session.user.id)
+    ]);
+
+    res.render('dashboard/transfers', {
+      title: 'Role handovers',
+      incoming,
+      outgoing,
+      windowDays: JobTransfer.OFFER_WINDOW_DAYS
+    });
+  })
+);
+
+/**
+ * Accept, decline or cancel.
+ *
+ * One handler for the three, because they share every line of their error handling and
+ * their redirect, and differ only in which model call they make. A flash from a refused
+ * transfer is the whole feedback path here: the model's messages are written to be read
+ * by the person who pressed the button.
+ */
+router.post(
+  '/transfers/:id/:action',
+  isCompany,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const actions = {
+      accept: () => JobTransfer.accept(req.params.id, req.session.user),
+      decline: () => JobTransfer.decline(req.params.id, req.session.user),
+      cancel: () => JobTransfer.cancel(req.params.id, req.session.user.id)
+    };
+
+    const run = actions[req.params.action];
+    if (!run) return res.status(404).render('errors/404', { title: 'Not found' });
+
+    try {
+      const result = await run();
+      if (req.params.action === 'accept') {
+        req.flash(
+          'success',
+          result.wasPaused
+            ? `"${result.jobTitle}" is yours. It has been paused so you can read what now carries your name before it goes back up.`
+            : `"${result.jobTitle}" is yours.`
+        );
+        Notification.emit({
+          userId: result.fromUserId,
+          type: 'job_transfer',
+          title: `Your offer of "${result.jobTitle}" was accepted`,
+          link: `/jobs/${result.jobSlug}`,
+          dedupeKey: `job-transfer-accepted:${req.params.id}`
+        });
+        return res.redirect(`/jobs/${result.jobSlug}`);
+      }
+      req.flash('success', req.params.action === 'decline' ? 'Offer declined.' : 'Offer withdrawn.');
+    } catch (err) {
+      if (['TRANSFER_NOT_FOUND', 'EXPIRED', 'MOVED', 'NOT_TRANSFERABLE', 'NOT_A_COMPANY'].includes(err.code)) {
+        req.flash('error', err.message);
+      } else {
+        throw err;
+      }
+    }
+
+    return res.redirect('/dashboard/transfers');
   })
 );
 

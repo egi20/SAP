@@ -6,7 +6,9 @@ const { body, validationResult } = require('express-validator');
 const Job = require('../models/Job');
 const Skill = require('../models/Skill');
 const Application = require('../models/Application');
+const JobTransfer = require('../models/JobTransfer');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const CompanyProfile = require('../models/CompanyProfile');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const { isAuthenticated, isCompany, isConsultant, isEmailVerified } = require('../middleware/auth');
@@ -99,6 +101,7 @@ router.get(
   asyncHandler(async (req, res) => {
     await CompanyProfile.ensureExists(req.session.user.id, req.session.user.name);
     res.render('jobs/form', {
+      sections: Job.SECTIONS,
       title: 'Post a job',
       job: null,
       jobSkills: [],
@@ -115,6 +118,15 @@ router.get(
 const jobValidators = [
   body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Give the role a title of at least 5 characters.'),
   body('description').trim().isLength({ min: 50 }).withMessage('Please describe the engagement in at least 50 characters.'),
+  /*
+   * The optional sections are bounded and nothing else. `optional({ checkFalsy: true })`
+   * is right here and would be wrong on a number — see `full_lifecycles` — because an
+   * empty box and an unticked box both mean "not filled in" for prose, and the only
+   * mistake worth catching is somebody pasting a document into one.
+   */
+  ...Job.SECTIONS.filter((section) => !section.required).map((section) =>
+    body(section.key).optional({ checkFalsy: true }).isLength({ max: 20000 })
+      .withMessage(`"${section.label}" is longer than an advert can be.`)),
   body('role').isIn(ROLE_SLUGS).withMessage('Choose a role from the list.'),
   body('seniority').isIn(SENIORITIES),
   body('engagement_type').isIn(ENGAGEMENTS),
@@ -138,7 +150,21 @@ const jobValidators = [
 function jobFieldsFrom(body_) {
   return {
     title: body_.title.trim(),
-    description: sanitizeRichText(body_.description),
+    /*
+     * Every section, from the one list, through the same sanitiser. Writing `description`
+     * out here and forgetting the other three would store the raw markup of three boxes
+     * beside one that was cleaned.
+     */
+    ...Object.fromEntries(
+      Job.SECTIONS.map((section) => [
+        section.key,
+        // An untouched box posts an empty string; it is stored as NULL so "not filled in"
+        // and "answered with nothing" stay the same fact in the column.
+        body_[section.key] && String(body_[section.key]).trim()
+          ? sanitizeRichText(body_[section.key])
+          : null
+      ])
+    ),
     role: body_.role,
     seniority: body_.seniority,
     engagement_type: body_.engagement_type,
@@ -181,6 +207,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(422).render('jobs/form', {
+        sections: Job.SECTIONS,
         title: 'Post a job',
         job: null,
         jobSkills: [],
@@ -215,6 +242,7 @@ router.get(
 
     const [jobSkills, jobModules] = await Promise.all([Skill.forJob(job.id), Job.modulesFor(job.id)]);
     return res.render('jobs/form', {
+      sections: Job.SECTIONS,
       title: `Edit: ${job.title}`,
       job,
       jobSkills,
@@ -244,6 +272,7 @@ router.post(
     if (!errors.isEmpty()) {
       const [jobSkills, jobModules] = await Promise.all([Skill.forJob(job.id), Job.modulesFor(job.id)]);
       return res.status(422).render('jobs/form', {
+        sections: Job.SECTIONS,
         title: `Edit: ${job.title}`,
         job,
         jobSkills,
@@ -375,11 +404,18 @@ router.get(
 
     if (!isOwner) Job.incrementViews(job.id);
 
-    // Only the owner is offered the placement, so only the owner's page pays for the
-    // extra query.
-    const featuredUntil = isOwner ? await Job.featuredUntil(job.id) : null;
+    // Only the owner is offered the placement or the handover, so only the owner's page
+    // pays for those queries.
+    const [featuredUntil, transferable, pendingTransfer] = isOwner
+      ? await Promise.all([
+          Job.featuredUntil(job.id),
+          JobTransfer.eligibility(job.id),
+          JobTransfer.pendingForJob(job.id)
+        ])
+      : [null, null, null];
 
     return res.render('jobs/show', {
+      sections: Job.SECTIONS,
       title: `${job.title} — ${job.company_name || 'Confidential'}`,
       job,
       jobSkills,
@@ -390,6 +426,9 @@ router.get(
       saved,
       match,
       featuredUntil,
+      transferable,
+      pendingTransfer,
+      transferWindowDays: JobTransfer.OFFER_WINDOW_DAYS,
       applicationCount,
       company,
       // Built here, not in the template: the canonical URL is config's to decide, and a
@@ -464,6 +503,67 @@ router.post(
     if (req.get('sec-fetch-dest') && req.get('sec-fetch-dest') !== 'document') {
       return res.json({ success: true, saved: !saved });
     }
+    return res.redirect(`/jobs/${job.slug}`);
+  })
+);
+
+/**
+ * Offer this advert to a colleague.
+ *
+ * The response is the SAME whether or not that address has an account here. The sender is
+ * told what the mechanism is — it waits, and it expires — rather than the answer for the
+ * address they typed, because this form would otherwise be an account-existence oracle
+ * that any company account can query one offer at a time. The recipient, if there is one,
+ * gets a notification; the sender never learns that one was sent.
+ */
+router.post(
+  '/:slug/transfer',
+  isAuthenticated,
+  isCompany,
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const job = await Job.findBySlug(req.params.slug);
+    if (!job) return res.status(404).render('errors/404', { title: 'Not found' });
+    if (job.company_user_id !== req.session.user.id) {
+      return res.status(404).render('errors/404', { title: 'Not found' });
+    }
+
+    try {
+      const offer = await JobTransfer.offer(job.id, req.session.user.id, {
+        toEmail: req.body.to_email,
+        message: req.body.message
+      });
+
+      /*
+       * Resolved HERE and never reported back. The lookup happens so the recipient gets a
+       * bell rather than having to stumble on the offer; nothing about its result reaches
+       * the sender's page, which is what keeps the handler from answering "does this
+       * address have an account".
+       */
+      const recipient = await User.findByEmail(offer.toEmail);
+      if (recipient && recipient.is_active && recipient.is_company) {
+        Notification.emit({
+          userId: recipient.id,
+          type: 'job_transfer',
+          title: `You have been offered the role "${offer.jobTitle}"`,
+          link: '/dashboard/transfers',
+          dedupeKey: `job-transfer:${offer.id}`
+        });
+      }
+
+      req.flash(
+        'success',
+        `Offered to ${offer.toEmail}. It waits until somebody signed in at that address accepts, ` +
+          `and expires after ${JobTransfer.OFFER_WINDOW_DAYS} days.`
+      );
+    } catch (err) {
+      if (['INVALID_EMAIL', 'SELF_TRANSFER', 'NOT_TRANSFERABLE', 'ALREADY_OFFERED', 'TRANSFER_NOT_FOUND'].includes(err.code)) {
+        req.flash('error', err.message);
+      } else {
+        throw err;
+      }
+    }
+
     return res.redirect(`/jobs/${job.slug}`);
   })
 );

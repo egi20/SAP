@@ -1,6 +1,7 @@
 'use strict';
 
 const { ROLE_ALIASES, roleLabel } = require('../config/roleTaxonomy');
+const { sectionText } = require('../config/jobSections');
 
 /**
  * Score how well a consultant profile matches a job, 0..100.
@@ -76,7 +77,11 @@ function roleScore(job, profile) {
   if (!profile.primary_role || !job.role) return 0;
   if (profile.primary_role === job.role) return WEIGHTS.role;
 
-  const haystack = `${normaliseText(job.title)} ${normaliseText(job.description)}`;
+  // Every section of the advert, through `sectionText`, not the description alone: an
+  // advert naming its modules only under "Requirements" must still match the consultant
+  // who has them. The list lives in config/jobSections.js and is read by the search
+  // clause and the form from the same place.
+  const haystack = `${normaliseText(job.title)} ${normaliseText(sectionText(job))}`;
   const aliases = ROLE_ALIASES[profile.primary_role] || [];
   const label = normaliseText(roleLabel(profile.primary_role));
 

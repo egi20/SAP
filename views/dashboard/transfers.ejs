@@ -1,0 +1,120 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-arrow-left-right',
+  heading: 'Role handovers',
+  sub: 'Adverts offered to you, and adverts you have offered'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <h2 class="h5 mb-3">Offered to you</h2>
+  <% if (incoming.length === 0) { %>
+    <div class="empty-state glass-card">
+      <i class="bi bi-inbox"></i>
+      Nothing is waiting for you.
+      <%#
+        The offer is addressed to an email, and this page matches the one you are signed
+        in with. Somebody expecting a handover that is not here has usually been offered
+        it at a different address, and saying so is the only way they can work that out.
+      -%>
+      <div class="small text-muted-2 mt-2">
+        Offers are addressed to an email. This page shows the ones sent to <%= currentUser.email %>.
+      </div>
+    </div>
+  <% } else { %>
+    <% incoming.forEach(function (t) { %>
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h3 class="h6 mb-1"><%= t.job_title %></h3>
+          <p class="small text-muted-2 mb-2">
+            From <%= t.from_company || t.from_name %> ·
+            <%= roleLabel(t.role) %><% if (t.city) { %> · <%= t.city %><% } %>
+            · expires <%= new Date(t.expires_at).toLocaleDateString('en-GB') %>
+          </p>
+          <% if (t.message) { %>
+            <p class="message-body mb-3"><%= t.message %></p>
+          <% } %>
+          <p class="small text-muted-2 mb-3">
+            <%#
+              Said before the button, not after it. Accepting changes who the advert says
+              posted it, so the advert is taken down until the new owner has read it.
+            -%>
+            Accepting makes this advert yours. A live advert is paused when it moves, so you
+            can read what will carry your company's name before it goes back up.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="/dashboard/transfers/<%= t.id %>/accept">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-primary btn-sm" type="submit">Accept</button>
+            </form>
+            <form method="post" action="/dashboard/transfers/<%= t.id %>/decline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-outline-secondary btn-sm" type="submit">Decline</button>
+            </form>
+            <a class="btn btn-outline-primary btn-sm" href="/jobs/<%= t.job_slug %>">Read the advert</a>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+
+  <h2 class="h5 mb-3 mt-5">Offered by you</h2>
+  <% if (outgoing.length === 0) { %>
+    <div class="empty-state glass-card">
+      <i class="bi bi-send"></i>
+      You have not offered a role to anybody.
+      <div class="small text-muted-2 mt-2">
+        The button is on the advert's own page, and only while nobody has applied to it.
+      </div>
+    </div>
+  <% } else { %>
+    <div class="table-responsive glass-card">
+      <table class="table mb-0 align-middle">
+        <thead>
+          <tr><th>Role</th><th>Offered to</th><th>State</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% outgoing.forEach(function (t) { %>
+            <tr>
+              <td><a href="/jobs/<%= t.job_slug %>"><%= t.job_title %></a></td>
+              <td class="small"><%= t.to_email %></td>
+              <td>
+                <%#
+                  A pending offer past its date reads "expired" here and is settled in the
+                  table by the next person who acts on the advert. A status column that
+                  needed a scheduled job to be true would be wrong between runs.
+                -%>
+                <% if (t.status === 'pending' && t.lapsed) { %>
+                  <span class="badge-hub">expired</span>
+                <% } else { %>
+                  <span class="badge-hub <%= t.status === 'accepted' ? 'ok' : '' %>"><%= t.status %></span>
+                <% } %>
+                <% if (t.status === 'pending' && !t.lapsed) { %>
+                  <div class="small text-muted-2">until <%= new Date(t.expires_at).toLocaleDateString('en-GB') %></div>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <% if (t.status === 'pending' && !t.lapsed) { %>
+                  <form method="post" action="/dashboard/transfers/<%= t.id %>/cancel">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-outline-secondary btn-sm" type="submit">Withdraw</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <p class="form-text mt-2">
+      An offer waits <%= windowDays %> days. If nobody signed in at that address accepts it,
+      it expires and nothing moves.
+    </p>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

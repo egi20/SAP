@@ -27,6 +27,7 @@ const { assertChallengeIntegrity } = require('./config/challenges');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { assertEngagementIntegrity } = require('./config/engagementModels');
+const { assertJobSectionsIntegrity } = require('./config/jobSections');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -108,6 +109,14 @@ assertBenchmarkIntegrity();
  * three are wrong pages rather than errors.
  */
 assertEngagementIntegrity();
+
+/*
+ * And the advert's sections. A key here that is not a real column contributes an empty
+ * string to every match haystack and every search clause built from the list, so matching
+ * gets quietly worse and no page breaks — which is the shape every assertion in this block
+ * exists for.
+ */
+assertJobSectionsIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the

@@ -684,11 +684,27 @@ it, so the person who most needs to see it could not.
 - **AI-written CVs and cover letters** — settled when the CV builder landed. The profile is
   the CV and it invents nothing.
 
-**Deferred, with the question stated.** Job transfer to a colleague by email is an
-ownership change on a row that owns applications, messages and possibly a paid feature
-window; it needs an audit trail and an email path, and neither exists yet. Splitting the
-advert's description into Requirements / Responsibilities / What we offer is three columns
-and a migration, and worth doing only if the advert form is being revisited anyway.
+**Both deferred items were then built, and both changed shape on the way.**
+
+*The advert's sections* (migration 021) are three optional columns — and the argument for
+them is not the form, it is that one list in `config/jobSections.js` feeds the form, the
+page, the search clause and the match haystack. Three columns that only the form knew about
+would have made matching quietly worse: an advert naming EWM under "Requirements" and
+nowhere else would have scored zero against an EWM consultant.
+
+*The transfer* (migration 022) is an offer addressed to an email, never a claim link, and it
+is refused outright once an advert has applications or a thread. The reason is the thing
+worth recording: this schema has no organisation, so two colleagues are two unrelated
+company accounts, and nothing here can establish that the recipient works for the employer
+those candidates applied to. What would unlock the richer version — transferring an advert
+with its pipeline — is an organisation model where two accounts are provably the same
+employer, not a bigger form. Until then a handover is for an advert nobody has applied to
+yet, which is the common case it was asked for.
+
+Everything else in the shape of DynamicsHub's version was refused for a stated reason: the
+claim link (an access grant to whoever an inbox forwards to), resolving the address to an
+account at creation (an account-existence oracle any company could query), and an external
+application URL on the advert (it empties the pipeline and the public count at once).
 
 ## Known at the start, so nobody discovers it at the end
 
