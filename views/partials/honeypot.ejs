@@ -1,0 +1,13 @@
+<%#
+  The honeypot.
+
+  Hidden from sighted users by the stylesheet, from screen readers by aria-hidden, and from
+  the keyboard by tabindex="-1" — all three, because a field only ever filled in by
+  something walking the DOM has to be invisible to every legitimate way of filling a form.
+  autocomplete="off" stops a browser helpfully putting a URL in it, which would silently
+  discard a real person's message.
+%>
+<div class="hp-field" aria-hidden="true">
+  <label for="f-website">Leave this field empty</label>
+  <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off" value="">
+</div>

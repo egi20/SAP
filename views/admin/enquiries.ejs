@@ -9,6 +9,27 @@
   <%- include('./_tabs', { current: 'enquiries' }) %>
   <%- include('../partials/flash') %>
 
+  <%#
+    The retention promise, printed rather than claimed. The tax form tells somebody we keep
+    their enquiry for a stated period and then delete it; this is where that sentence is
+    either true or visibly not.
+  -%>
+  <% if (dueForPurge > 0) { %>
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-3">
+      <div class="flex-grow-1 small mb-0">
+        <strong><%= dueForPurge %></strong> closed tax advisory
+        <%= dueForPurge === 1 ? 'enquiry is' : 'enquiries are' %> past the
+        <%= retentionDays %>-day retention this site promised on the form.
+      </div>
+      <% if (currentUser && currentUser.isSuperadmin) { %>
+        <form method="post" action="/admin/enquiries/purge-tax">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-outline-danger" type="submit">Delete them</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
   <div class="glass-card mb-3"><div class="card-body">
     <p class="mb-3">
       <strong><%= openCount %></strong> waiting

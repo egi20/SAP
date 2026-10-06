@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const taxAdvisory = require('../config/taxAdvisory');
+const countries = require('../config/all-countries.json');
 const AccountClosure = require('../models/AccountClosure');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
@@ -429,6 +431,116 @@ router.post(
  * link that brought somebody here, which is the difference between a report we can act on
  * and one that begins "it was on the page with the table".
  */
+/**
+ * GET/POST /tax — the tax advisory INTRODUCTION.
+ *
+ * There is no `POST /tax/calculate` in this file and there will not be one. DynamicsHub's
+ * version takes the gross and net a visitor types, subtracts an admin-editable percentage
+ * of gross, and presents the difference as a monthly and annual saving — for anybody, in
+ * any country, under any arrangement. `config/taxAdvisory.js` sets out why that number is
+ * worse than no number, and a test scans this route, that config, the model and the view
+ * for anything saving-shaped.
+ *
+ * What it replaces the calculator with is the honest half of the same product: somebody
+ * says what their situation is, and a specialist who works in their jurisdiction gets in
+ * touch.
+ *
+ * PUBLIC, with no account. Most people asking how they should be set up have not signed up
+ * to anything, and putting the question behind a registration wall would collect an
+ * account instead of answering a question. It carries the same three-layer spam defence
+ * the other two forms do, and lands in the same queue — the rule that let any of these
+ * forms exist is that somebody is watching one.
+ */
+router.get('/tax', (req, res) => {
+  res.render('legal/tax', {
+    title: 'Talk to a tax specialist',
+    topics: taxAdvisory.TOPICS,
+    arrangements: taxAdvisory.ARRANGEMENTS,
+    promise: taxAdvisory.PROMISE,
+    retentionDays: taxAdvisory.RETENTION_DAYS,
+    countries,
+    values: {},
+    errors: []
+  });
+});
+
+const TAX_RULES = [
+  body('name').trim().isLength({ min: 2, max: taxAdvisory.LIMITS.name }).withMessage('Tell us what to call you.'),
+  body('email').trim().isEmail().isLength({ max: taxAdvisory.LIMITS.email })
+    .withMessage('We need an address the specialist can reply to.'),
+  body('country').trim().matches(/^[A-Z]{2}$/)
+    .withMessage('Choose the country you are taxed in — it decides who reads this.'),
+  body('topic').custom(taxAdvisory.isTopic).withMessage('Choose what this is about.'),
+  body('arrangement').custom(taxAdvisory.isArrangement).withMessage('Say how you work today.'),
+  body('message').trim()
+    .isLength({ min: taxAdvisory.LIMITS.questionMin, max: taxAdvisory.LIMITS.question })
+    .withMessage('Please say a little more, so the first reply can be useful.')
+];
+
+router.post(
+  '/tax',
+  enquiryLimiter,
+  TAX_RULES,
+  asyncHandler(async (req, res) => {
+    const renderBack = (errors) =>
+      res.status(422).render('legal/tax', {
+        title: 'Talk to a tax specialist',
+        topics: taxAdvisory.TOPICS,
+        arrangements: taxAdvisory.ARRANGEMENTS,
+        promise: taxAdvisory.PROMISE,
+        retentionDays: taxAdvisory.RETENTION_DAYS,
+        countries,
+        values: req.body,
+        errors
+      });
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return renderBack(errors.array());
+
+    // A honeypot hit is accepted and discarded without saying so, exactly as on the other
+    // two forms. Telling a bot it was caught is telling whoever wrote it what to change.
+    if (!looksAutomated(req)) {
+      try {
+        const topicLabel = taxAdvisory.TOPICS.find((t) => t.value === req.body.topic).label;
+        const created = await Enquiry.create({
+          kind: 'tax_advisory',
+          userId: req.session.user ? req.session.user.id : null,
+          name: req.body.name.trim(),
+          email: req.body.email.trim(),
+          subject: `Tax advisory — ${topicLabel}`,
+          body: req.body.message.trim(),
+          topic: req.body.topic,
+          arrangement: req.body.arrangement,
+          country: req.body.country.trim().toUpperCase(),
+          /*
+           * Which notice they were shown. Stamped here and nowhere else: this is the one
+           * form that states what is kept and for how long, so it is the one that has
+           * something to record. Leaving it off would backdate a later wording onto
+           * somebody who never saw it.
+           */
+          privacyVersion: legalVersions.PRIVACY_VERSION
+        });
+        notifySupport(
+          { ...created, name: req.body.name, email: req.body.email,
+            subject: `Tax advisory — ${topicLabel}`, body: req.body.message },
+          'tax advisory'
+        );
+      } catch (err) {
+        if (err.code !== 'ALREADY_OPEN') throw err;
+        // Said plainly rather than silently swallowed: a second submission that vanishes
+        // looks like the first one did too.
+        return renderBack([{ msg: err.message, path: 'email' }]);
+      }
+    }
+
+    req.flash(
+      'success',
+      'Thank you — that has reached us. A specialist who works in your country will write to the address you gave.'
+    );
+    return res.redirect('/tax');
+  })
+);
+
 router.get('/report-issue', (req, res) => {
   res.render('legal/report-issue', {
     title: 'Report a problem',

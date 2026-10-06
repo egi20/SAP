@@ -270,9 +270,43 @@ maybe()('the queue', () => {
 });
 
 maybe()('the vocabularies match the schema', () => {
-  const migration = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'scripts', 'migrations', '018_enquiries.sql'), 'utf8'
-  );
+  /**
+   * The EFFECTIVE values, across every migration in order.
+   *
+   * This used to read `018_enquiries.sql` alone and broke when 027 widened `kind` — the
+   * code was right and the file it was being checked against was a schema that no longer
+   * existed. The last definition wins, exactly as it does when the runner applies them.
+   */
+  const MIGRATIONS = path.join(__dirname, '..', '..', 'scripts', 'migrations');
+
+  /*
+   * SCOPED TO THE TABLE, not just to the column name. The first version of this scanned
+   * every migration for `status ENUM(...)` and found `crm_leads` — which is a different
+   * `status` in a different table, and it reported the enquiry vocabulary as wrong. A
+   * column name is not a key; the table it belongs to is half of one.
+   */
+  function effectiveEnum(column, table = 'enquiries') {
+    let values = null;
+    fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort().forEach((file) => {
+      /*
+       * COMMENTS STRIPPED BEFORE SPLITTING, and this one is not hypothetical: the prose in
+       * these files contains semicolons, so splitting the raw text cut `CREATE TABLE
+       * enquiries` in half — the half naming the table had no columns in it and the half
+       * with the columns no longer named the table.
+       */
+      const sql = fs.readFileSync(path.join(MIGRATIONS, file), 'utf8').replace(/^\s*--.*$/gm, '');
+      sql.split(';').forEach((statement) => {
+        if (!new RegExp(`TABLE\\s+${table}\\b`, 'i').test(statement)) return;
+        const pattern = new RegExp(`\\b${column}\\s+ENUM\\(([^)]*)\\)`, 'g');
+        let match = pattern.exec(statement);
+        while (match) {
+          values = match[1].split(',').map((v) => v.trim().replace(/'/g, ''));
+          match = pattern.exec(statement);
+        }
+      });
+    });
+    return values;
+  }
 
   it.each([
     ['kind', Enquiry.KINDS],
@@ -282,9 +316,6 @@ maybe()('the vocabularies match the schema', () => {
   ])('%s mirrors its ENUM', (column, values) => {
     // Written out by hand in the form, the validator and the admin filter is how an option
     // gets added to a dropdown and silently rejected behind it.
-    const match = migration.match(new RegExp(`${column}\\s+ENUM\\(([^)]*)\\)`));
-    expect(match).toBeTruthy();
-    const inSchema = match[1].split(',').map((v) => v.trim().replace(/'/g, ''));
-    expect(inSchema).toEqual([...values]);
+    expect(effectiveEnum(column)).toEqual([...values]);
   });
 });

@@ -81,7 +81,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Success stories, reviews | 10 | 11 | **done** |
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
-| Tax advisory — the introduction only | 3 | 3 | after the core |
+| Tax advisory — the introduction only | 3 | 2 | **done** — two handlers, third kind on `enquiries` |
 | Daily challenge, graded on the server | 3 | 3 | **done** — one game, not nine |
 
 ## Excluded, at the owner's instruction — the same list as Salesforce Hub
@@ -785,6 +785,25 @@ correctly the whole time, which is what made it easy to miss.
 DynamicsHub's version has a second detail page for an application. This has none: there is
 already one, it is already admin-reachable, and a second would be a second place that
 decides what an application looks like.
+
+## Tax advisory
+
+The introduction, and nothing else. The calculator is refused for the third time — first as
+`savings_monthly` on a success story, then as a Budget Planner on the company comparison,
+now as its own page — and this time the refusal is asserted at boot as well as by a test:
+`config/taxAdvisory.js` fails to load if the page's "what this does not do" list loses the
+sentence about a saving.
+
+It is a third KIND on `enquiries` rather than a table of its own, which is migration 018's
+rule applied rather than argued with. The three things that looked like they needed a second
+table did not: "introduced" is a fact with a date so it is a column, the retention rule is a
+WHERE on the purge, and one-open-per-address is a generated column under a unique key.
+
+What is deliberately not collected is the longer half of the decision. The reference's form
+takes forty fields from an anonymous visitor including gross and net pay, the current
+employer, the notice period and the current tax rate. Six are enough to route an
+introduction; the rest belongs to the specialist, under terms where a duty of
+confidentiality actually attaches.
 
 ## Known at the start, so nobody discovers it at the end
 

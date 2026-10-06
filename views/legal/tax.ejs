@@ -1,0 +1,145 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-building-check',
+  heading: 'Talk to a tax specialist',
+  sub: 'An introduction to somebody who works in your country. Not a calculation.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <%#
+        The second list is the point of this page, and it is rendered from
+        `config/taxAdvisory.js` rather than typed here — so the promise on the page and the
+        behaviour of the code cannot drift, and the boot assertion fails if the "does not"
+        half ever loses the sentence about a saving.
+      -%>
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-3">What this does</h2>
+          <ul class="small mb-0">
+            <% promise.does.forEach(function (line) { %><li><%= line %></li><% }) %>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card mb-3">
+        <div class="card-body">
+          <h2 class="h6 mb-3">What it does not</h2>
+          <ul class="small mb-0">
+            <% promise.doesNot.forEach(function (line) { %><li><%= line %></li><% }) %>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Why there is no calculator</h2>
+          <p class="small text-muted-2 mb-0">
+            A figure would have to assume a jurisdiction, an entity type, a VAT position, a
+            social security floor and an accountant's fee — none of which a form knows. A
+            number produced without them is not an estimate, it is a guess with a currency
+            sign on it, and people act on those. The specialist works yours out, with you,
+            under their own terms.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <% if (errors.length) { %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <form class="glass-card" method="post" action="/tax">
+        <div class="card-body">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="name">Your name</label>
+              <input class="form-control" id="name" name="name" required maxlength="120"
+                     autocomplete="name" value="<%= values.name || '' %>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="email">Email</label>
+              <input class="form-control" id="email" name="email" type="email" required maxlength="190"
+                     autocomplete="email" value="<%= values.email || '' %>">
+            </div>
+          </div>
+
+          <div class="row g-3 mt-0">
+            <div class="col-md-6">
+              <label class="form-label" for="country">Country you are taxed in</label>
+              <select class="form-select" id="country" name="country" required>
+                <option value="">Choose one</option>
+                <% countries.forEach(function (c) { %>
+                  <option value="<%= c.code %>" <%= values.country === c.code ? 'selected' : '' %>><%= c.name %></option>
+                <% }) %>
+              </select>
+              <p class="form-text">It decides who reads this. Nothing else.</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="arrangement">How you work today</label>
+              <select class="form-select" id="arrangement" name="arrangement" required>
+                <option value="">Choose one</option>
+                <% arrangements.forEach(function (a) { %>
+                  <option value="<%= a.value %>" <%= values.arrangement === a.value ? 'selected' : '' %>><%= a.label %></option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3 mt-3">
+            <label class="form-label" for="topic">What it is about</label>
+            <select class="form-select" id="topic" name="topic" required>
+              <option value="">Choose one</option>
+              <% topics.forEach(function (t) { %>
+                <option value="<%= t.value %>" <%= values.topic === t.value ? 'selected' : '' %>><%= t.label %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="message">Your question</label>
+            <textarea class="form-control" id="message" name="message" rows="6" required
+                      minlength="20" maxlength="2000"><%= values.message || '' %></textarea>
+            <p class="form-text">
+              <%#
+                Said at the box rather than only in the policy. The reference's form asks
+                for gross and net pay, the current employer, the contract end date and the
+                notice period — a complete financial profile handed over before anybody has
+                agreed to anything.
+              -%>
+              Please do not put your salary, your employer or your client's name here. The
+              specialist will ask for what they need, in the conversation.
+            </p>
+          </div>
+
+          <%#
+            ONE honeypot, from one partial. Two copies of a defence is one that breaks
+            silently the day somebody renames the field in the other.
+          -%>
+          <%- include('../partials/honeypot') %>
+
+          <button class="btn btn-primary" type="submit">Ask for an introduction</button>
+          <p class="form-text mb-0 mt-2">
+            We keep this for <%= retentionDays %> days after it is closed and then delete it.
+            See the <a href="/legal/privacy">privacy policy</a>.
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

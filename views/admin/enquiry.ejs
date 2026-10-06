@@ -47,6 +47,21 @@
             </div>
           </div>
         </form>
+        <%#
+          Records a date and sends nothing. The introduction itself is an email a person
+          writes from the mailbox they are already reading — a send button here would make
+          the Hub a second place the conversation partly lives.
+        -%>
+        <% if (enquiry.kind === 'tax_advisory' && !enquiry.introduced_at) { %>
+          <form class="mb-3" method="post" action="/admin/enquiries/<%= enquiry.id %>/introduced">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-sm btn-outline-primary" type="submit">I have made the introduction</button>
+            <span class="form-text ms-2">
+              Records the date. Closing it afterwards is what starts the retention clock.
+            </span>
+          </form>
+        <% } %>
+
         <% if (enquiry.admin_note) { %>
           <hr>
           <h3 class="h6 text-uppercase text-muted-2" style="letter-spacing:.06em">Current note</h3>
@@ -83,6 +98,28 @@
         <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Details</h2>
         <ul class="list-unstyled small mb-0">
           <li><span class="text-muted-2">Kind</span> — <%= enquiry.kind %></li>
+          <%#
+            The tax advisory fields. Routing information and nothing more: between them the
+            country, the arrangement and the topic decide who reads this. There is no
+            salary, no employer and no notice period here — the form does not ask, and the
+            specialist asks for what they need in the conversation.
+          -%>
+          <% if (enquiry.kind === 'tax_advisory') { %>
+            <li><span class="text-muted-2">Country</span> — <%= enquiry.country %></li>
+            <li><span class="text-muted-2">Works today</span> — <%= enquiry.arrangement %></li>
+            <li><span class="text-muted-2">Topic</span> — <%= enquiry.topic %></li>
+            <% if (enquiry.privacy_version) { %>
+              <li><span class="text-muted-2">Shown privacy</span> — v<%= enquiry.privacy_version %></li>
+            <% } %>
+            <li>
+              <span class="text-muted-2">Introduced</span> —
+              <% if (enquiry.introduced_at) { %>
+                <%= new Date(enquiry.introduced_at).toLocaleDateString('en-GB') %>
+              <% } else { %>
+                not yet
+              <% } %>
+            </li>
+          <% } %>
           <% if (enquiry.issue_type) { %><li><span class="text-muted-2">Type</span> — <%= enquiry.issue_type %></li><% } %>
           <% if (enquiry.severity) { %><li><span class="text-muted-2">Severity</span> — <%= enquiry.severity %></li><% } %>
           <% if (enquiry.page_url) { %>

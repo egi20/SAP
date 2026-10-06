@@ -451,6 +451,50 @@ reads the route and the template and fails if either grows one.
 every declared key: a form that submits a subset must not be read as a form that cleared
 the rest.
 
+**The tax advisory page is an INTRODUCTION and computes nothing.** DynamicsHub ships a
+calculator: it takes the gross and net a visitor types, applies `newNet = gross - (gross *
+percentRate / 100 + fixedFee)` with `percentRate` defaulting to 5 AND editable by an
+administrator, and presents the difference as a monthly and annual saving — for anybody,
+in any country, under any arrangement. Its table then stores the figure posted back from
+the browser. There is no such endpoint here and no such column, and a test scans the
+config, the route, the view and the migration for anything saving-shaped. This is the
+THIRD time the same calculator has tried to arrive: once as `savings_monthly` on a success
+story, once as a Budget Planner on the company comparison, and now as its own page.
+
+**The refusal is on the page, not only in the code.** `PROMISE.doesNot` is rendered from
+`config/taxAdvisory.js`, and the boot assertion fails if that list ever loses the sentence
+saying the site does not calculate a saving. A refusal only the authors know about is a
+refusal the next person removes.
+
+**Six fields, and no financial profile.** The reference's form takes forty from an
+anonymous visitor — employer, contract end date, notice period, gross and net pay, current
+tax rate, VAT registration, desired day rate — before anybody has agreed to anything. A
+first conversation needs a name, an address, a country, how they work today, what it is
+about and the question. Everything else is asked by the specialist, in that conversation,
+under their own engagement terms, which is the only place a professional duty of
+confidentiality actually attaches. It does not attach here, and the form says so at the
+box.
+
+**It is a THIRD KIND on `enquiries`, not a second table.** Three things looked like they
+needed one and none of them did: "introduced" is a fact with a date, so it is a column and
+the shared `new/open/closed` vocabulary is untouched; the retention rule is a WHERE on the
+purge; and "one open enquiry per address" is a generated column under a unique key, scoped
+to this kind, exactly as `pending_job_id` scopes one live offer per advert. One queue,
+because "somebody is watching it" is the whole justification for having a form.
+
+**`introduced_at` is set once and never cleared**, through a conditional UPDATE. It is the
+moment the Hub's involvement ends, and a date that can be moved is one nobody can rely on.
+It does not close the enquiry: whether anything is left to do is the queue-worker's call,
+and the retention clock starts when they say so.
+
+**The retention is scoped to the kind AND to closed rows.** The promise is made on the tax
+form and nowhere else; a purge that dropped the kind from its WHERE would quietly extend a
+promise nobody made to messages nobody promised it about. The admin screen prints how many
+are due, so "we keep it for 180 days" is checkable rather than claimed.
+
+**One honeypot, in one partial.** Two copies of a defence is one that breaks silently the
+day somebody renames the field in the other.
+
 **Testing consequence:** the enquiry limiter counts every POST, including the ones that 422
 or fail CSRF. A suite that exercises the limit spends the budget its other cases need, and
 the next test to be reordered then fails as a validation error for a reason that has
@@ -1722,6 +1766,14 @@ FILES in parallel, so a second file doing the same thing is a second owner of on
 number, and the two take turns failing — each blaming the other's feature. Outreach drafting
 therefore lives in `tests/integration/assistant.test.js`, which is isolation rather than
 organisation.
+
+**An ENUM test must be scoped to its TABLE, and its SQL comments stripped first.** Both
+halves were found by failures. Scanning every migration for `status ENUM(...)` finds
+`crm_leads`, which is a different `status` in a different table. And splitting a migration
+into statements on `;` cuts `CREATE TABLE enquiries` in half, because the PROSE in these
+files contains semicolons — the half naming the table then has no columns and the half
+with the columns no longer names the table. Strip `/^\s*--.*$/gm`, not `/^--.*$/gm`: the
+comments inside a CREATE TABLE are indented.
 
 **Do not pin an ENUM test to the migration that created the column.** `subject_type` was
 created in 011 and widened twice; a test comparing the code against `011_moderation.sql`

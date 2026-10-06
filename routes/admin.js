@@ -1150,9 +1150,12 @@ router.get(
     };
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
 
-    const [{ rows, total }, openCount] = await Promise.all([
+    const [{ rows, total }, openCount, dueForPurge] = await Promise.all([
       Enquiry.browse(filters, { limit, offset }),
-      Enquiry.openCount()
+      Enquiry.openCount(),
+      // Printed so "we keep it for 180 days" is a fact somebody can check rather than a
+      // sentence in a policy.
+      Enquiry.taxEnquiriesDueForPurge()
     ]);
 
     res.render('admin/enquiries', {
@@ -1160,6 +1163,8 @@ router.get(
       enquiries: rows,
       filters,
       openCount,
+      dueForPurge,
+      retentionDays: Enquiry.RETENTION_DAYS,
       kinds: Enquiry.KINDS,
       statuses: Enquiry.STATUSES,
       pagination: paginationMeta({ page, perPage, total }),
@@ -1191,6 +1196,46 @@ router.get(
  * a second place where the conversation partly lives, and the half that is missing is
  * always the half somebody needs later.
  */
+/**
+ * POST /admin/enquiries/:id/introduced — the moment the Hub's involvement ends.
+ *
+ * It records a date and sends nothing, like everything else on this screen: the
+ * introduction itself is an email a person writes from the mailbox they are already
+ * reading. A button here that sent it would make the Hub a second place the conversation
+ * partly lives, and the half that is missing is always the half somebody needs later.
+ */
+router.post(
+  '/enquiries/:id/introduced',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const moved = await Enquiry.markIntroduced(req.params.id);
+    req.flash(
+      moved ? 'success' : 'info',
+      moved
+        ? 'Recorded. Our part is done; the retention clock starts when you close it.'
+        : 'That was already recorded.'
+    );
+    return res.redirect(returnTo(req, `/admin/enquiries/${req.params.id}`));
+  })
+);
+
+/**
+ * POST /admin/enquiries/purge-tax — delete tax advisory enquiries past their retention.
+ *
+ * SUPERADMIN, and scoped to this kind and to closed rows. The retention promise is made on
+ * the tax form and nowhere else; a purge that dropped the kind from its WHERE would quietly
+ * extend a promise nobody made to messages nobody promised it about.
+ */
+router.post(
+  '/enquiries/purge-tax',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const removed = await Enquiry.purgeExpiredTaxEnquiries();
+    req.flash('success', `${removed} ${removed === 1 ? 'enquiry' : 'enquiries'} past retention deleted.`);
+    return res.redirect('/admin/enquiries?kind=tax_advisory');
+  })
+);
+
 router.post(
   '/enquiries/:id/status',
   requireIdParam('id'),

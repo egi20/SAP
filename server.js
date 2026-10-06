@@ -30,6 +30,7 @@ const { assertEngagementIntegrity } = require('./config/engagementModels');
 const { assertJobSectionsIntegrity } = require('./config/jobSections');
 const { assertCrmIntegrity } = require('./config/crm');
 const { assertDraftingIntegrity } = require('./config/drafting');
+const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
@@ -134,6 +135,14 @@ assertCrmIntegrity();
  * new model, and the first anybody hears of it is the invoice.
  */
 assertDraftingIntegrity();
+
+/*
+ * And the tax advisory catalogue. Two of its checks are about the refusal rather than the
+ * vocabulary: a page that quietly lost the sentence saying it does not calculate a saving
+ * is a page making a different promise from the one this feature was allowed to exist
+ * under.
+ */
+assertTaxAdvisoryIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the
