@@ -1751,3 +1751,73 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
     grid-auto-columns: 85vw;
   }
 }
+
+/* ============================================================================
+   TAX OPTIMISATION (/tax and /tax/apply)
+
+   Laid out as dynamicshub.net/tax-optimization is, in this palette rather than theirs:
+   the hero is the site's own navy gradient and the "after" side uses the success green
+   the badges already use.
+   ========================================================================== */
+.tax-hero { background: var(--hero-gradient); color: #fff; padding: 4rem 0; }
+.tax-hero-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; line-height: 1.15; color: #fff; }
+.tax-hero-lead { font-size: 1.05rem; opacity: 0.9; max-width: 34rem; }
+.tax-stat {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+}
+.tax-stat-value { font-size: 1.6rem; font-weight: 800; }
+.tax-stat-label { font-size: 0.75rem; opacity: 0.85; }
+.tax-calc {
+  padding: var(--space-8);
+  color: var(--text-dark);
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow-lg);
+}
+.tax-box { border-radius: var(--radius-lg); padding: var(--space-4); height: 100%; }
+.tax-box-before { background: var(--bg-light); }
+.tax-box-after { background: rgba(29, 111, 79, 0.08); }
+.tax-line { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: 0.4rem; }
+.tax-line > span:last-child { white-space: nowrap; text-align: right; }
+.tax-total { font-weight: 700; border-top: 1px solid var(--border-color); padding-top: 0.4rem; }
+.tax-minus { color: #9e2b3d; }
+.tax-saving { background: var(--grad-success); color: #fff; border-radius: var(--radius-lg); padding: var(--space-4); }
+.tax-included li { margin-bottom: 0.35rem; }
+.tax-included i { color: #1d6f4f; margin-right: 0.4rem; }
+.tax-icon { color: var(--primary-blue); }
+.tax-step-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+.tax-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--navy-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.tax-story-gain { color: #1d6f4f; font-weight: 700; }
+.tax-narrow { max-width: 900px; }
+.tax-cta { background: var(--navy-gradient); color: #fff; }
+.tax-cta h2 { color: #fff; }
+.tax-apply-header { background: var(--hero-gradient); color: #fff; padding: 3.5rem 0; }
+.tax-apply-header h1 { font-weight: 800; color: #fff; }
+.tax-form-wrap { max-width: 960px; }
+.tax-form-h { border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: var(--space-4); }

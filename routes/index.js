@@ -24,6 +24,11 @@ const email = require('../utils/email');
 const { ipLimiter } = require('../middleware/rateLimit');
 const { body, validationResult } = require('express-validator');
 const { findDuplicates, MAX_LINES } = require('../utils/dedupe');
+const TaxApplication = require('../models/TaxApplication');
+const {
+  TAX_PROGRAM, TAX_SUCCESS_STORIES, COUNTRIES: TAX_COUNTRIES, APPLY_COUNTRIES: TAX_APPLY_COUNTRIES,
+  APPLY_OPTIONS: TAX_APPLY_OPTIONS, FAQ: TAX_FAQ
+} = require('../config/taxProgram');
 
 const router = express.Router();
 
@@ -246,18 +251,80 @@ router.get('/cv-generator', (req, res) => {
 });
 
 /**
- * GET /tax
+ * GET /tax — the tax optimisation programme, as on dynamicshub.net/tax-optimization.
  *
- * The Services menu names "Tax Optimization" because the reference's does, and somebody
- * moving between the two sites looks for it there. What is behind it is what
- * docs/PORT-PLAN.md has always said the tax pages would be: an INTRODUCTION to a specialist,
- * with nothing computed. No calculator, no saving, no take-home figure — a number on this
- * page is advice somebody acts on, given by a site that cannot know their circumstances.
- * The request goes through the contact form, which already has a queue a person reads.
+ * This page used to introduce a specialist and compute nothing. The owner reversed that on
+ * 2026-10-07 (see config/taxProgram.js): it now carries the reference's calculator, which
+ * runs in the browser from the two constants the config renders into the form. Every
+ * result carries an "indicative" line, because the formula does not include the income tax
+ * somebody may owe where they are tax resident.
  */
 router.get('/tax', (req, res) => {
-  res.render('legal/tax', { title: 'Tax optimisation for SAP contractors' });
+  res.render('legal/tax', {
+    title: 'Tax optimisation for SAP contractors',
+    TAX_PROGRAM,
+    TAX_SUCCESS_STORIES,
+    COUNTRIES: TAX_COUNTRIES,
+    FAQ: TAX_FAQ
+  });
 });
+
+/**
+ * GET/POST /tax/apply
+ *
+ * The application form. Everything it collects goes through `TaxApplication.normalise`,
+ * which checks each select against its list and computes the estimate itself from the
+ * gross and net posted — the reference trusts two hidden fields the browser filled in.
+ * Same spam defence as the enquiry forms: a per-address limit and a honeypot that is
+ * accepted and discarded without saying so.
+ */
+const taxApplyLimiter = ipLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'You have sent a few applications already. Please give it an hour, or email us directly.'
+});
+
+function renderTaxApply(res, values, errors, status = 200) {
+  return res.status(status).render('legal/tax-apply', {
+    title: 'Apply — tax optimisation',
+    countries: TAX_APPLY_COUNTRIES,
+    options: TAX_APPLY_OPTIONS,
+    values,
+    errors
+  });
+}
+
+router.get('/tax/apply', (req, res) => {
+  // Prefilled from the account when there is one, as on the reference.
+  const user = req.session.user;
+  renderTaxApply(res, user ? { fullName: user.name, email: user.email } : {}, {});
+});
+
+router.post('/tax/apply', taxApplyLimiter, asyncHandler(async (req, res) => {
+  const { values, errors } = TaxApplication.normalise(req.body);
+  if (Object.keys(errors).length) return renderTaxApply(res, { ...req.body }, errors, 422);
+
+  if (!looksAutomated(req)) {
+    const created = await TaxApplication.create(values, req.session.user ? req.session.user.id : null);
+    // The salary stays in the database. The mailbox gets who and where to look.
+    email.send({
+      to: config.app.supportEmail,
+      subject: `[tax application] ${values.fullName}`,
+      template: 'enquiry-received',
+      locals: {
+        kind: 'tax application',
+        name: values.fullName,
+        fromEmail: values.email,
+        subject: `Tax optimisation application — ${values.jobTitle}`,
+        body: `${values.employmentType}, ${values.currentCountry}. Details are in the admin queue.`,
+        reviewUrl: `${config.app.baseUrl}/admin/tax-applications/${created.id}`
+      }
+    }).catch((err) => console.error(`Tax application notification failed: ${err.message}`));
+  }
+
+  req.flash('success', "Application received. We'll review it within 48 hours and reply to the address you gave.");
+  return res.redirect('/tax/apply');
+}));
 
 /**
  * GET/POST /dedupe

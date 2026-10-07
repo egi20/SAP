@@ -1,66 +1,284 @@
 <%- include('../partials/layout-start') %>
-<%- include('../partials/page-header', {
-  icon: 'bi-calculator',
-  heading: 'Tax optimisation',
-  sub: 'An introduction to somebody qualified to advise you. Not a calculator.'
-}) %>
-<section class="glass-section pb-5">
-<div class="container">
-  <div class="row justify-content-center"><div class="col-lg-9">
+<%#
+  The tax optimisation programme, laid out as dynamicshub.net/tax-optimization is. The
+  calculator's two constants come from config/taxProgram.js through data attributes, so
+  the browser and the server run one formula. Every result carries the "indicative" line:
+  the formula does not include personal income tax where somebody is tax resident.
+%>
+<div class="tax-page">
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5 mb-3">What this is</h2>
-      <p>
-        How an SAP contractor should be set up — limited company, umbrella, freelance
-        registration, a permanent role — depends on the country, the client, the length of the
-        engagement and a dozen facts about you that this site does not know and should not ask.
-      </p>
-      <p class="mb-0">
-        So the Hub does not compute anything here. A figure on a web page is a figure somebody
-        acts on, and a site that cannot see your circumstances has no business producing one.
-        What it can do is put you in touch with a person who can.
-      </p>
-    </div></div>
+  <section class="tax-hero">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6">
+          <h1 class="tax-hero-title">Maximize Your Take-Home Pay<br>Without Changing Your Work</h1>
+          <p class="tax-hero-lead">Keep your clients. Keep your location. Increase your take-home pay by €20,000-€30,000/year by moving your employment to our Albania entity.</p>
+          <div class="row g-3 mt-2">
+            <% TAX_PROGRAM.stats.forEach(function (s) { %>
+              <div class="col-4"><div class="tax-stat">
+                <div class="tax-stat-value"><%= s.value %></div>
+                <div class="tax-stat-label"><%= s.label %></div>
+              </div></div>
+            <% }) %>
+          </div>
+        </div>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-envelope"></i></span>
-          <h3 class="h6 mb-1">1. Tell us where you work</h3>
-          <p class="small text-muted-2 mb-0">
-            Use the contact form and say you would like a tax introduction, with the country you
-            work in and how you are engaged today.
-          </p>
-        </div></div>
-      </div>
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-navyblue mb-2"><i class="bi bi-person-check"></i></span>
-          <h3 class="h6 mb-1">2. A person reads it</h3>
-          <p class="small text-muted-2 mb-0">
-            The message goes into the same queue every enquiry does, and somebody replies to the
-            address you gave.
-          </p>
-        </div></div>
-      </div>
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-success mb-2"><i class="bi bi-chat-square-text"></i></span>
-          <h3 class="h6 mb-1">3. The advice is theirs</h3>
-          <p class="small text-muted-2 mb-0">
-            Whatever you agree with the specialist is between you and them. The Hub is not a party
-            to it and does not see it.
-          </p>
-        </div></div>
+        <div class="col-lg-6">
+          <div class="tax-calc">
+            <h2 class="h4 text-center mb-4">Calculate Your Savings</h2>
+            <%# data-no-guard: this form never leaves the page, so the double-submit guard in
+                main.js would only disable the button after the first calculation. %>
+            <form id="taxCalcForm" novalidate data-no-guard="true"
+                  data-fixed-fee="<%= TAX_PROGRAM.fixedMonthlyFee %>" data-cost-rate="<%= TAX_PROGRAM.costRate %>">
+              <div class="mb-3">
+                <label for="grossSalary" class="form-label">Current Gross Monthly Salary (€)</label>
+                <input type="number" id="grossSalary" class="form-control" placeholder="e.g., 8000" min="0" step="100" required>
+                <div class="form-text">Your current monthly salary before taxes</div>
+              </div>
+              <div class="mb-3">
+                <label for="netSalary" class="form-label">Current Net Monthly Take-Home (€)</label>
+                <input type="number" id="netSalary" class="form-control" placeholder="e.g., 5200" min="0" step="100" required>
+                <div class="form-text">What you actually receive after taxes</div>
+              </div>
+              <div class="mb-3">
+                <label for="country" class="form-label">Country/Region (Optional)</label>
+                <select id="country" class="form-select">
+                  <option value="">Select your country</option>
+                  <% COUNTRIES.forEach(function (c) { %><option value="<%= c %>"><%= c %></option><% }) %>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-calculator me-2"></i>Calculate My Savings
+              </button>
+              <noscript><p class="small text-muted-2 mt-2 mb-0">The calculator needs JavaScript. You can still <a href="/tax/apply">apply</a> or <a href="/contact">contact us</a>.</p></noscript>
+            </form>
+
+            <div id="taxResult" class="tax-result d-none mt-4" aria-live="polite">
+              <h3 class="h5 text-center mb-3">Your Comparison</h3>
+              <div class="row g-3">
+                <div class="col-md-6"><div class="tax-box tax-box-before">
+                  <div class="d-flex justify-content-between"><strong>Current Situation</strong><span class="badge-hub muted">Before</span></div>
+                  <div class="tax-line"><span>Gross Monthly:</span><span data-out="beforeGross"></span></div>
+                  <div class="tax-line"><span>Taxes &amp; Deductions:</span><span class="tax-minus" data-out="beforeTax"></span></div>
+                  <div class="tax-line tax-total"><span>Net Take-Home:</span><span data-out="beforeNet"></span></div>
+                </div></div>
+                <div class="col-md-6"><div class="tax-box tax-box-after">
+                  <div class="d-flex justify-content-between"><strong>With <%= TAX_PROGRAM.entityName %></strong><span class="badge-hub ok">After</span></div>
+                  <div class="tax-line"><span>Gross Monthly:</span><span data-out="afterGross"></span></div>
+                  <div class="tax-line"><span>Total statutory &amp; service costs</span><span class="tax-minus" data-out="afterCost"></span></div>
+                  <div class="small text-muted-2">Includes social security + health insurance and our administrative fee.</div>
+                  <div class="tax-line tax-total"><span>New Net Take-Home:</span><span data-out="afterNet"></span></div>
+                </div></div>
+              </div>
+
+              <div id="taxSavingBox" class="tax-saving text-center mt-3">
+                <div class="h4 mb-1">You Save <span data-out="monthly"></span>/month</div>
+                <div>That's <span data-out="percent"></span>% more take-home pay!</div>
+                <div class="fw-semibold mt-1">Annual savings: <span data-out="annual"></span></div>
+              </div>
+              <div id="taxNoSaving" class="alert alert-warning mt-3 d-none">
+                Based on these figures this structure would not increase your take-home pay.
+                <a href="/contact">Talk to us</a> if your situation is different.
+              </div>
+
+              <div class="mt-3">
+                <strong>What's Included:</strong>
+                <ul class="tax-included list-unstyled mt-2">
+                  <li><i class="bi bi-check-circle-fill"></i> Full employment contract in Albania</li>
+                  <li><i class="bi bi-check-circle-fill"></i> Social security &amp; health insurance</li>
+                  <li><i class="bi bi-check-circle-fill"></i> Payroll &amp; tax filing handled</li>
+                  <li><i class="bi bi-check-circle-fill"></i> Fully compliant Albanian entity</li>
+                  <li><i class="bi bi-check-circle-fill"></i> No relocation required</li>
+                  <li><i class="bi bi-check-circle-fill"></i> Keep all your current clients</li>
+                </ul>
+              </div>
+              <p class="small text-muted-2 mb-3">Indicative only. Does not include personal income tax you may owe in your country of tax residence.</p>
+              <div id="taxResultActions" class="d-flex gap-2">
+                <a href="#apply" class="btn btn-primary flex-fill">Apply to Join</a>
+                <a href="/contact" class="btn btn-outline-primary flex-fill">Schedule Consultation</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-primary" href="/contact">Ask for an introduction</a>
-      <a class="btn btn-outline-primary" href="/rates">See the rate &amp; salary index</a>
+  <section class="glass-section py-5">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2>How It Works</h2>
+        <p class="text-muted-2">Three simple steps to increase your take-home pay</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-4 text-center">
+          <div class="tax-step-num">1</div>
+          <h3 class="h5">Apply &amp; Get Approved</h3>
+          <p>Submit your application with basic information about your consulting work. We review and approve eligible candidates within 48 hours.</p>
+        </div>
+        <div class="col-md-4 text-center">
+          <div class="tax-step-num">2</div>
+          <h3 class="h5">Sign Employment Contract</h3>
+          <p>Sign your employment agreement with our Albania entity. We handle all legal paperwork, registration, and compliance setup.</p>
+        </div>
+        <div class="col-md-4 text-center">
+          <div class="tax-step-num">3</div>
+          <h3 class="h5">Start Earning More</h3>
+          <p>Continue working with your existing clients as before. Invoice through us and receive your increased take-home pay monthly.</p>
+        </div>
+      </div>
+      <div class="alert alert-info mt-4 mb-0">
+        <strong>Important:</strong> You don't change anything about your work. Same clients, same projects, same location. The only difference is you're employed by our Albania entity, which operates in a special economic zone with favorable tax treatment.
+      </div>
     </div>
+  </section>
 
-  </div></div>
+  <section class="py-5">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2>About the Program</h2>
+        <p class="text-muted-2">Why Albania works, and whether you qualify</p>
+      </div>
+      <ul class="nav nav-pills justify-content-center mb-4" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" id="tabWhyBtn" data-bs-toggle="pill" data-bs-target="#tabWhy" type="button" role="tab" aria-controls="tabWhy" aria-selected="true">Why Albania?</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="tabEligibleBtn" data-bs-toggle="pill" data-bs-target="#tabEligible" type="button" role="tab" aria-controls="tabEligible" aria-selected="false">Are You Eligible?</button></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="tabWhy" role="tabpanel" aria-labelledby="tabWhyBtn">
+          <div class="row g-4">
+            <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+              <i class="bi bi-building fs-3 tax-icon"></i>
+              <h3 class="h5 mt-2">Special Economic Zone</h3>
+              <p class="mb-0">Our Albania entity operates in a designated technology park with reduced social contributions.</p>
+            </div></div></div>
+            <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+              <i class="bi bi-shield-check fs-3 tax-icon"></i>
+              <h3 class="h5 mt-2">Compliant Structure</h3>
+              <p class="mb-0"><%= TAX_PROGRAM.entityName %> operates as a fully licensed entity in Albania, compliant with Albanian tax and employment law. Albania maintains double tax treaties with over 40 countries, which may help reduce withholding taxes on cross-border payments.</p>
+            </div></div></div>
+            <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+              <i class="bi bi-laptop fs-3 tax-icon"></i>
+              <h3 class="h5 mt-2">Flexible Work Arrangements</h3>
+              <p class="mb-0">Our structure supports remote collaboration. While you don't need to be physically present in Albania to work with us, your personal tax obligations depend on where you live and work. We recommend consulting a tax advisor.</p>
+            </div></div></div>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="tabEligible" role="tabpanel" aria-labelledby="tabEligibleBtn">
+          <div class="glass-card mx-auto tax-narrow"><div class="card-body p-4">
+            <h3 class="h5 mb-3">Are You Eligible?</h3>
+            <ul class="tax-included list-unstyled">
+              <li><i class="bi bi-check-circle-fill"></i> SAP consultant, developer, or IT professional</li>
+              <li><i class="bi bi-check-circle-fill"></i> Currently freelancing or open to new structures</li>
+              <li><i class="bi bi-check-circle-fill"></i> Gross monthly income of €<%= TAX_PROGRAM.minEligibleGross.toLocaleString('en') %> or more</li>
+              <li><i class="bi bi-check-circle-fill"></i> Able to work remotely for clients</li>
+              <li><i class="bi bi-check-circle-fill"></i> Have existing client base or projects</li>
+              <li><i class="bi bi-check-circle-fill"></i> Open to international tax structures</li>
+            </ul>
+            <p class="mb-3">Not sure if you qualify? Let's discuss your situation.</p>
+            <a href="/contact" class="btn btn-primary">Schedule Free Consultation</a>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# Only real stories, with permission. Empty in config means this section is not rendered. %>
+  <% if (TAX_SUCCESS_STORIES.length) { %>
+  <section class="glass-section py-5">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2>Real Success Stories</h2>
+        <p class="text-muted-2">See how consultants increased their take-home pay</p>
+      </div>
+      <div class="row g-4">
+        <% const eur = function (n) { return '€' + Number(n).toLocaleString('en', { maximumFractionDigits: 0 }); }; %>
+        <% TAX_SUCCESS_STORIES.forEach(function (s) { const m = s.afterNet - s.beforeNet; %>
+        <div class="col-md-6"><div class="glass-card h-100"><div class="card-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="tax-avatar"><%= s.initial %></div>
+            <div><strong><%= s.name %></strong><div class="small text-muted-2"><%= s.role %>, <%= s.country %></div></div>
+          </div>
+          <div class="small"><strong>Before:</strong> <%= eur(s.beforeGross) %> gross → <%= eur(s.beforeNet) %> net</div>
+          <div class="small"><strong>After:</strong> <%= eur(s.afterGross) %> gross → <%= eur(s.afterNet) %> net</div>
+          <div class="tax-story-gain my-2">+<%= eur(m) %>/month | +<%= eur(m * 12) %>/year</div>
+          <blockquote class="mb-0 fst-italic">"<%= s.quote %>"</blockquote>
+        </div></div></div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <section class="py-5">
+    <div class="container tax-narrow">
+      <div class="text-center mb-4">
+        <h2>Frequently Asked Questions</h2>
+        <p class="text-muted-2">Everything you need to know</p>
+      </div>
+      <div class="accordion" id="taxFaq">
+        <% FAQ.forEach(function (f, i) { %>
+        <div class="accordion-item">
+          <h3 class="accordion-header">
+            <button class="accordion-button <%= i ? 'collapsed' : '' %>" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#faq<%= i %>" aria-expanded="<%= i ? 'false' : 'true' %>" aria-controls="faq<%= i %>"><%= f.q %></button>
+          </h3>
+          <div id="faq<%= i %>" class="accordion-collapse collapse <%= i ? '' : 'show' %>" data-bs-parent="#taxFaq">
+            <div class="accordion-body">
+              <% f.a.forEach(function (p) { %><p><%= p %></p><% }) %>
+              <% if (f.list) { %><ul><% f.list.forEach(function (li) { %><li><%= li %></li><% }) %></ul><% } %>
+              <% if (f.after) { %><p class="mb-0"><%= f.after %></p><% } %>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass-section py-5">
+    <div class="container">
+      <div class="text-center mb-4">
+        <h2>Trust &amp; Compliance</h2>
+        <p class="text-muted-2">Why you can trust this structure</p>
+      </div>
+      <div class="row g-4 text-center">
+        <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+          <i class="bi bi-patch-check fs-2 tax-icon"></i><h3 class="h5 mt-2">Registered Entity</h3>
+          <p class="mb-0"><%= TAX_PROGRAM.entityName %> is a legally registered company in Albania's tech park</p>
+        </div></div></div>
+        <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+          <i class="bi bi-person-badge fs-2 tax-icon"></i><h3 class="h5 mt-2">Certified Accountants</h3>
+          <p class="mb-0">Our tax and legal team includes certified professionals in Albania and EU</p>
+        </div></div></div>
+        <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
+          <i class="bi bi-people fs-2 tax-icon"></i><h3 class="h5 mt-2">Active Consultants</h3>
+          <p class="mb-0">Join dozens of SAP consultants already using this structure</p>
+        </div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-5">
+    <div class="container tax-narrow">
+      <div class="alert alert-warning mb-0">
+        <h3 class="h5"><i class="bi bi-exclamation-triangle me-2"></i>Tax Disclaimer</h3>
+        <p><%= TAX_PROGRAM.entityName %> facilitates payments and employment relationships under Albanian law. We are not a tax advisory service.</p>
+        <p>Your tax obligations are determined by your country of tax residence, not by where payments are processed. Working through an Albanian entity does not exempt you from taxes in your home country.</p>
+        <p class="mb-0">Bilateral tax treaties help prevent double taxation but do not eliminate home country tax obligations. Albanian taxes paid may be claimable as foreign tax credits depending on your local laws. Please consult a qualified tax professional regarding your specific situation before joining.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="apply" class="tax-cta py-5 text-center">
+    <div class="container">
+      <h2>Ready to Get Started?</h2>
+      <p>Apply now to increase your take-home pay</p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <a href="/tax/apply" class="btn btn-light btn-lg">Apply Now</a>
+        <a href="/contact" class="btn btn-outline-light btn-lg">Contact Us</a>
+      </div>
+    </div>
+  </section>
 </div>
-</section>
+<script src="/js/tax.js" defer></script>
 <%- include('../partials/layout-end') %>

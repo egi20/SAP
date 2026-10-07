@@ -81,7 +81,7 @@ sound go-live fails — and it is a line item on real statements of work.
 | Success stories, reviews | 10 | 11 | **done** |
 | Sales CRM | 16 | ~16 | after the core |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
-| Tax advisory — the introduction only | 3 | 3 | after the core |
+| Tax optimisation — page, calculator, application form and queue | 3 | 6 | **done** (owner's decision, 2026-10-07) |
 | Daily challenge, graded on the server | 3 | 3 | **done** — one game, not nine |
 
 ## Excluded, at the owner's instruction — the same list as Salesforce Hub
@@ -91,12 +91,12 @@ sound go-live fails — and it is a line item on real statements of work.
   PRODUCT stays excluded. What exists, at the owner's request so the Services menu matches
   the reference's, is `/dedupe`: one stateless page over `utils/dedupe.js` that groups a
   pasted list by email, then by name, and stores nothing — no table, no upload, no log.
-- **The tax savings calculator.** DynamicsHub computes a monthly saving from a hard-coded
-  percentage that an admin can edit, and shows it to people who act on it. Salesforce Hub
-  refused it and pinned the refusal with a test that scans the feature for anything
-  saving-shaped. Same here: the tax pages introduce a specialist and compute nothing.
-  `/tax` is that introduction, and the only thing on it that does anything is a link to
-  the contact form.
+- ~~**The tax savings calculator.**~~ **Reversed by the owner on 2026-10-07.** DynamicsHub
+  computes a monthly saving from a fixed fee and a share of gross, and Salesforce Hub
+  refused it. It was refused here too until the owner decided /tax should match the
+  reference. It now does, with the result labelled indicative, the formula in one config
+  module the server also runs, and the claims in config — see CLAUDE.md, "The tax
+  programme".
 - **Anything that sends to a sales lead on its own.** The CRM drafts; a person sends. No
   scheduler, no bulk send, no outreach queue one cron away from becoming one.
 - **Browser-scored games.** DynamicsHub's `routes/games.js` reads `score` out of
@@ -674,8 +674,8 @@ it, so the person who most needs to see it could not.
   A template upload is arbitrary user-supplied Open XML rendered into documents this site
   puts its name on, and `{company_name}`-style placeholders are a template language nobody
   owns.
-- **A tax optimisation calculator with a savings figure** — the refusal this project has
-  held from the first commit, and the second time it has arrived wearing a different hat.
+- ~~**A tax optimisation calculator with a savings figure**~~ — refused here at the time;
+  reversed by the owner on 2026-10-07 (see the excluded list above).
 - **A budget planner that prices roles per day, week, month and quarter.** The rate
   benchmark already answers it from the employer's side, prints its working, and is checked
   against its own anchor. A second figure for the same question with nothing reconciling

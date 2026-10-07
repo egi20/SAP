@@ -1491,8 +1491,45 @@ ends with three bugs that were green under mocks: an alias colliding with a real
 under `only_full_group_by`, a test whose source was unmocked and unreachable, and a DATE
 compared as a string because `mysql2` returns it as a JS `Date`.
 
+## The tax programme
+
+**`/tax` computes a saving, by the owner's decision of 2026-10-07**, reversing the refusal
+this project held from its first commit. What keeps it honest is now the job of four rules:
+
+- **Every result says it is indicative.** The formula (`config/taxProgram.js`, `estimate()`)
+  is the reference's: a fixed fee plus a share of gross. It does NOT include the income tax
+  somebody may owe where they are tax resident, and the country field moves nothing. The
+  "Indicative only" line under the result is what stops that being a promise. A test fails
+  if it goes.
+- **One formula, one copy of its numbers.** The browser reads the fee and the rate from
+  data attributes rendered from the config; `public/js/tax.js` contains neither, and a test
+  checks it. The application route runs `estimate()` itself on the gross and net posted —
+  the reference stores two hidden fields the browser filled in, and an estimate on an
+  application is a number the browser chose.
+- **A structure that would lower take-home says so.** The reference prints "You Save
+  €-450/month". Here the saving box is replaced by a sentence and the Apply buttons go.
+- **The claims live in the config.** The average saving, the entity, the accountants, the
+  number of consultants: the owner's statements about SAP Hub, in one place, to be changed
+  in one place. `TAX_SUCCESS_STORIES` is empty and the section does not render until it
+  holds real people who agreed to it — the reference's four are Dynamics 365 consultants,
+  and republished as SAP consultants they would be invented testimonials.
+
+**An application is the most sensitive row in the database** — a named person's salary,
+take-home and tax rate. So `tax_applications` has no IP column, the queue at
+`/admin/tax-applications` is superadmin-only (like `/admin/rates`), the support email names
+who applied and links to the queue without carrying the figures, and closing an account
+deletes the person's applications (`AccountClosure`'s `REMOVED` says so).
+
+**The calculator form carries `data-no-guard`.** It never leaves the page, and the
+double-submit guard in `main.js` disabled its button after the first calculation — found by
+clicking it twice in a browser, which no test had done.
+
 ## What is deliberately not here
 
 See `docs/PORT-PLAN.md` for the full ledger. The refusals that must not quietly arrive
-later: a tax savings calculator, browser-scored games, uploaded document templates, and any
-path that sends a message to a sales lead without a person pressing send.
+later: browser-scored games, uploaded document templates, and any path that sends a message
+to a sales lead without a person pressing send.
+
+The tax savings calculator was on this list until 2026-10-07, when the owner decided /tax
+should match dynamicshub.net/tax-optimization, calculator included. It arrived openly, not
+quietly — see "The tax programme" above — and the rules that came with it are the price.

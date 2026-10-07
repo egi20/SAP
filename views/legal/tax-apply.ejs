@@ -1,0 +1,147 @@
+<%- include('../partials/layout-start') %>
+<%
+  /*
+   * Every value is printed escaped. The reference builds its option lists as HTML
+   * strings and prints them raw, which would put whatever was posted back into the page
+   * unescaped on a validation error.
+   */
+  const v = function (k) { return values && values[k] != null ? String(values[k]) : ''; };
+  const err = function (k) { return errors && errors[k] ? errors[k] : ''; };
+  const bad = function (k) { return err(k) ? ' is-invalid' : ''; };
+  const chk = function (k) { return v(k) ? 'checked' : ''; };
+  const errorCount = Object.keys(errors || {}).length;
+%>
+<header class="tax-apply-header text-center">
+  <div class="container">
+    <h1>Apply to Join SAP Hub</h1>
+    <p class="mb-0">Take the first step to increasing your take-home pay</p>
+  </div>
+</header>
+
+<section class="py-5"><div class="container tax-form-wrap">
+  <%- include('../partials/flash') %>
+  <% if (errorCount) { %>
+    <div class="alert alert-danger" role="alert">Please check the <%= errorCount %> field(s) marked below.</div>
+  <% } %>
+
+  <form method="post" action="/tax/apply" class="glass-card p-4 p-md-5" novalidate data-tax-apply>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%# The honeypot, marked up exactly as on the enquiry forms. %>
+    <div class="hp-field" aria-hidden="true">
+      <label for="website">Website</label>
+      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <% function textField(key, label, opts) { opts = opts || {}; %>
+      <div class="<%= opts.col || 'col-md-6' %>">
+        <label class="form-label" for="<%= key %>"><%= label %><%= opts.required ? ' *' : '' %></label>
+        <input class="form-control<%= bad(key) %>" id="<%= key %>" name="<%= key %>" type="<%= opts.type || 'text' %>"
+               <%= opts.min !== undefined ? 'min=' + opts.min : '' %> <%= opts.max !== undefined ? 'max=' + opts.max : '' %>
+               placeholder="<%= opts.placeholder || '' %>" value="<%= v(key) %>" <%= opts.required ? 'required' : '' %>>
+        <% if (err(key)) { %><div class="invalid-feedback"><%= err(key) %></div><% } %>
+      </div>
+    <% } %>
+    <% function selectField(key, label, list, first, opts) { opts = opts || {}; %>
+      <div class="col-md-6">
+        <label class="form-label" for="<%= key %>"><%= label %><%= opts.required ? ' *' : '' %></label>
+        <select class="form-select<%= bad(key) %>" id="<%= key %>" name="<%= key %>" <%= opts.required ? 'required' : '' %>>
+          <% if (first) { %><option value=""><%= first %></option><% } %>
+          <% list.forEach(function (o) { %><option value="<%= o %>" <%= v(key) === o ? 'selected' : '' %>><%= opts.labels ? opts.labels[o] : o %></option><% }) %>
+        </select>
+        <% if (err(key)) { %><div class="invalid-feedback"><%= err(key) %></div><% } %>
+      </div>
+    <% } %>
+    <% function check(key, label) { %>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="<%= key %>" name="<%= key %>" <%= chk(key) %>>
+        <label class="form-check-label" for="<%= key %>"><%= label %></label>
+      </div>
+    <% } %>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-person-circle me-2"></i>1. Contact Information</h2>
+    <div class="row g-3 mb-4">
+      <% textField('fullName', 'Full Name', { required: true, placeholder: 'John Smith' }) %>
+      <% textField('email', 'Email Address', { required: true, type: 'email', placeholder: 'john@example.com' }) %>
+      <% textField('phone', 'Phone Number', { required: true, type: 'tel', placeholder: '+49 123 456 7890' }) %>
+      <% textField('linkedinUrl', 'LinkedIn Profile', { type: 'url', placeholder: 'https://linkedin.com/in/yourprofile' }) %>
+      <% textField('city', 'City', { placeholder: 'Berlin' }) %>
+      <% selectField('timezone', 'Timezone', options.timezone, 'Select timezone') %>
+    </div>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-briefcase me-2"></i>2. Current Employment Situation</h2>
+    <div class="row g-3 mb-4">
+      <% selectField('currentCountry', 'Country of Tax Residence', countries, 'Select your country', { required: true }) %>
+      <% selectField('employmentType', 'Current Employment Type', options.employmentType, 'Select type', { required: true }) %>
+      <% textField('currentEmployer', 'Current Employer/Company Name', { placeholder: 'Company GmbH' }) %>
+      <% selectField('noticePeriod', 'Notice Period', options.noticePeriod, 'Select notice period') %>
+      <% textField('contractEndDate', 'Current Contract End Date (if applicable)', { type: 'date' }) %>
+      <% textField('availabilityDate', 'Earliest Start Date', { type: 'date' }) %>
+    </div>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-cash-coin me-2"></i>3. Financial Information</h2>
+    <div class="row g-3 mb-4">
+      <% textField('currentGrossMonthly', 'Current Gross Monthly Income (€)', { required: true, type: 'number', min: 1000, placeholder: 'e.g., 8000' }) %>
+      <% textField('currentNetMonthly', 'Current Net Monthly Income (€)', { required: true, type: 'number', min: 500, placeholder: 'e.g., 5150' }) %>
+      <% textField('currentDailyRate', 'Current Daily Rate (€) (if applicable)', { type: 'number', min: 100, placeholder: 'e.g., 650' }) %>
+      <% textField('desiredDailyRate', 'Desired Daily Rate (€)', { type: 'number', min: 100, placeholder: 'e.g., 750' }) %>
+      <% textField('currentTaxRatePercent', 'Current Effective Tax Rate (%)', { type: 'number', min: 0, max: 100, placeholder: 'e.g., 42' }) %>
+      <% selectField('billingCurrency', 'Preferred Billing Currency', options.billingCurrency, null,
+           { labels: { EUR: 'EUR (Euro)', USD: 'USD (US Dollar)', GBP: 'GBP (British Pound)', CHF: 'CHF (Swiss Franc)' } }) %>
+      <div class="col-12"><% check('hasVatNumber', 'I have a VAT number') %></div>
+      <div class="col-12">
+        <p class="small text-muted-2 mb-0" id="taxEstimateNote">
+          We work out your indicative saving from the gross and net above, with the same formula as the calculator on
+          <a href="/tax">the programme page</a>.
+        </p>
+      </div>
+    </div>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-mortarboard me-2"></i>4. Professional Background</h2>
+    <div class="row g-3 mb-4">
+      <% textField('jobTitle', 'Current Job Title', { required: true, placeholder: 'e.g., SAP S/4HANA FICO Consultant' }) %>
+      <% selectField('yearsExperience', 'Years of Experience', options.yearsExperience, 'Select range') %>
+      <% textField('primarySkills', 'Primary Skills / Technologies', { required: true, col: 'col-12', placeholder: 'e.g., SAP FICO, ABAP, S/4HANA, BTP, Fiori' }) %>
+      <% textField('certifications', 'Certifications', { placeholder: 'e.g., SAP Certified Associate – S/4HANA Finance' }) %>
+      <% textField('languages', 'Languages', { placeholder: 'e.g., English (fluent), German (business), French (basic)' }) %>
+      <% textField('clientIndustries', 'Industries Worked In', { col: 'col-12', placeholder: 'e.g., Manufacturing, Retail, Finance, Healthcare' }) %>
+    </div>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-geo-alt me-2"></i>5. Work Preferences</h2>
+    <div class="row g-3 mb-4">
+      <% selectField('remotePreference', 'Work Location Preference', options.remotePreference, null) %>
+      <% selectField('availabilityHoursPerWeek', 'Hours Available Per Week', options.availabilityHoursPerWeek, null) %>
+      <div class="col-12">
+        <% check('hasExistingClients', 'I have existing clients/projects I can continue working on') %>
+        <% check('openToTravel', "I'm open to occasional travel for client meetings") %>
+      </div>
+    </div>
+
+    <h2 class="h5 tax-form-h"><i class="bi bi-chat-left-text me-2"></i>6. Additional Information</h2>
+    <div class="row g-3 mb-4">
+      <% selectField('howHeardAboutUs', 'How did you hear about us?', options.howHeardAboutUs, 'Select option') %>
+      <% textField('referralCode', 'Referral Code (if you have one)', { placeholder: 'e.g., REF-ABC123' }) %>
+      <div class="col-12">
+        <label class="form-label" for="additionalNotes">Tell us about your situation</label>
+        <textarea class="form-control<%= bad('additionalNotes') %>" rows="4" id="additionalNotes" name="additionalNotes"
+                  placeholder="Describe your current work situation, what you're looking for, and any relevant context..."><%= v('additionalNotes') %></textarea>
+        <% if (err('additionalNotes')) { %><div class="invalid-feedback"><%= err('additionalNotes') %></div><% } %>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="specificQuestions">Questions for us?</label>
+        <textarea class="form-control<%= bad('specificQuestions') %>" rows="3" id="specificQuestions" name="specificQuestions"
+                  placeholder="Any specific questions you'd like answered during our call?"><%= v('specificQuestions') %></textarea>
+        <% if (err('specificQuestions')) { %><div class="invalid-feedback"><%= err('specificQuestions') %></div><% } %>
+      </div>
+    </div>
+
+    <div class="form-check mb-4">
+      <input class="form-check-input<%= bad('agreeTerms') %>" type="checkbox" id="agreeTerms" name="agreeTerms" required <%= chk('agreeTerms') %>>
+      <label class="form-check-label" for="agreeTerms">I agree to the <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a> and consent to being contacted about my application *</label>
+      <% if (err('agreeTerms')) { %><div class="invalid-feedback"><%= err('agreeTerms') %></div><% } %>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100">Submit Application</button>
+  </form>
+</div></section>
+<script src="/js/tax.js" defer></script>
+<%- include('../partials/layout-end') %>

@@ -14,6 +14,7 @@ const Referral = require('../models/Referral');
 const SuccessStory = require('../models/SuccessStory');
 const SiteReview = require('../models/SiteReview');
 const Enquiry = require('../models/Enquiry');
+const TaxApplication = require('../models/TaxApplication');
 const ImageBlob = require('../models/ImageBlob');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
@@ -972,6 +973,64 @@ router.post(
     );
     req.flash(moved ? 'success' : 'error', moved ? 'Updated.' : 'That enquiry no longer exists.');
     return res.redirect(returnTo(req, `/admin/enquiries/${req.params.id}`));
+  })
+);
+
+/**
+ * Tax optimisation applications, from /tax/apply.
+ *
+ * SUPERADMIN, like /admin/rates and for the same reason: each row is a named person's
+ * salary, take-home pay and tax rate. Nothing on these screens sends anything; the reply
+ * goes from the support mailbox, as with enquiries.
+ */
+router.get(
+  '/tax-applications',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const status = TaxApplication.STATUSES.includes(req.query.status) ? req.query.status : '';
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
+    const [{ rows, total }, openCount] = await Promise.all([
+      TaxApplication.browse({ status }, { limit, offset }),
+      TaxApplication.openCount()
+    ]);
+    res.render('admin/tax-applications', {
+      title: 'Tax applications',
+      applications: rows,
+      status,
+      statuses: TaxApplication.STATUSES,
+      openCount,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (p) => pageUrl('/admin/tax-applications', req.query, p)
+    });
+  })
+);
+
+router.get(
+  '/tax-applications/:id',
+  isSuperadmin,
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const application = await TaxApplication.find(req.params.id);
+    if (!application) return res.status(404).render('errors/404', { title: 'Not found' });
+    return res.render('admin/tax-application', {
+      title: `Tax application #${application.id}`,
+      application,
+      statuses: TaxApplication.STATUSES
+    });
+  })
+);
+
+router.post(
+  '/tax-applications/:id/status',
+  isSuperadmin,
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const status = TaxApplication.STATUSES.includes(req.body.status) ? req.body.status : null;
+    const moved = status
+      ? await TaxApplication.setStatus(req.params.id, status, req.session.user.id, req.body.admin_note)
+      : false;
+    req.flash(moved ? 'success' : 'error', moved ? 'Updated.' : 'That could not be updated.');
+    return res.redirect(returnTo(req, `/admin/tax-applications/${req.params.id}`));
   })
 );
 

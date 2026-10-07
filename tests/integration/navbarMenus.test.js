@@ -96,11 +96,12 @@ maybe()('the Notifications section', () => {
 });
 
 maybe()('pages the menus added', () => {
-  it('/tax introduces a specialist and computes nothing', async () => {
+  it('/tax carries the calculator, labelled indicative, and links to the application', async () => {
     const res = await request(app).get('/tax');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('href="/contact"');
-    expect(res.text).not.toMatch(/<form[^>]*action="\/tax"/);
+    expect(res.text).toContain('id="taxCalcForm"');
+    expect(res.text).toContain('Indicative only');
+    expect(res.text).toContain('href="/tax/apply"');
   });
 
   it('/dedupe groups duplicates and does not let the response be cached', async () => {

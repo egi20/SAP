@@ -1,0 +1,95 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-calculator',
+  heading: `Tax application #${application.id}`,
+  sub: application.full_name
+}) %>
+<%
+  const eur = (n) => (n === null || n === undefined ? '—' : '€' + Number(n).toLocaleString('en'));
+  const yes = (b) => (b ? 'Yes' : 'No');
+  const day = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '—');
+  const rows = [
+    ['Contact', [
+      ['Email', application.email], ['Phone', application.phone], ['LinkedIn', application.linkedin_url],
+      ['City', application.city], ['Timezone', application.timezone]
+    ]],
+    ['Employment', [
+      ['Tax residence', application.current_country], ['Type', application.employment_type],
+      ['Employer', application.current_employer], ['Notice period', application.notice_period],
+      ['Contract ends', day(application.contract_end_date)], ['Earliest start', day(application.availability_date)]
+    ]],
+    ['Financial', [
+      ['Gross / month', eur(application.current_gross_monthly)], ['Net / month', eur(application.current_net_monthly)],
+      ['Daily rate', eur(application.current_daily_rate)], ['Desired daily rate', eur(application.desired_daily_rate)],
+      ['Effective tax rate', application.current_tax_rate_percent === null ? '—' : application.current_tax_rate_percent + '%'],
+      ['Billing currency', application.billing_currency], ['VAT number', yes(application.has_vat_number)],
+      ['Calculator estimate', eur(application.estimated_monthly_savings) + ' / month, ' + eur(application.estimated_annual_savings) + ' / year (indicative)']
+    ]],
+    ['Professional', [
+      ['Job title', application.job_title], ['Experience', application.years_experience],
+      ['Skills', application.primary_skills], ['Certifications', application.certifications],
+      ['Languages', application.languages], ['Industries', application.client_industries]
+    ]],
+    ['Preferences', [
+      ['Location', application.remote_preference], ['Hours', application.availability_hours_per_week],
+      ['Existing clients', yes(application.has_existing_clients)], ['Open to travel', yes(application.open_to_travel)],
+      ['Heard about us', application.how_heard_about_us], ['Referral code', application.referral_code]
+    ]]
+  ];
+%>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'tax-applications' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <% rows.forEach(function (section) { %>
+        <div class="glass-card mb-3"><div class="card-body">
+          <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em"><%= section[0] %></h2>
+          <dl class="row mb-0 small">
+            <% section[1].forEach(function (pair) { %>
+              <dt class="col-sm-4"><%= pair[0] %></dt>
+              <dd class="col-sm-8 text-break"><%= pair[1] || '—' %></dd>
+            <% }) %>
+          </dl>
+        </div></div>
+      <% }) %>
+      <% [['Their situation', application.additional_notes], ['Their questions', application.specific_questions]].forEach(function (block) { if (block[1]) { %>
+        <div class="glass-card mb-3"><div class="card-body">
+          <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em"><%= block[0] %></h2>
+          <p class="message-body mb-0"><%= block[1] %></p>
+        </div></div>
+      <% } }) %>
+    </div>
+
+    <aside class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-3" style="letter-spacing:.06em">Move it</h2>
+        <form method="post" action="/admin/tax-applications/<%= application.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label class="form-label" for="f-status">Status</label>
+          <select class="form-select mb-2" id="f-status" name="status">
+            <% statuses.forEach(function (st) { %>
+              <option value="<%= st %>" <%= application.status === st ? 'selected' : '' %>><%= st %></option>
+            <% }) %>
+          </select>
+          <label class="form-label" for="f-note">Internal note</label>
+          <textarea class="form-control mb-1" id="f-note" name="admin_note" rows="3"></textarea>
+          <p class="form-text">Leave empty to keep the note that is already there.</p>
+          <button class="btn btn-primary" type="submit">Save</button>
+        </form>
+        <% if (application.admin_note) { %>
+          <hr><p class="message-body small mb-0"><%= application.admin_note %></p>
+        <% } %>
+      </div></div>
+      <div class="glass-card"><div class="card-body small">
+        <p class="mb-1">Received <%= new Date(application.created_at).toISOString().slice(0, 16).replace('T', ' ') %></p>
+        <p class="mb-1">Consent given <%= new Date(application.consented_at).toISOString().slice(0, 16).replace('T', ' ') %></p>
+        <p class="mb-0 text-muted-2">Reply from the support mailbox. Nothing on this screen sends anything.</p>
+      </div></div>
+    </aside>
+  </div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

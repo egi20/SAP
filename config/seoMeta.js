@@ -68,7 +68,11 @@ const PAGE_META = {
   '/tax': {
     title: 'Tax optimisation for SAP contractors',
     description:
-      'An introduction to a tax specialist for SAP contractors and consultants. The Hub computes nothing and gives no advice of its own.'
+      'Keep your clients and your location, and employ yourself through our Albania entity. Indicative calculator, how it works, eligibility and FAQ.'
+  },
+  '/tax/apply': {
+    title: 'Apply — tax optimisation for SAP contractors',
+    description: 'Apply to the SAP Hub tax optimisation programme. Reviewed within 48 hours.'
   },
   '/dedupe': {
     title: 'Find duplicates in a contact list',
@@ -110,7 +114,7 @@ const PAGE_META = {
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
   '/rates/calculator', '/community', '/community/articles', '/success-stories',
-  '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/dedupe', '/about', '/blog', '/faq', '/contact', '/report-issue',
+  '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/tax/apply', '/dedupe', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

@@ -24,6 +24,7 @@ const linkedinConfig = require('./config/linkedin');
 const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
+const { assertTaxProgramIntegrity } = require('./config/taxProgram');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { assertEngagementIntegrity } = require('./config/engagementModels');
@@ -117,6 +118,13 @@ assertEngagementIntegrity();
  * exists for.
  */
 assertJobSectionsIntegrity();
+
+/*
+ * And the tax programme. A cost rate of zero or above one, or a story with no figures,
+ * makes the calculator print a wrong number confidently — the shape every assertion in
+ * this block exists for.
+ */
+assertTaxProgramIntegrity();
 
 /*
  * The support address is the one setting a developer never notices is unset, because the

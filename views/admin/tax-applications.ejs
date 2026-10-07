@@ -1,0 +1,55 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-calculator',
+  heading: 'Tax applications',
+  sub: 'From /tax/apply. Each row holds somebody’s salary — superadmin only.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'tax-applications' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="glass-card mb-3"><div class="card-body d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <p class="mb-0"><strong><%= openCount %></strong> waiting <span class="text-muted-2">— new and open together.</span></p>
+    <form method="get" class="d-flex gap-2 align-items-end">
+      <div>
+        <label class="form-label" for="f-status">Status</label>
+        <select class="form-select" id="f-status" name="status">
+          <option value="">Any</option>
+          <% statuses.forEach(function (st) { %>
+            <option value="<%= st %>" <%= status === st ? 'selected' : '' %>><%= st %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Filter</button>
+    </form>
+  </div></div>
+
+  <% if (applications.length === 0) { %>
+    <div class="empty-state glass-card"><i class="bi bi-inbox"></i>Nothing here.</div>
+  <% } else { %>
+    <div class="glass-card"><div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Received</th><th>Name</th><th>Role</th><th>Country</th><th class="text-end">Est. / month</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% applications.forEach(function (a) { %>
+            <tr>
+              <td class="small text-muted-2"><%= new Date(a.created_at).toISOString().slice(0, 16).replace('T', ' ') %></td>
+              <td><a href="/admin/tax-applications/<%= a.id %>"><%= a.full_name %></a><div class="small text-muted-2"><%= a.email %></div></td>
+              <td class="small"><%= a.job_title %><div class="text-muted-2"><%= a.employment_type %></div></td>
+              <td class="small"><%= a.current_country %></td>
+              <td class="text-end small"><%= a.estimated_monthly_savings === null ? '—' : '€' + Number(a.estimated_monthly_savings).toLocaleString('en') %></td>
+              <td><span class="badge-hub <%= a.status === 'new' ? 'warn' : a.status === 'closed' ? 'muted' : '' %>"><%= a.status %></span></td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/admin/tax-applications/<%= a.id %>">Open</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div></div>
+    <%- include('../partials/pagination') %>
+  <% } %>
+</div>
+</section>
+<%- include('../partials/layout-end') %>
