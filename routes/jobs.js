@@ -25,7 +25,7 @@ const config = require('../config/config');
 const { matchScore } = require('../utils/jobMatcher');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { returnTo } = require('../utils/returnTo');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 
 const router = express.Router();
 

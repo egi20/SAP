@@ -36,6 +36,7 @@ check('country list is non-empty', () => {
   const countries = require('../config/all-countries.json');
   if (!Array.isArray(countries) || countries.length < 100) throw new Error(`only ${countries.length} countries`);
 });
+check('country dropdown list is consistent', () => require('../config/countries').assertCountriesIntegrity());
 
 /*
  * The palette is checked, not trusted.

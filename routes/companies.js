@@ -8,7 +8,7 @@ const Job = require('../models/Job');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 const { ENGAGEMENT_MODELS } = require('../config/engagementModels');
 
 const router = express.Router();

@@ -218,7 +218,7 @@
               <label class="form-label" for="integration_complexity">Integration complexity</label>
               <select class="form-select" id="integration_complexity" name="integration_complexity">
                 <% ['simple','medium','complex'].forEach(function (c) { %>
-                  <option value="<%= c %>" <%= (values.integration_complexity || 'medium') === c ? 'selected' : '' %>><%= c %></option>
+                  <option value="<%= c %>" <%= (values.integration_complexity || 'medium') === c ? 'selected' : '' %>><%= optionLabel(c) %></option>
                 <% }); %>
               </select>
             </div>

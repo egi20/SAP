@@ -2,7 +2,7 @@
 
 const express = require('express');
 
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 const CrmLead = require('../models/CrmLead');
 const CrmSuppression = require('../models/CrmSuppression');
 const CrmDraft = require('../models/CrmDraft');

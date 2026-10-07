@@ -132,16 +132,31 @@ const COMPLEXITY_MULTIPLIERS = {
  * hard the technology is.
  */
 const INDUSTRY_MULTIPLIERS = {
+  /*
+   * Industries as SAP programmes are actually shaped. "Oil & Gas / Utilities" was one entry
+   * for what SAP sells as two industry solutions (IS-Oil, IS-U) with different consultants
+   * and different regulators, and "Financial Services" folded banking and insurance
+   * together. The weights are editorial, like every multiplier in this file, and move the
+   * estimate for the reason in the description and no other.
+   */
   Technology: { multiplier: 0.95, description: 'Tech-literate users, fewer statutory variations' },
   'Professional Services': { multiplier: 0.95, description: 'Service-focused, simpler logistics' },
   Manufacturing: { multiplier: 1.05, description: 'Production, costing and shop-floor integration' },
+  'Consumer Products': { multiplier: 1.05, description: 'Trade promotions, high SKU counts, retailer integration' },
   Retail: { multiplier: 1.05, description: 'High volumes, many outlets, promotions' },
   Distribution: { multiplier: 1.1, description: 'Complex logistics, warehousing and fulfilment' },
-  'Oil & Gas / Utilities': { multiplier: 1.2, description: 'Industry solutions and regulated reporting' },
-  Education: { multiplier: 1.1, description: 'Many stakeholder groups, unusual workflows' },
+  Automotive: { multiplier: 1.15, description: 'JIT/JIS supply, supplier integration, variant-heavy products' },
+  Chemicals: { multiplier: 1.15, description: 'Batch and process manufacturing, dangerous goods, EHS' },
+  Telecommunications: { multiplier: 1.15, description: 'Subscription billing at volume, usually BRIM' },
+  'Oil & Gas': { multiplier: 1.2, description: 'IS-Oil, hydrocarbon accounting and joint ventures' },
+  Utilities: { multiplier: 1.2, description: 'IS-U, regulated market communication and device management' },
   Healthcare: { multiplier: 1.2, description: 'Patient data handling and clinical sign-off' },
-  'Financial Services': { multiplier: 1.25, description: 'Heavy compliance, audit and approval burden' },
-  'Public Sector': { multiplier: 1.3, description: 'Procurement, accreditation and audit requirements' },
+  'Life Sciences & Pharma': { multiplier: 1.25, description: 'GxP validation, serialisation and batch traceability' },
+  'Aerospace & Defence': { multiplier: 1.25, description: 'Export control, MRO and configuration management' },
+  Banking: { multiplier: 1.25, description: 'Heavy compliance, audit and regulator approval' },
+  Insurance: { multiplier: 1.25, description: 'Policy and claims integration, FS-CD, regulated reporting' },
+  Education: { multiplier: 1.1, description: 'Many stakeholder groups, unusual workflows' },
+  'Public Sector': { multiplier: 1.3, description: 'Procurement, accreditation, funds management and audit' },
   Other: { multiplier: 1.0, description: 'Standard implementation' }
 };
 

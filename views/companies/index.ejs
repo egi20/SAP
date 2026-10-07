@@ -26,9 +26,7 @@
         <label class="form-label" for="co-country">Country</label>
         <select class="form-select" id="co-country" name="country">
           <option value="">Any</option>
-          <% countries.forEach(function (c) { %>
-            <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-          <% }); %>
+          <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
         </select>
       </div>
       <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">Go</button></div>

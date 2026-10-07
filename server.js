@@ -33,6 +33,8 @@ const { assertCrmIntegrity } = require('./config/crm');
 const { assertDraftingIntegrity } = require('./config/drafting');
 const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
 const { assertRateBoundsIntegrity } = require('./config/rateBounds');
+const { assertCountriesIntegrity } = require('./config/countries');
+const { optionLabel } = require('./utils/optionLabel');
 const { pendingMigrations } = require('./scripts/migrate');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
@@ -115,6 +117,11 @@ assertBenchmarkIntegrity();
  * three are wrong pages rather than errors.
  */
 assertEngagementIntegrity();
+/*
+ * And the country list every select renders: an SAP market code that is not in the ISO
+ * list silently drops out of the top group, and a duplicate offers the same country twice.
+ */
+assertCountriesIntegrity();
 
 /*
  * And the advert's sections. A key here that is not a real column contributes an empty
@@ -377,6 +384,7 @@ app.use((req, res, next) => {
   res.locals.countryName = countryName;
   res.locals.locationLabel = locationLabel;
   res.locals.roleLabel = roleLabel;
+  res.locals.optionLabel = optionLabel;
   res.locals.moduleLabel = moduleLabel;
   res.locals.lineLabel = lineLabel;
   next();

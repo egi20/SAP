@@ -1,0 +1,15 @@
+<%#
+  The options of a country select, grouped: the SAP markets first, then everybody else.
+  Every country select renders through this, so the order and the grouping cannot drift
+  between the job board, the directory and the rate index. Locals: countries, selected.
+%>
+<optgroup label="Main SAP markets">
+  <% countries.filter(function (c) { return c.featured; }).forEach(function (c) { %>
+    <option value="<%= c.code %>" <%= selected === c.code ? 'selected' : '' %>><%= c.name %></option>
+  <% }); %>
+</optgroup>
+<optgroup label="All other countries">
+  <% countries.filter(function (c) { return !c.featured; }).forEach(function (c) { %>
+    <option value="<%= c.code %>" <%= selected === c.code ? 'selected' : '' %>><%= c.name %></option>
+  <% }); %>
+</optgroup>

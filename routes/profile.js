@@ -25,7 +25,7 @@ const { buildCvDocx } = require('../utils/documents/cvDocx');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
 const { PRODUCT_LINES, ALL_MODULES, isModule } = require('../config/sapProducts');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 
 const router = express.Router();
 

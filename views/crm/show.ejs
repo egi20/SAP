@@ -217,7 +217,7 @@
               <div class="mb-2">
                 <label class="form-label" for="to">Move to</label>
                 <select class="form-select" id="to" name="to" required>
-                  <% moves.forEach(function (m) { %><option value="<%= m %>"><%= m %></option><% }); %>
+                  <% moves.forEach(function (m) { %><option value="<%= m %>"><%= optionLabel(m) %></option><% }); %>
                 </select>
               </div>
               <textarea class="form-control mb-2" name="note" rows="2" maxlength="2000" placeholder="Why (optional)"></textarea>

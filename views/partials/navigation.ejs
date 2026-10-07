@@ -116,9 +116,16 @@
             <li><a class="dropdown-item" href="/companies/staff-augmentation"><i class="bi bi-person-plus"></i> Staff augmentation</a></li>
             <li><a class="dropdown-item" href="/companies/project-based"><i class="bi bi-diagram-3"></i> Project-based</a></li>
             <li><a class="dropdown-item" href="/companies/managed-services"><i class="bi bi-shield-check"></i> Managed services</a></li>
+            <%#
+              The estimator is the most SAP-specific tool on the site and was reachable only from
+              the footer and the dashboard. It is offered to everybody: a visitor who follows it
+              is asked to sign in and comes straight back, which is better than never learning
+              it exists.
+            %>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimator</a></li>
             <% if (currentUser) { %>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/quotes"><i class="bi bi-calculator"></i> Scope estimates</a></li>
+              <li><a class="dropdown-item" href="/quotes"><i class="bi bi-folder2-open"></i> Your estimates</a></li>
             <% } %>
             <% if (currentUser && currentUser.isRecruiter) { %>
               <li><hr class="dropdown-divider"></li>
@@ -146,11 +153,8 @@
             <li><a class="dropdown-item" href="/tax"><i class="bi bi-building-check"></i> Talk to a tax specialist</a></li>
             <li><a class="dropdown-item" href="/payments"><i class="bi bi-tag"></i> Pricing</a></li>
             <li><a class="dropdown-item" href="/challenges"><i class="bi bi-lightning"></i> Daily challenge</a></li>
-            <% if (currentUser) { %>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimator</a></li>
-              <li><a class="dropdown-item" href="/quotes"><i class="bi bi-folder2-open"></i> Your estimates</a></li>
-            <% } %>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-calculator"></i> Scope estimator</a></li>
           </ul>
         </li>
 

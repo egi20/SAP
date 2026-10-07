@@ -90,7 +90,7 @@
             <select class="form-select" id="f-seniority" name="seniority">
               <option value="">Any</option>
               <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= s %></option>
+                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
               <% }); %>
             </select>
           </div>
@@ -99,7 +99,7 @@
             <select class="form-select" id="f-mode" name="work_mode">
               <option value="">Any</option>
               <% ['remote','hybrid','onsite'].forEach(function (m) { %>
-                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= m %></option>
+                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= optionLabel(m) %></option>
               <% }); %>
             </select>
           </div>
@@ -118,9 +118,7 @@
           <label class="form-label" for="f-country">Country</label>
           <select class="form-select" id="f-country" name="country">
             <option value="">Any country</option>
-            <% countries.forEach(function (c) { %>
-              <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-            <% }); %>
+            <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
           </select>
         </div>
 

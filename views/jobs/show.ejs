@@ -121,7 +121,7 @@
               <div class="d-flex gap-2">
                 <select class="form-select" id="status" name="status">
                   <% jobStatuses.forEach(function (s) { %>
-                    <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= s %></option>
+                    <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
                   <% }); %>
                 </select>
                 <button class="btn btn-outline-primary" type="submit">Set</button>

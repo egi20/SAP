@@ -29,7 +29,7 @@
               <label class="form-label" for="f-status">Status</label>
               <select class="form-select" id="f-status" name="status">
                 <% statuses.forEach(function (st) { %>
-                  <option value="<%= st %>" <%= enquiry.status === st ? 'selected' : '' %>><%= st %></option>
+                  <option value="<%= st %>" <%= enquiry.status === st ? 'selected' : '' %>><%= optionLabel(st) %></option>
                 <% }) %>
               </select>
             </div>

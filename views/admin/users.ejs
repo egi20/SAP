@@ -23,7 +23,7 @@
           <select class="form-select" id="role" name="role">
             <option value="">Any</option>
             <% roles.forEach(function (r) { %>
-              <option value="<%= r %>" <%= query.role === r ? 'selected' : '' %>><%= r %></option>
+              <option value="<%= r %>" <%= query.role === r ? 'selected' : '' %>><%= optionLabel(r) %></option>
             <% }) %>
           </select>
         </div>
@@ -175,7 +175,7 @@
                         <label class="form-label" for="primary-<%= u.id %>">Primary</label>
                         <select class="form-select form-select-sm" id="primary-<%= u.id %>" name="primary">
                           <% roles.forEach(function (r) { %>
-                            <option value="<%= r %>" <%= u.user_type === r ? 'selected' : '' %>><%= r %></option>
+                            <option value="<%= r %>" <%= u.user_type === r ? 'selected' : '' %>><%= optionLabel(r) %></option>
                           <% }) %>
                         </select>
                       </div>

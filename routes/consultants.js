@@ -13,7 +13,7 @@ const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { ROLE_CATEGORIES, isRole } = require('../config/roleTaxonomy');
 const { PRODUCT_LINES, isModule } = require('../config/sapProducts');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 
 const router = express.Router();
 

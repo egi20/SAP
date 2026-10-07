@@ -24,7 +24,7 @@ const { benchmark, benchmarkProblems, curatedTable } = require('../utils/rateBen
 const benchmarkModel = require('../config/rateBenchmark');
 const { POINT_AWARDS } = require('../config/community');
 const { BOUNDS, STEP, isEngagementType, boundsFor } = require('../config/rateBounds');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 const config = require('../config/config');
 const router = express.Router();
 

@@ -54,7 +54,7 @@
           <select class="form-select" id="status" name="status">
             <option value="">Any</option>
             <% statuses.forEach(function (s) { %>
-              <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s %></option>
+              <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
             <% }) %>
           </select>
         </div>

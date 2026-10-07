@@ -183,7 +183,7 @@
               <label class="form-label" for="status">Move to</label>
               <select class="form-select form-select-sm mb-2" id="status" name="status">
                 <% allowedTransitions.forEach(function (s) { %>
-                  <option value="<%= s %>" class="text-capitalize"><%= s %></option>
+                  <option value="<%= s %>" class="text-capitalize"><%= optionLabel(s) %></option>
                 <% }); %>
               </select>
               <input class="form-control form-control-sm mb-2" name="note" maxlength="500" placeholder="Note (optional)">

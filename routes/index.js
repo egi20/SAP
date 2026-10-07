@@ -2,7 +2,7 @@
 
 const express = require('express');
 const taxAdvisory = require('../config/taxAdvisory');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 const AccountClosure = require('../models/AccountClosure');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
@@ -149,6 +149,9 @@ function greetingFor(now) {
  */
 router.get('/privacy', (req, res) => res.redirect(301, '/legal/privacy'));
 router.get('/terms', (req, res) => res.redirect(301, '/legal/terms'));
+// The estimator lives under /quotes because an estimate is stored as a quote, but
+// "/estimator" is the address people guess, and it answered 404.
+router.get(['/estimator', '/estimate'], (req, res) => res.redirect(301, '/quotes/new'));
 
 /*
  * /forum is the reference's name for what is /community here. A 302 rather than a 301:

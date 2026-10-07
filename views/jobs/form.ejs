@@ -122,7 +122,7 @@
               <label class="form-label" for="seniority">Seniority</label>
               <select class="form-select" id="seniority" name="seniority">
                 <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-                  <option value="<%= s %>" <%= (values.seniority || 'senior') === s ? 'selected' : '' %>><%= s %></option>
+                  <option value="<%= s %>" <%= (values.seniority || 'senior') === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
                 <% }); %>
               </select>
             </div>
@@ -130,7 +130,7 @@
               <label class="form-label" for="work_mode">Work mode</label>
               <select class="form-select" id="work_mode" name="work_mode">
                 <% ['remote','hybrid','onsite'].forEach(function (m) { %>
-                  <option value="<%= m %>" <%= (values.work_mode || 'remote') === m ? 'selected' : '' %>><%= m %></option>
+                  <option value="<%= m %>" <%= (values.work_mode || 'remote') === m ? 'selected' : '' %>><%= optionLabel(m) %></option>
                 <% }); %>
               </select>
             </div>
@@ -149,9 +149,7 @@
               <label class="form-label" for="country">Country</label>
               <select class="form-select" id="country" name="country">
                 <option value="">Any</option>
-                <% countries.forEach(function (c) { %>
-                  <option value="<%= c.code %>" <%= values.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-                <% }); %>
+                <%- include('../partials/country-options', { countries: countries, selected: values.country }) %>
               </select>
             </div>
             <div class="col-6">
