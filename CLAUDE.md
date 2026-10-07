@@ -9,6 +9,12 @@ wrong produced a real bug, in this repository or in one of the two it was ported
 - **The schema is migrations.** Never add `CREATE TABLE` or `ALTER TABLE` to a model. Add a
   numbered file under `scripts/migrations/`. An applied migration is immutable — the runner
   compares checksums and refuses to start if one changed. Correct a mistake with a new file.
+  **022 was edited in place once, and that is the only exception there has ever been.** It
+  could not be corrected by a later file, because on MySQL the `CREATE TABLE` itself failed
+  and there was no table for 028 to alter; a follow-up would have had to branch on the
+  engine, which is worse than the bug. The rule protects history that exists, and the only
+  databases carrying the old 022 were development ones. If a checksum failure names 022,
+  that is why: drop the database and migrate from empty.
 - **All SQL is parameterised.** Filter clauses are assembled from fixed fragments plus a
   `params[]` array. No value is ever interpolated into a query string.
 - **Never add a second filter builder.** `Job.buildFilter` and
@@ -50,6 +56,20 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   it and could not delete its own test advert, because the page holding the delete button
   was one of the broken ones. `checkSchemaIsCurrent()` names the files and the command;
   production exits rather than serving a schema that does not match the code.
+- **A foreign key must not sit on the BASE COLUMN of a stored generated column.** MySQL 8
+  refuses CASCADE, SET NULL and SET DEFAULT there and the whole `CREATE TABLE` fails;
+  MariaDB does not enforce it. Migration 022 shipped with `pending_job_id AS (IF(status =
+  'pending', job_id, NULL)) STORED` over a `job_id` carrying `ON DELETE CASCADE`, applied
+  cleanly here for weeks, and died on the first MySQL 8 it met with a bare "Cannot add
+  foreign key constraint" — errno 1215, which names neither the column nor the rule. The
+  fix is NOT to drop the cascade: keep the column out of the EXPRESSION and put it in the
+  KEY. A marker derived from `status` alone under `UNIQUE (job_id, marker)` is the same
+  guarantee on both engines. `tests/unit/migrationPortability.test.js` scans every
+  migration for the pattern, and fails on the old 022 if you put it back.
+- **This whole schema is developed against MariaDB and deployed against MySQL**, so
+  anything the two disagree about is invisible until somebody else runs it. The two found
+  so far are that rule and `CAST(? AS JSON)`, which MariaDB rejects and MySQL accepts —
+  the same class of bug pointing in the opposite direction. Both are scanned for.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
 - **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use
@@ -1920,6 +1940,15 @@ created in 011 and widened twice; a test comparing the code against `011_moderat
 failed on the second widening while the code was correct and the file it was checked
 against was stale. `effectiveEnumValues` walks every migration in order and takes the last
 definition, exactly as the runner does.
+
+**A test must create the rows it asserts on.** `adminTakedown` checked that the error
+log's "Where they are" summary rendered — against whatever `error_logs` happened to hold,
+which on a database developed against for weeks was always something. Rebuilding the schema
+from empty turned it red, and the failure blamed the summary rather than the assumption:
+that heading only renders when there is at least one row, so the test was really asserting
+that some other suite had failed earlier. Same trap as an unscoped `COUNT(*)`, one step
+further along — and the only thing that exposes it is a fresh database, which is a reason
+to rebuild one now and again.
 
 **A frozen catalogue cannot be sorted in place.** `expect(ENGAGEMENT_TYPES.sort())` throws
 rather than failing, because `Object.freeze` is doing its job. Copy first.

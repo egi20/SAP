@@ -249,9 +249,26 @@ maybe()('the admin screens themselves', () => {
   });
 
   it('the error log filters, summarises and exports the same rows', async () => {
+    /*
+     * The suite writes its OWN error rows first.
+     *
+     * It used to assert "Where they are" against whatever `error_logs` happened to hold —
+     * which, on a database that had been developed against for weeks, was always
+     * something. Rebuilding the schema from empty turned it red, and the failure blamed
+     * the summary rather than the assumption: the heading only renders when there is at
+     * least one row, so the test was really asserting that somebody else had failed
+     * earlier. Same trap as an unscoped COUNT(*), one step further along.
+     */
+    const marker = `/qa-errorlog-probe-${Date.now()}`;
+    await promisePool.query(
+      `INSERT INTO error_logs (message, method, path, status_code) VALUES (?, 'GET', ?, 500), (?, 'GET', ?, 500)`,
+      ['Takedown probe', marker, 'Takedown probe', marker]
+    );
+
     const page = await admin.get('/admin/errors?status_code=500');
     expect(page.status).toBe(200);
     expect(page.text).toContain('Where they are');
+    expect(page.text).toContain(marker);
 
     const csv = await admin.get('/admin/errors/export.csv?status_code=500');
     expect(csv.status).toBe(200);
