@@ -71,3 +71,23 @@ describe('the admin lists mirror the schema', () => {
     expect(Object.isFrozen(Moderation.SUBJECT_TYPES)).toBe(true);
   });
 });
+
+describe('the advert\'s landscape vocabularies mirror the schema', () => {
+  /*
+   * Deployment and transition approach (migration 028). Same rule as the job statuses: a
+   * value offered in the form and refused by the column behind it is what a second copy
+   * produces. The transition values are the estimator's own keys, so a quote and an
+   * advert use the same three words.
+   */
+  const { DEPLOYMENT_VALUES, TRANSITION_VALUES } = require('../../config/sapDeployments');
+  const { TRANSITION_APPROACHES } = require('../../config/estimation');
+
+  test('deployments are exactly the ENUM in migration 028', () => {
+    expect([...DEPLOYMENT_VALUES]).toEqual(enumValues('028_job_deployment.sql', 'deployment'));
+  });
+
+  test('transition approaches are the ENUM, and the estimator\'s own keys', () => {
+    expect([...TRANSITION_VALUES]).toEqual(enumValues('028_job_deployment.sql', 'transition_approach'));
+    expect([...TRANSITION_VALUES]).toEqual(Object.keys(TRANSITION_APPROACHES));
+  });
+});

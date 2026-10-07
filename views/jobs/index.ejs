@@ -84,6 +84,26 @@
           <div class="form-text">A role scoped to one phase says so. Permanent hires usually span all of them.</div>
         </div>
 
+        <div class="mb-3">
+          <label class="form-label" for="f-deployment">Deployment</label>
+          <select class="form-select" id="f-deployment" name="deployment">
+            <option value="">Any deployment</option>
+            <% deployments.forEach(function (d) { %>
+              <option value="<%= d.value %>" <%= filters.deployment === d.value ? 'selected' : '' %>><%= d.label %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-transition">Transition approach</label>
+          <select class="form-select" id="f-transition" name="transition_approach">
+            <option value="">Any approach</option>
+            <% transitions.forEach(function (t) { %>
+              <option value="<%= t.value %>" <%= filters.transition_approach === t.value ? 'selected' : '' %>><%= t.label %></option>
+            <% }); %>
+          </select>
+        </div>
+
         <div class="row g-2 mb-3">
           <div class="col-6">
             <label class="form-label" for="f-seniority">Seniority</label>

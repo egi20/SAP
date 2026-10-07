@@ -94,6 +94,32 @@
               consultant are different people, and saying which you need saves everybody a call.
             </div>
           </div>
+
+          <div class="row g-3 mt-0">
+            <div class="col-md-6">
+              <label class="form-label" for="deployment">Deployment</label>
+              <select class="form-select" id="deployment" name="deployment">
+                <option value="">Not stated / several</option>
+                <% deployments.forEach(function (d) { %>
+                  <option value="<%= d.value %>" <%= (values.deployment || '') === d.value ? 'selected' : '' %>><%= d.label %></option>
+                <% }); %>
+              </select>
+              <div class="form-text">
+                The first thing an SAP consultant asks: Public Edition, Private Edition,
+                on-premise or ECC are different jobs.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="transition_approach">Transition approach</label>
+              <select class="form-select" id="transition_approach" name="transition_approach">
+                <option value="">Not applicable</option>
+                <% transitions.forEach(function (t) { %>
+                  <option value="<%= t.value %>" <%= (values.transition_approach || '') === t.value ? 'selected' : '' %>><%= t.label %></option>
+                <% }); %>
+              </select>
+              <div class="form-text">Leave unset for support or a role that is not part of a move to S/4HANA.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -26,8 +26,25 @@ const { matchScore } = require('../utils/jobMatcher');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { returnTo } = require('../utils/returnTo');
 const { COUNTRIES: countries } = require('../config/countries');
+const {
+  DEPLOYMENTS, TRANSITIONS, DEPLOYMENT_VALUES, TRANSITION_VALUES, isDeployment, isTransition,
+  deploymentLabel, transitionLabel
+} = require('../config/sapDeployments');
 
 const router = express.Router();
+
+/*
+ * The deployment and transition vocabularies, for every page this router renders: the
+ * filter, the form (rendered from five places, including every re-render after a refused
+ * post) and the advert. Set once here so no render call can forget them.
+ */
+router.use((req, res, next) => {
+  res.locals.deployments = DEPLOYMENTS;
+  res.locals.transitions = TRANSITIONS;
+  res.locals.deploymentLabel = deploymentLabel;
+  res.locals.transitionLabel = transitionLabel;
+  next();
+});
 
 const SENIORITIES = ['junior', 'mid', 'senior', 'lead'];
 const WORK_MODES = ['remote', 'hybrid', 'onsite'];
@@ -53,6 +70,8 @@ function filtersFrom(query) {
       .filter((slug) => slug && isModule(slug))
       .slice(0, 20),
     activate_phase: Job.ACTIVATE_PHASES.includes(query.activate_phase) ? query.activate_phase : '',
+    deployment: isDeployment(query.deployment) ? query.deployment : '',
+    transition_approach: isTransition(query.transition_approach) ? query.transition_approach : '',
     // Checked against the windows the control offers, so a hand-edited value cannot
     // produce a page answering a question the form cannot ask.
     posted_within: Job.POSTED_WITHIN_DAYS.includes(Number(query.posted_within))
@@ -137,6 +156,10 @@ const jobValidators = [
   // Optional: a permanent hire spans phases, and saying so is the honest answer.
   body('activate_phase').optional({ checkFalsy: true }).isIn(Job.ACTIVATE_PHASES)
     .withMessage('Choose an SAP Activate phase from the list, or leave it unset.'),
+  body('deployment').optional({ checkFalsy: true }).isIn(DEPLOYMENT_VALUES)
+    .withMessage('Choose a deployment from the list, or leave it unset.'),
+  body('transition_approach').optional({ checkFalsy: true }).isIn(TRANSITION_VALUES)
+    .withMessage('Choose a transition approach from the list, or leave it unset.'),
   body('rate_min').optional({ checkFalsy: true }).isFloat({ min: 0 }),
   body('rate_max')
     .optional({ checkFalsy: true })
@@ -181,6 +204,8 @@ function jobFieldsFrom(body_) {
     duration_months: body_.duration_months || null,
     starts_on: body_.starts_on || null,
     activate_phase: Job.ACTIVATE_PHASES.includes(body_.activate_phase) ? body_.activate_phase : null,
+    deployment: isDeployment(body_.deployment) ? body_.deployment : null,
+    transition_approach: isTransition(body_.transition_approach) ? body_.transition_approach : null,
     expires_at: body_.expires_at || null,
     status: body_.publish === 'on' ? 'open' : 'draft'
   };

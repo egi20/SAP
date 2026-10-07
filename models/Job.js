@@ -2,6 +2,7 @@
 
 const { promisePool, withTransaction } = require('../config/database');
 const { textSearchClause } = require('../utils/likePattern');
+const { isDeployment, isTransition } = require('../config/sapDeployments');
 const { SECTIONS, SECTION_KEYS } = require('../config/jobSections');
 const { uniqueSlug } = require('../utils/slug');
 const { isRole } = require('../config/roleTaxonomy');
@@ -103,6 +104,14 @@ function buildFilter(filters = {}) {
   if (filters.activate_phase && ACTIVATE_PHASES.includes(filters.activate_phase)) {
     where.push('j.activate_phase = ?');
     params.push(filters.activate_phase);
+  }
+  if (filters.deployment && isDeployment(filters.deployment)) {
+    where.push('j.deployment = ?');
+    params.push(filters.deployment);
+  }
+  if (filters.transition_approach && isTransition(filters.transition_approach)) {
+    where.push('j.transition_approach = ?');
+    params.push(filters.transition_approach);
   }
   if (filters.country) {
     where.push('j.country = ?');
@@ -231,8 +240,8 @@ class Job {
          (company_user_id, title, slug, description, responsibilities, requirements, what_we_offer,
           role, seniority, engagement_type, work_mode,
           country, city, rate_min, rate_max, currency, rate_visible, duration_months, starts_on,
-          activate_phase, status, published_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          activate_phase, deployment, transition_approach, status, published_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         companyUserId,
         data.title,
@@ -258,6 +267,8 @@ class Job {
         data.duration_months ?? null,
         data.starts_on || null,
         data.activate_phase || null,
+        data.deployment || null,
+        data.transition_approach || null,
         data.status || 'draft',
         data.status === 'open' ? new Date() : null,
         data.expires_at || null
@@ -270,7 +281,7 @@ class Job {
     const allowed = [
       'title', ...SECTION_KEYS, 'role', 'seniority', 'engagement_type', 'work_mode',
       'country', 'city', 'rate_min', 'rate_max', 'currency', 'rate_visible',
-      'duration_months', 'starts_on', 'activate_phase', 'expires_at'
+      'duration_months', 'starts_on', 'activate_phase', 'deployment', 'transition_approach', 'expires_at'
     ];
 
     const sets = [];
@@ -375,7 +386,8 @@ class Job {
     const [rows] = await promisePool.query(
       `SELECT j.id, j.title, j.slug, j.role, j.seniority, j.engagement_type, j.work_mode,
               j.country, j.city, j.rate_min, j.rate_max, j.currency, j.rate_visible,
-              j.duration_months, j.activate_phase, j.published_at, j.application_count, j.status,
+              j.duration_months, j.activate_phase, j.deployment, j.transition_approach,
+              j.published_at, j.application_count, j.status,
               cp.company_name, cp.slug AS company_slug, cp.logo AS company_logo,
               ${FEATURED_EXPR} AS is_featured
          FROM jobs j

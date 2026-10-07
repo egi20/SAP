@@ -35,6 +35,7 @@ const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
 const { assertRateBoundsIntegrity } = require('./config/rateBounds');
 const { assertCountriesIntegrity } = require('./config/countries');
 const { optionLabel } = require('./utils/optionLabel');
+const { deploymentShort } = require('./config/sapDeployments');
 const { pendingMigrations } = require('./scripts/migrate');
 const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
@@ -385,6 +386,8 @@ app.use((req, res, next) => {
   res.locals.locationLabel = locationLabel;
   res.locals.roleLabel = roleLabel;
   res.locals.optionLabel = optionLabel;
+  // The job card renders on the board, the feed, search and the dashboard, outside the jobs router.
+  res.locals.deploymentShort = deploymentShort;
   res.locals.moduleLabel = moduleLabel;
   res.locals.lineLabel = lineLabel;
   next();

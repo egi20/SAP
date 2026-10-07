@@ -54,6 +54,14 @@
             <% if (job.status !== 'open') { %><span class="badge-hub warn"><%= job.status %></span><% } %>
           </div>
 
+          <% if (job.deployment || job.transition_approach) { %>
+            <p class="small text-muted-2 mb-1">Landscape</p>
+            <div class="mb-3">
+              <% if (job.deployment) { %><span class="badge-hub accent"><%= deploymentLabel(job.deployment) %></span><% } %>
+              <% if (job.transition_approach) { %><span class="badge-hub"><%= transitionLabel(job.transition_approach) %></span><% } %>
+            </div>
+          <% } %>
+
           <% if (job.activate_phase) { %>
             <p class="small text-muted-2 mb-1">Delivery phase</p>
             <div class="mb-3">
@@ -302,14 +310,17 @@
         <div class="card-body">
           <h2 class="h6">Job overview</h2>
           <ul class="list-unstyled small mb-0 job-overview">
-            <li><span class="text-muted-2">Engagement</span><span><%= job.engagement_type %></span></li>
-            <li><span class="text-muted-2">Work mode</span><span><%= job.work_mode %></span></li>
+            <li><span class="text-muted-2">Engagement</span><span><%= optionLabel(job.engagement_type) %></span></li>
+            <li><span class="text-muted-2">Work mode</span><span><%= optionLabel(job.work_mode) %></span></li>
             <li>
               <span class="text-muted-2">Location</span>
               <span><%= locationLabel(job.city, job.country) || 'Not stated' %></span>
             </li>
-            <li><span class="text-muted-2">Experience</span><span><%= job.seniority %></span></li>
-            <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase %></span></li>
+            <li><span class="text-muted-2">Experience</span><span><%= optionLabel(job.seniority) %></span></li>
+            <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase ? optionLabel(job.activate_phase) : 'Spans phases' %></span></li>
+            <% if (job.deployment) { %>
+              <li><span class="text-muted-2">Deployment</span><span><%= deploymentLabel(job.deployment) %></span></li>
+            <% } %>
             <% if (job.duration_months) { %>
               <li><span class="text-muted-2">Duration</span><span><%= job.duration_months %> months</span></li>
             <% } %>
