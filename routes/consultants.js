@@ -12,6 +12,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { ROLE_CATEGORIES, isRole } = require('../config/roleTaxonomy');
+const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
 const { PRODUCT_LINES, isModule } = require('../config/sapProducts');
 const { COUNTRIES: countries } = require('../config/countries');
 
@@ -30,6 +31,9 @@ router.get(
       work_mode: ['remote', 'hybrid', 'onsite'].includes(req.query.work_mode) ? req.query.work_mode : '',
       availability: ['immediate', 'two_weeks', 'one_month'].includes(req.query.availability) ? req.query.availability : '',
       certified: req.query.certified === '1' ? '1' : '',
+      // A catalogue stem, or nothing. `OTHER` is free text per person, so there is no one
+      // credential to filter on.
+      cert_code: isCertificationCode(req.query.cert_code) && req.query.cert_code !== OTHER_CODE ? req.query.cert_code : '',
       /*
        * "Who has actually delivered EWM?" — the search this ecosystem runs, and the one
        * `ConsultantProfile.buildFilter` was already written to answer. It read the delivery
@@ -62,6 +66,7 @@ router.get(
       sort,
       roleCategories: ROLE_CATEGORIES,
       productLines: PRODUCT_LINES,
+      certificationGroups: CERTIFICATIONS,
       countries,
       pagination: paginationMeta({ page, perPage, total }),
       pageUrl: (p) => pageUrl('/consultants', req.query, p)

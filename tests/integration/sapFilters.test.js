@@ -1,9 +1,12 @@
 'use strict';
 
 /**
- * Which SAP an advert is for (migration 028), end to end: the form stores it, the board
- * filters on it, and the advert says it. Run against a real database because the column
- * is an ENUM, and a value the form offers that the ENUM refuses only fails there.
+ * The SAP-specific filters, end to end, against a real database.
+ *
+ * Which SAP an advert is for (migration 028): the form stores it, the board filters on it,
+ * and the advert says it — run here because the column is an ENUM, and a value the form
+ * offers that the ENUM refuses only fails there. And the directory's filter on one named
+ * certification, whose EXISTS clause only proves itself against real SQL.
  */
 
 const request = require('supertest');
@@ -109,5 +112,19 @@ maybe()('an advert names its deployment and transition', () => {
     expect(res.status).toBe(422);
     const [rows] = await promisePool.query('SELECT id FROM jobs WHERE title = ?', [`${TERM} bogus deployment`]);
     expect(rows).toHaveLength(0);
+  });
+});
+
+maybe()('the directory filters on one named certification', () => {
+  test('the filter runs against the database and keeps its selection', async () => {
+    const res = await request(app).get('/consultants?cert_code=C_TS4FI');
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/<option value="C_TS4FI" selected>/);
+  });
+
+  test('an unknown code is ignored rather than refused', async () => {
+    const res = await request(app).get('/consultants?cert_code=C_MADEUP');
+    expect(res.status).toBe(200);
+    expect(res.text).not.toContain('value="C_MADEUP"');
   });
 });

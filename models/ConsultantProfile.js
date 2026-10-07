@@ -94,6 +94,16 @@ function buildFilter(filters = {}) {
   if (filters.certified === '1') {
     where.push('EXISTS (SELECT 1 FROM consultant_certifications cc WHERE cc.user_id = cp.user_id)');
   }
+  /*
+   * One named credential — "who holds C_TS4FI?" — which "certified only" cannot answer:
+   * a SuccessFactors certificate satisfies that box for a finance search. The stored code
+   * is the catalogue STEM (migration 002), so this is an equality on the stem and matches
+   * whatever year the person sat it in.
+   */
+  if (filters.cert_code && isCertificationCode(filters.cert_code) && filters.cert_code !== OTHER_CODE) {
+    where.push('EXISTS (SELECT 1 FROM consultant_certifications cc2 WHERE cc2.user_id = cp.user_id AND cc2.code = ?)');
+    params.push(filters.cert_code);
+  }
 
   /*
    * "Who has actually delivered this module?" — the search this ecosystem runs and neither

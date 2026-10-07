@@ -108,9 +108,24 @@
           <input class="form-control" id="c-rate" name="rate_max" type="number" min="0" step="50" value="<%= filters.rate_max %>">
         </div>
 
+        <div class="mb-2">
+          <label class="form-label" for="c-cert-code">SAP certification</label>
+          <select class="form-select" id="c-cert-code" name="cert_code">
+            <option value="">Any, or none</option>
+            <% certificationGroups.forEach(function (group) { %>
+              <optgroup label="<%= group.group %>">
+                <% group.items.forEach(function (cert) { %>
+                  <option value="<%= cert.code %>" <%= filters.cert_code === cert.code ? 'selected' : '' %>><%= cert.code %> — <%= cert.label %></option>
+                <% }); %>
+              </optgroup>
+            <% }); %>
+          </select>
+          <div class="form-text">Matched on the code stem, whichever year it was sat.</div>
+        </div>
+
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="c-cert" name="certified" value="1" <%= filters.certified === '1' ? 'checked' : '' %>>
-          <label class="form-check-label" for="c-cert">Certified only</label>
+          <label class="form-check-label" for="c-cert">Holds at least one certification</label>
         </div>
 
         <button class="btn btn-primary w-100 mb-2" type="submit">Apply filters</button>
