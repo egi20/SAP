@@ -397,7 +397,12 @@ const QUESTIONS = Object.freeze([
       + 'months and reads as a lapsed credential when nothing has lapsed.'
   },
   {
+    /*
+     * Retired: a question about THIS SITE in a quiz about SAP. It is kept in the bank, not
+     * deleted, so a day it was played on still replays exactly — see `activeOn`.
+     */
     id: 'rates-privacy-floor',
+    retired: '2026-10-08',
     topic: 'careers',
     prompt: 'On this Hub, when does a day-rate bucket get published?',
     options: [
@@ -411,6 +416,258 @@ const QUESTIONS = Object.freeze([
       'Three different PEOPLE, not three submissions: one person submitting five times is '
       + 'still a sample of one. Below the floor the count is still shown and the figures '
       + 'are withheld, so a thin bucket reads as thin rather than as missing.'
+  },
+  /*
+   * Added 2026-10-08. `since` keeps them out of every day before that, so the days already
+   * played are drawn from exactly the bank they were played with — see `activeOn`.
+   */
+  {
+    id: 'basis-stms',
+    since: '2026-10-08',
+    topic: 'technology',
+    prompt: 'Which transaction manages transport routes and import queues in the Transport Management System?',
+    options: ['STMS', 'SE80', 'SM37', 'SPRO'],
+    answer: 0,
+    explain:
+      'STMS is the Transport Management System: the landscape, the routes between systems '
+      + 'and the import queue of each. SE80 is the development workbench, SM37 the job '
+      + 'overview and SPRO the configuration guide.'
+  },
+  {
+    id: 'security-su53',
+    since: '2026-10-08',
+    topic: 'technology',
+    prompt: 'What does transaction SU53 show?',
+    options: [
+      'The last failed authorisation check for the user',
+      'Every role assigned to the user',
+      'The change history of a role',
+      'All locked users in the client'
+    ],
+    answer: 0,
+    explain:
+      'SU53 displays the most recent authorisation check that failed for the user, which is '
+      + 'usually the first thing a security consultant asks for when somebody reports '
+      + '"I am not authorised". A system trace (ST01 / STAUTHTRACE) is the next step when '
+      + 'one check is not enough.'
+  },
+  {
+    id: 'grc-access-risk',
+    since: '2026-10-08',
+    topic: 'technology',
+    prompt: 'What is Access Risk Analysis in SAP GRC Access Control mainly used for?',
+    options: [
+      'Finding segregation-of-duties conflicts in users\' and roles\' authorisations',
+      'Monitoring CPU usage on application servers',
+      'Scanning custom ABAP code for syntax errors',
+      'Encrypting the database at rest'
+    ],
+    answer: 0,
+    explain:
+      'It checks authorisations against a rule set of conflicting functions — creating a '
+      + 'vendor and paying it, for instance — so a conflict is caught before access is '
+      + 'granted rather than found by the auditor afterwards.'
+  },
+  {
+    id: 'calm-successor',
+    since: '2026-10-08',
+    topic: 'technology',
+    prompt: 'Which tool does SAP position as the successor to Solution Manager for application lifecycle management?',
+    options: ['SAP Cloud ALM', 'SAP Signavio', 'SAP LeanIX', 'SAP Build Work Zone'],
+    answer: 0,
+    explain:
+      'Cloud ALM covers implementation and operations for cloud-centric landscapes, and '
+      + 'mainstream maintenance for Solution Manager 7.2 ends in 2027. Signavio is process '
+      + 'transformation and LeanIX enterprise architecture — related, but not ALM.'
+  },
+  {
+    id: 'transition-dmo',
+    since: '2026-10-08',
+    topic: 'transitions',
+    prompt: 'What does the Database Migration Option (DMO) of the Software Update Manager combine?',
+    options: [
+      'The conversion or upgrade and the move to the SAP HANA database, in one procedure',
+      'Two client copies into one',
+      'Data archiving and table partitioning',
+      'The fit-to-standard and the cutover rehearsal'
+    ],
+    answer: 0,
+    explain:
+      'DMO runs the software update and the database migration together, which is why it '
+      + 'is the usual route for a brownfield conversion from a non-HANA database: one '
+      + 'downtime instead of two.'
+  },
+  {
+    id: 'deployment-private-vs-public',
+    since: '2026-10-08',
+    topic: 'transitions',
+    prompt: 'Compared with S/4HANA Cloud Public Edition, what does Private Edition allow?',
+    options: [
+      'A single-tenant system with the full S/4HANA scope, broader configuration and on-stack custom ABAP',
+      'Nothing — the two are the same product with different names',
+      'Running without any SAP-managed infrastructure',
+      'Skipping SAP Activate entirely'
+    ],
+    answer: 0,
+    explain:
+      'Public Edition is multi-tenant, quarterly-upgraded and limited to released '
+      + 'extensibility. Private Edition is a dedicated system run by SAP or a hyperscaler, '
+      + 'closer to on-premise in what can be configured and built — which is why the '
+      + 'deployment is the first thing an SAP advert should state.'
+  },
+  {
+    id: 'finance-mdg',
+    since: '2026-10-08',
+    topic: 's4hana-finance',
+    prompt: 'What does SAP Master Data Governance add over maintaining master data directly?',
+    options: [
+      'Change requests with workflow, validation and approval before the data becomes active',
+      'Faster database reads on master data tables',
+      'Automatic translation of material descriptions',
+      'A replacement for the business partner model'
+    ],
+    answer: 0,
+    explain:
+      'MDG puts a governed process in front of the record: the change is staged, checked '
+      + 'against rules, approved and only then activated. The data model underneath is '
+      + 'still the standard one — business partner, material, G/L account.'
+  },
+  {
+    id: 'finance-fica',
+    since: '2026-10-08',
+    topic: 's4hana-finance',
+    prompt: 'What is Contract Accounting (FI-CA) designed for?',
+    options: [
+      'Very high volumes of open items per business partner, as in utilities, telecoms and insurance',
+      'Consolidating group subsidiaries',
+      'Fixed-asset depreciation',
+      'Travel expense reimbursement'
+    ],
+    answer: 0,
+    explain:
+      'FI-CA is a subledger built for mass processing: millions of customers, each with '
+      + 'many small items. It sits under IS-U, telecoms billing (BRIM) and insurance '
+      + 'collections, where the classic FI-AR design does not scale.'
+  },
+  {
+    id: 'sc-aatp',
+    since: '2026-10-08',
+    topic: 's4hana-supply-chain',
+    prompt: 'Which S/4HANA capability is the successor to the APO-based global ATP check for order promising?',
+    options: ['Advanced Available-to-Promise (aATP)', 'Material Requirements Planning', 'Batch Management', 'Credit Management'],
+    answer: 0,
+    explain:
+      'aATP brings product allocation, backorder processing and alternative-plant checks '
+      + 'into S/4HANA itself, where APO gATP needed a separate system and a CIF interface.'
+  },
+  {
+    id: 'sc-classic-wm',
+    since: '2026-10-08',
+    topic: 's4hana-supply-chain',
+    prompt: 'What is the position of classic Warehouse Management (LE-WM) in S/4HANA?',
+    options: [
+      'It is a compatibility-scope item, and EWM is the intended successor',
+      'It is the strategic warehouse solution and EWM is deprecated',
+      'It was rewritten as a Fiori app with the same name',
+      'It is only available in Public Edition'
+    ],
+    answer: 0,
+    explain:
+      'Classic WM survives in S/4HANA under the compatibility pack, with limited usage '
+      + 'rights, so a conversion that keeps it is postponing a decision. EWM, embedded or '
+      + 'decentralised, is where SAP invests.'
+  },
+  {
+    id: 'hcm-infotype-0001',
+    since: '2026-10-08',
+    topic: 'successfactors',
+    prompt: 'In on-premise SAP HCM, which infotype holds an employee\'s organisational assignment?',
+    options: ['0001', '0002', '0008', '0014'],
+    answer: 0,
+    explain:
+      'Infotype 0001 is Organizational Assignment — company code, personnel area, '
+      + 'position, cost centre. 0002 is personal data, 0008 basic pay and 0014 recurring '
+      + 'payments and deductions.'
+  },
+  {
+    id: 'sf-ecp',
+    since: '2026-10-08',
+    topic: 'successfactors',
+    prompt: 'What is Employee Central Payroll?',
+    options: [
+      'SAP\'s payroll engine run by SAP in the cloud and integrated with Employee Central',
+      'A reporting dashboard over a third-party payroll',
+      'A timesheet app for contractors',
+      'The bank-transfer module of Concur'
+    ],
+    answer: 0,
+    explain:
+      'ECP is the proven SAP payroll — the same schemas and rules a PY consultant knows — '
+      + 'hosted by SAP and fed by Employee Central. That is why on-premise payroll skills '
+      + 'carry straight across to it.'
+  },
+  {
+    id: 'industry-isu-meter-to-cash',
+    since: '2026-10-08',
+    topic: 'industry-solutions',
+    prompt: 'In SAP IS-U, what is the end-to-end process from reading a meter to collecting payment usually called?',
+    options: ['Meter-to-cash', 'Order-to-cash', 'Procure-to-pay', 'Record-to-report'],
+    answer: 0,
+    explain:
+      'Meter-to-cash runs from device management and meter reading through billing and '
+      + 'invoicing to FI-CA collections. It is why an IS-U advert is unreadable to somebody '
+      + 'who has only done SD order-to-cash.'
+  },
+  {
+    id: 'industry-psm-fm',
+    since: '2026-10-08',
+    topic: 'industry-solutions',
+    prompt: 'What does Funds Management (PSM-FM) do in a public sector SAP system?',
+    options: [
+      'Checks commitments and spending against an approved budget (availability control)',
+      'Manages investment portfolios for pension funds',
+      'Calculates payroll for civil servants',
+      'Publishes procurement tenders'
+    ],
+    answer: 0,
+    explain:
+      'FM records the budget by funds centre and commitment item and stops — or warns '
+      + 'on — a posting that would exceed it. Public bodies are held to the budget they '
+      + 'were granted, which is the requirement commercial controlling does not have.'
+  },
+  {
+    id: 'spend-fieldglass',
+    since: '2026-10-08',
+    topic: 'spend-management',
+    prompt: 'What does SAP Fieldglass manage?',
+    options: [
+      'External workforce: contingent workers and services procurement',
+      'Employee travel bookings',
+      'Supplier invoices for direct materials',
+      'Payroll for permanent staff'
+    ],
+    answer: 0,
+    explain:
+      'Fieldglass is a vendor management system for the people a company buys rather '
+      + 'than employs — contractors and statement-of-work services — from requisition to '
+      + 'timesheet to invoice.'
+  },
+  {
+    id: 'cx-customer-data-cloud',
+    since: '2026-10-08',
+    topic: 'customer-experience',
+    prompt: 'What does SAP Customer Data Cloud (formerly Gigya) mainly handle?',
+    options: [
+      'Customer identity, login, consent and profile management',
+      'Warehouse slotting',
+      'Sales order pricing',
+      'Shop-floor machine data'
+    ],
+    answer: 0,
+    explain:
+      'It is the customer identity and consent layer — registration, social login, '
+      + 'preferences and the consent records privacy law asks for — in front of commerce, '
+      + 'marketing and service.'
   }
 ]);
 
@@ -469,8 +726,25 @@ function shuffled(list, random) {
  *
  * Returns the FULL question, answer included. Only `publicFormOf` may reach a template.
  */
+/**
+ * The bank as it stood on a date.
+ *
+ * The daily set is drawn from the bank by a seeded shuffle, so ANY change to the bank
+ * reshuffles every day — including days already played, whose stored scores
+ * `Challenge.replay` re-grades. Editing the bank would then rewrite history: a closed
+ * attempt would be replayed against questions its player never saw, and the mismatch
+ * logged as though the score were wrong.
+ *
+ * So the bank only ever grows forward. A question added later carries `since` and does
+ * not exist on earlier days; a question taken out carries `retired` and stays in the list
+ * for the days before it. A day's set is therefore a function of the date alone, forever.
+ */
+function activeOn(dateIso) {
+  return QUESTIONS.filter((q) => (!q.since || q.since <= dateIso) && (!q.retired || dateIso < q.retired));
+}
+
 function dailySetFor(dateIso, { size = QUESTIONS_PER_DAY } = {}) {
-  const picked = shuffled(QUESTIONS.slice(), rngFrom(seedFor(dateIso, 'pick'))).slice(0, size);
+  const picked = shuffled(activeOn(dateIso), rngFrom(seedFor(dateIso, 'pick'))).slice(0, size);
 
   return picked.map((question) => {
     const order = shuffled(
@@ -578,12 +852,17 @@ function assertChallengeIntegrity() {
     }
     // One vocabulary. A topic nothing else on the site knows is a dead end for a reader
     // told to go and read about it.
+    for (const key of ['since', 'retired']) {
+      if (question[key] !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(question[key])) {
+        throw new Error(`question ${question.id} has a ${key} that is not a YYYY-MM-DD date`);
+      }
+    }
     if (!TOPIC_SLUGS.has(question.topic)) {
       throw new Error(`question ${question.id} has topic "${question.topic}", which is not a community category`);
     }
   }
-  if (QUESTIONS.length < QUESTIONS_PER_DAY) {
-    throw new Error(`the bank holds ${QUESTIONS.length} questions but a day needs ${QUESTIONS_PER_DAY}`);
+  if (activeOn(serverDate()).length < QUESTIONS_PER_DAY) {
+    throw new Error(`the bank holds ${activeOn(serverDate()).length} live questions but a day needs ${QUESTIONS_PER_DAY}`);
   }
   if (!Number.isInteger(POINTS_PER_CORRECT) || POINTS_PER_CORRECT < 0) {
     throw new Error('points per correct answer must be a non-negative integer');
@@ -595,7 +874,8 @@ module.exports = {
   QUESTIONS_PER_DAY,
   POINTS_PER_CORRECT,
   STREAK_GRACE_DAYS,
-  bankSize: () => QUESTIONS.length,
+  bankSize: () => activeOn(serverDate()).length,
+  activeOn,
   dailySetFor,
   publicFormOf,
   gradeAnswers,
