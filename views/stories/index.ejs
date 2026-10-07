@@ -49,7 +49,10 @@
 
   <% if (!stories.length) { %>
     <div class="glass-card"><div class="card-body">
-      <p class="text-muted-2 mb-0">No stories yet. They are written by the team, so this page fills slowly and on purpose.</p>
+      <p class="text-muted-2 mb-0">
+        No stories yet. Stories are written up by the SAP Hub team from real engagements, so this
+        part fills slowly and on purpose. Reviews, below, are written by members.
+      </p>
     </div></div>
   <% } else { %>
     <div class="row g-4">
@@ -99,7 +102,10 @@
   <% } %>
 
   <div class="text-center mt-4">
-    <a class="btn btn-outline-primary" href="/success-stories/reviews">Leave your own review</a>
+    <%# Reviews and stories are different things with different authors; the button says
+        which one it writes, so it does not read as contradicting the note above. %>
+    <p class="small text-muted-2 mb-2">Used the Hub? Members can write a review, which is checked before it appears.</p>
+    <a class="btn btn-outline-primary" href="/success-stories/reviews">Write a review</a>
   </div>
 </div>
 </section>

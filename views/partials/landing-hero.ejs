@@ -17,7 +17,7 @@
           and by availability. And day-rate benchmarks contributed by the people doing the work.
         </p>
         <div class="d-flex flex-wrap gap-2">
-          <a class="btn btn-light fw-semibold" href="/jobs">Browse <%= totalJobs %> open role<%= totalJobs === 1 ? '' : 's' %></a>
+          <a class="btn btn-light fw-semibold" href="/jobs"><%= totalJobs ? ('Browse ' + totalJobs + ' open role' + (totalJobs === 1 ? '' : 's')) : 'Browse roles' %></a>
           <a class="btn btn-outline-light fw-semibold" href="/consultants">Find consultants</a>
         </div>
       </div>

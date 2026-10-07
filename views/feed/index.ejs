@@ -16,7 +16,9 @@
     <% if (currentUser) { %>
       <div class="mb-4">
         <h1 class="mb-1"><%= greeting %>, <%= currentUser.name.split(' ')[0] %></h1>
-        <p class="text-muted-2 mb-0">The community kept busy while you were away — here's the latest.</p>
+        <%# Says what the page IS, never how busy it was: on a quiet day "the community kept
+            busy" is a claim the list underneath contradicts. %>
+        <p class="text-muted-2 mb-0">The newest roles, questions and articles, newest first.</p>
       </div>
       <%- include('../partials/composer') %>
     <% } else { %>
