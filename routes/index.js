@@ -23,6 +23,7 @@ const Post = require('../models/Post');
 const email = require('../utils/email');
 const { ipLimiter } = require('../middleware/rateLimit');
 const { body, validationResult } = require('express-validator');
+const { findDuplicates, MAX_LINES } = require('../utils/dedupe');
 
 const router = express.Router();
 
@@ -242,6 +243,49 @@ router.get(
  */
 router.get('/cv-generator', (req, res) => {
   res.render('legal/cv-generator', { title: 'Build your SAP CV' });
+});
+
+/**
+ * GET /tax
+ *
+ * The Services menu names "Tax Optimization" because the reference's does, and somebody
+ * moving between the two sites looks for it there. What is behind it is what
+ * docs/PORT-PLAN.md has always said the tax pages would be: an INTRODUCTION to a specialist,
+ * with nothing computed. No calculator, no saving, no take-home figure — a number on this
+ * page is advice somebody acts on, given by a site that cannot know their circumstances.
+ * The request goes through the contact form, which already has a queue a person reads.
+ */
+router.get('/tax', (req, res) => {
+  res.render('legal/tax', { title: 'Tax optimisation for SAP contractors' });
+});
+
+/**
+ * GET/POST /dedupe
+ *
+ * Paste a list, get back the lines that are the same person. Pure — `utils/dedupe.js` —
+ * and nothing is stored: the list is in the request, the groups are in the response, and
+ * there is no table between them. A POST rather than a GET so a pasted contact list never
+ * lands in a URL, a browser history or an access log.
+ *
+ * Rate-limited per address like the other public forms; it computes nothing expensive, but
+ * a public endpoint that accepts a 200 KB body is one somebody will loop.
+ */
+const dedupeLimiter = ipLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  message: 'That is a lot of lists in an hour. Please give it a little while.'
+});
+
+router.get('/dedupe', (req, res) => {
+  res.render('legal/dedupe', { title: 'Find duplicates in a list', input: '', result: null, maxLines: MAX_LINES });
+});
+
+router.post('/dedupe', dedupeLimiter, (req, res) => {
+  const input = typeof req.body.list === 'string' ? req.body.list : '';
+  const result = input.trim() ? findDuplicates(input) : null;
+  // No caching of a response that echoes somebody's contact list back to them.
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.render('legal/dedupe', { title: 'Find duplicates in a list', input, result, maxLines: MAX_LINES });
 });
 
 /**

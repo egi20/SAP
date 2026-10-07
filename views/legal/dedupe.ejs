@@ -1,0 +1,73 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-layers',
+  heading: 'Dedupe',
+  sub: 'Paste a list of people and see which lines are the same person. Nothing is stored.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-9">
+    <%- include('../partials/flash') %>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <form method="post" action="/dedupe">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="form-label fw-semibold" for="dedupeList">One person per line</label>
+        <textarea class="form-control font-monospace" id="dedupeList" name="list" rows="10"
+                  spellcheck="false" autocomplete="off"
+                  placeholder="Anna Müller, anna.mueller@example.com&#10;Muller, Anna &lt;ANNA.MUELLER@example.com&gt;&#10;John Smith"><%= input %></textarea>
+        <p class="form-text">
+          Up to <%= maxLines.toLocaleString('en-GB') %> lines. A line is matched on its email
+          address when it has one — case and spacing ignored — and otherwise on the name, with
+          accents, punctuation and word order ignored. Two lines with the same name and
+          different addresses are kept apart: they are probably two people.
+        </p>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-layers me-1"></i> Find duplicates</button>
+      </form>
+    </div></div>
+
+    <% if (result) { %>
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h5 mb-3">Result</h2>
+        <% if (result.truncated) { %>
+          <div class="alert alert-warning small">
+            Only the first <%= maxLines.toLocaleString('en-GB') %> lines were checked. Split the
+            list and run the rest separately.
+          </div>
+        <% } %>
+        <p class="mb-3">
+          <strong><%= result.total %></strong> line(s), <strong><%= result.unique %></strong> distinct
+          <%= result.unique === 1 ? 'person' : 'people' %>.
+          <% if (result.groups.length) { %>
+            <strong><%= result.total - result.unique %></strong> line(s) would go in a merge.
+          <% } %>
+        </p>
+
+        <% if (!result.groups.length) { %>
+          <p class="text-muted-2 mb-0"><i class="bi bi-check-circle me-1"></i>No duplicates found.</p>
+        <% } else { %>
+          <% result.groups.forEach(function (group) { %>
+            <div class="border rounded-3 p-3 mb-2">
+              <div class="small text-muted-2 mb-1">
+                Same <%= group.reason === 'email' ? 'email address' : 'name' %>:
+                <span class="fw-semibold text-break"><%= group.key %></span>
+              </div>
+              <ul class="list-unstyled small mb-0">
+                <% group.entries.forEach(function (entry) { %>
+                  <li class="text-break"><span class="text-muted-2">line <%= entry.line %>:</span> <%= entry.raw %></li>
+                <% }); %>
+              </ul>
+            </div>
+          <% }); %>
+        <% } %>
+      </div></div>
+    <% } %>
+
+    <p class="small text-muted-2">
+      The list is read in the request and answered in the response. It is not saved, logged or
+      kept anywhere on this site.
+    </p>
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

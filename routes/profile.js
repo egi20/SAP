@@ -18,6 +18,7 @@ const { requireIdParam } = require('../utils/ids');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { slugify } = require('../utils/slug');
 const Job = require('../models/Job');
+const Quote = require('../models/Quote');
 const AccountClosure = require('../models/AccountClosure');
 const { buildCv, cvGaps } = require('../utils/cvData');
 const { buildCvDocx } = require('../utils/documents/cvDocx');
@@ -180,6 +181,30 @@ function cvOptionsFrom(query) {
     includeContact: query.contact === '1'
   };
 }
+
+/**
+ * GET /profile/documents — every document this account can produce, in one place.
+ *
+ * A LIST OF GENERATORS, not a folder of files. Documents here are generated on demand and
+ * never stored (see CLAUDE.md, "Documents"), so there is nothing to keep in a folder: a
+ * stored copy of a CV or an estimate is a second source of truth that starts disagreeing
+ * with the profile or the quote the moment either is edited. Each entry opens the page
+ * that renders the document fresh from what it says now.
+ */
+router.get(
+  '/documents',
+  asyncHandler(async (req, res) => {
+    const user = req.session.user;
+    const { rows: quotes, total: quoteTotal } = await Quote.listForOwner(user.id, { limit: 10 });
+
+    res.render('profile/documents', {
+      title: 'Your documents',
+      isConsultant: user.isConsultant,
+      quotes,
+      quoteTotal
+    });
+  })
+);
 
 router.get(
   '/cv',

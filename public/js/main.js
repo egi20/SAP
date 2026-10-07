@@ -17,27 +17,152 @@
   }
 
   /**
-   * Unread notification badge.
+   * Unread badges.
+   *
+   * ONE request per count, written into every element carrying its `data-count` — the bell
+   * and the chat icon in the bar, and the Messages tile in the user menu. Two elements
+   * fetching the same number separately could show two different numbers on one page.
    *
    * Fails silently: a 401 here simply means the session ended, and the page should not
    * grow an error banner because a decorative counter could not load.
    */
-  function fillBadge(elementId, url) {
-    var badge = document.getElementById(elementId);
-    if (!badge) return;
+  function setBadges(kind, count) {
+    var badges = document.querySelectorAll('[data-count="' + kind + '"]');
+    Array.prototype.forEach.call(badges, function (badge) {
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.classList.remove('d-none');
+      } else {
+        badge.textContent = '';
+        badge.classList.add('d-none');
+      }
+    });
+  }
+
+  function fillBadges(kind, url) {
+    if (!document.querySelector('[data-count="' + kind + '"]')) return;
     apiFetch(url)
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        if (data && data.count > 0) {
-          badge.textContent = data.count > 99 ? '99+' : String(data.count);
-          badge.classList.remove('d-none');
-        }
-      })
+      .then(function (data) { if (data) setBadges(kind, data.count); })
       .catch(function () { /* decorative only */ });
   }
 
-  fillBadge('notifCount', '/notifications/unread-count');
-  fillBadge('messageCount', '/messages/unread-count');
+  fillBadges('notifications', '/notifications/unread-count');
+  fillBadges('messages', '/messages/unread-count');
+
+  /**
+   * The Notifications section of the user menu.
+   *
+   * Loaded the first time the menu opens, not with the page: most page views never open it,
+   * and a query per render for a list nobody reads is a cost every page pays. Each entry is
+   * built with textContent — a notification title is text somebody else's action produced.
+   * The server only hands back same-site links; this checks again rather than trusting it.
+   */
+  var notifList = document.querySelector('[data-notification-list]');
+  var notifLoaded = false;
+
+  function safeLink(link) {
+    return typeof link === 'string' && link.charAt(0) === '/' && link.charAt(1) !== '/' && link.charAt(1) !== '\\';
+  }
+
+  function emptyNotifications() {
+    notifList.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'text-center text-muted-2 small py-3 mb-0';
+    var icon = document.createElement('i');
+    icon.className = 'bi bi-bell-slash d-block fs-4 mb-1';
+    icon.setAttribute('aria-hidden', 'true');
+    p.appendChild(icon);
+    p.appendChild(document.createTextNode('No new notifications'));
+    notifList.appendChild(p);
+  }
+
+  function renderNotifications(items) {
+    if (!items.length) return emptyNotifications();
+    notifList.innerHTML = '';
+    items.forEach(function (n) {
+      var entry = document.createElement('a');
+      entry.className = 'notification-entry' + (n.read ? '' : ' is-unread');
+      entry.href = safeLink(n.link) ? n.link : '/notifications';
+      var icon = document.createElement('i');
+      icon.className = 'bi ' + (n.read ? 'bi-bell' : 'bi-bell-fill');
+      icon.setAttribute('aria-hidden', 'true');
+      var text = document.createElement('span');
+      text.className = 'flex-grow-1 min-w-0';
+      var title = document.createElement('span');
+      title.className = 'notification-title d-block text-truncate';
+      title.textContent = n.title;
+      var time = document.createElement('span');
+      time.className = 'notification-time';
+      time.textContent = n.when;
+      text.appendChild(title);
+      text.appendChild(time);
+      entry.appendChild(icon);
+      entry.appendChild(text);
+      if (!n.read) {
+        var dot = document.createElement('span');
+        dot.className = 'notification-unread-dot';
+        dot.setAttribute('aria-label', 'Unread');
+        entry.appendChild(dot);
+        // Marked read on the way out. keepalive lets the request finish after navigation.
+        entry.addEventListener('click', function () {
+          apiFetch('/notifications/' + encodeURIComponent(n.id) + '/read', { method: 'POST', keepalive: true })
+            .catch(function () { /* the list page can still mark it */ });
+        });
+      }
+      notifList.appendChild(entry);
+    });
+    return undefined;
+  }
+
+  function loadNotifications() {
+    if (!notifList || notifLoaded) return;
+    notifLoaded = true;
+    apiFetch('/notifications/recent')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.notifications)) { notifLoaded = false; return; }
+        renderNotifications(data.notifications);
+        setBadges('notifications', data.unread);
+      })
+      .catch(function () { notifLoaded = false; });
+  }
+
+  var userToggle = document.getElementById('userMenuToggle');
+  if (userToggle) userToggle.addEventListener('show.bs.dropdown', loadNotifications);
+
+  // "Mark all read" without leaving the page. Without scripting the form posts normally.
+  var markAll = document.querySelector('[data-mark-all-read]');
+  if (markAll) {
+    markAll.addEventListener('submit', function (event) {
+      event.preventDefault();
+      apiFetch(markAll.action, { method: 'POST' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          setBadges('notifications', 0);
+          if (!notifList) return;
+          Array.prototype.forEach.call(notifList.querySelectorAll('.notification-entry'), function (entry) {
+            entry.classList.remove('is-unread');
+            var dot = entry.querySelector('.notification-unread-dot');
+            if (dot) dot.remove();
+          });
+        })
+        .catch(function () { /* the list page can still do it */ });
+    });
+  }
+
+  // The bell opens the user menu at its Notifications section instead of leaving the page.
+  var bell = document.querySelector('[data-open-notifications]');
+  if (bell && userToggle && window.bootstrap && window.bootstrap.Dropdown) {
+    bell.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.bootstrap.Dropdown.getOrCreateInstance(userToggle).show();
+      var section = document.getElementById('userMenuNotifications');
+      if (section) section.scrollIntoView({ block: 'nearest' });
+    });
+  }
 
   /**
    * Guard against a double-submitted form producing two writes.

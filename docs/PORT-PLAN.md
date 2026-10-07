@@ -87,11 +87,16 @@ sound go-live fails — and it is a line item on real statements of work.
 ## Excluded, at the owner's instruction — the same list as Salesforce Hub
 
 - **Dedupe.** 65 handlers across 12 tables in DynamicsHub. A separate record-deduplication
-  product that happens to be embedded in the ancestor, not part of a marketplace.
+  product that happens to be embedded in the ancestor, not part of a marketplace. The
+  PRODUCT stays excluded. What exists, at the owner's request so the Services menu matches
+  the reference's, is `/dedupe`: one stateless page over `utils/dedupe.js` that groups a
+  pasted list by email, then by name, and stores nothing — no table, no upload, no log.
 - **The tax savings calculator.** DynamicsHub computes a monthly saving from a hard-coded
   percentage that an admin can edit, and shows it to people who act on it. Salesforce Hub
   refused it and pinned the refusal with a test that scans the feature for anything
   saving-shaped. Same here: the tax pages introduce a specialist and compute nothing.
+  `/tax` is that introduction, and the only thing on it that does anything is a link to
+  the contact form.
 - **Anything that sends to a sales lead on its own.** The CRM drafts; a person sends. No
   scheduler, no bulk send, no outreach queue one cron away from becoming one.
 - **Browser-scored games.** DynamicsHub's `routes/games.js` reads `score` out of

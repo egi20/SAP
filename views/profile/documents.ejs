@@ -1,0 +1,60 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-folder',
+  heading: 'Your documents',
+  sub: 'Everything this account can produce. Each one is generated when you open it, from what your profile or estimate says now.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5"><i class="bi bi-file-earmark-person me-2"></i>Your CV</h2>
+        <% if (isConsultant) { %>
+          <p class="text-muted-2">
+            A Word document built from your consultant profile and delivery history. Nothing is
+            written for you, and the rate and contact details stay off unless you tick them.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" href="/profile/cv"><i class="bi bi-eye me-1"></i> Preview and download</a>
+            <a class="btn btn-outline-primary" href="/profile/consultant"><i class="bi bi-pencil me-1"></i> Edit the profile behind it</a>
+          </div>
+        <% } else { %>
+          <p class="text-muted-2 mb-2">
+            The CV is built from a consultant profile, and this account does not have one.
+          </p>
+          <a href="/profile/settings">Add the consultant role in settings</a>
+        <% } %>
+      </div></div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5"><i class="bi bi-file-text me-2"></i>Estimates and statements of work</h2>
+        <p class="text-muted-2">
+          Each estimate produces its documents — the statement of work, the workbook and the
+          summary deck — on its own page, priced under the catalogue it was saved with.
+        </p>
+        <% if (!quotes.length) { %>
+          <p class="mb-0"><a href="/quotes/new">Produce your first estimate</a></p>
+        <% } else { %>
+          <ul class="list-unstyled mb-2">
+            <% quotes.forEach(function (q) { %>
+              <li class="d-flex justify-content-between gap-2 py-1 border-bottom">
+                <a class="text-truncate" href="/quotes/<%= q.reference %>"><%= q.project_name || q.reference %></a>
+                <span class="small text-muted-2 text-nowrap"><%= q.reference %></span>
+              </li>
+            <% }); %>
+          </ul>
+          <% if (quoteTotal > quotes.length) { %>
+            <a class="small" href="/quotes">All <%= quoteTotal %> estimates</a>
+          <% } %>
+        <% } %>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>

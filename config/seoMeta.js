@@ -65,6 +65,16 @@ const PAGE_META = {
     description:
       'A CV built from your SAP Hub profile — delivery history, modules and Activate phases included. Nothing to retype and nothing written for you.'
   },
+  '/tax': {
+    title: 'Tax optimisation for SAP contractors',
+    description:
+      'An introduction to a tax specialist for SAP contractors and consultants. The Hub computes nothing and gives no advice of its own.'
+  },
+  '/dedupe': {
+    title: 'Find duplicates in a contact list',
+    description:
+      'Paste a list of people and see which lines are the same person, by email or by name. Nothing is stored.'
+  },
   '/about': {
     title: 'About SAP Hub',
     description: 'What SAP Hub is, who it is for, and what it deliberately does not do.'
@@ -100,7 +110,7 @@ const PAGE_META = {
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
   '/rates/calculator', '/community', '/community/articles', '/success-stories',
-  '/consultant-hub', '/company-hub', '/cv-generator', '/about', '/blog', '/faq', '/contact', '/report-issue',
+  '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/dedupe', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

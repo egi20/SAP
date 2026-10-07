@@ -421,17 +421,148 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   background: rgba(0, 100, 217, 0.1);
 }
 
+/*
+ * The menus are OPAQUE, and the missing blur is the fix rather than an omission.
+ *
+ * The bar itself is frosted glass (82% white + backdrop-filter). The panels used to be the
+ * same recipe at 85%, but a backdrop-filter on an element INSIDE another backdrop-filter
+ * root cannot sample anything behind that root: Chrome blurs the bar's own backdrop, which
+ * is nothing, so the panel's blur did nothing and the feed showed straight through 15% of
+ * it. The page underneath a menu is the one thing the menu must hide — every item would
+ * otherwise be read against whatever card happened to scroll under it. Same white, alpha 1.
+ */
 .navbar-hub .dropdown-menu {
-  background: var(--glass-bg-heavy);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-border);
+  background-color: var(--bg-white);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   box-shadow: var(--glass-shadow-lg);
-  padding: var(--space-2);
+  padding: var(--space-3);
+  min-width: 220px;
+  margin-top: 0;
+  z-index: 1050;
 }
-.navbar-hub .dropdown-item { border-radius: var(--radius-md); padding: 0.5rem 0.75rem; }
-.navbar-hub .dropdown-item:hover { background: rgba(0, 100, 217, 0.08); color: var(--primary-blue); }
+.navbar-hub .dropdown-item {
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: var(--text-dark);
+}
+.navbar-hub .dropdown-item:hover,
+.navbar-hub .dropdown-item:focus { background: rgba(0, 100, 217, 0.08); color: var(--primary-blue); }
+.navbar-hub .dropdown-item.active,
+.navbar-hub .dropdown-item:active { background: rgba(0, 100, 217, 0.12); color: var(--primary-blue-dark); }
+.navbar-hub .dropdown-divider { border-color: var(--border-color); opacity: 1; }
+
+/* The user menu: profile, notifications, four tiles, then the sections for each role. */
+/* The navbar is sticky, so a panel taller than the window would put Sign Out out of reach;
+   it scrolls inside itself instead. */
+.navbar-hub .user-menu-dropdown {
+  width: 388px;
+  min-width: 300px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.navbar-hub .user-menu-profile {
+  margin: var(--space-2);
+  padding: var(--space-4) 0;
+  border-radius: var(--radius-lg);
+  white-space: normal;
+}
+.user-menu-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+}
+.user-menu-avatar-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg-tinted);
+  color: var(--primary-blue);
+  font-size: 1.5rem;
+}
+.user-menu-name { font-size: 0.875rem; color: var(--text-dark); }
+.user-menu-email { font-size: 0.766rem; }
+.badge-hub.user-menu-role { padding: 0.1rem 0.5rem; font-size: 0.7rem; }
+
+.user-menu-section-title { font-size: 0.875rem; font-weight: 600; color: var(--text-light); }
+.navbar-hub .user-menu-action { font-size: 0.75rem; font-weight: 600; text-decoration: none; padding: 0.15rem 0.4rem; }
+.notification-list { max-height: 300px; overflow-y: auto; }
+.notification-entry {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-dark);
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+.notification-entry:hover, .notification-entry:focus { background: rgba(0, 100, 217, 0.08); color: var(--text-dark); }
+.notification-entry .bi { color: var(--primary-blue); margin-top: 2px; }
+.notification-entry .notification-time { display: block; font-size: 0.75rem; color: var(--text-light); }
+.notification-entry.is-unread .notification-title { font-weight: 600; }
+.notification-unread-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--primary-blue);
+}
+
+.dropdown-quick-links { display: flex; gap: var(--space-2); }
+.quick-link-item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-medium);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+.quick-link-item .bi { font-size: 1.2rem; color: var(--primary-blue); }
+.quick-link-item:hover, .quick-link-item:focus {
+  background: rgba(0, 100, 217, 0.08);
+  border-color: var(--glass-border-tinted);
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+.quick-link-badge { position: absolute; top: -8px; right: -14px; }
+
+.navbar-hub .user-menu-dropdown .dropdown-header { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+.navbar-hub .user-menu-dropdown .dropdown-header.text-primary { color: var(--primary-blue) !important; }
+.navbar-hub .user-menu-dropdown .dropdown-header.text-success { color: #1d6f4f !important; }
+.navbar-hub .dropdown-item-admin { font-weight: 600; }
+.navbar-hub .dropdown-item-danger { color: #9e2b3d; }
+.navbar-hub .dropdown-item-danger:hover,
+.navbar-hub .dropdown-item-danger:focus { background: rgba(179, 54, 74, 0.08); color: #9e2b3d; }
+
+/* Collapsed navbar: the menus render inline inside the collapse, still opaque. */
+@media (max-width: 991.98px) {
+  .navbar-hub .dropdown-menu { box-shadow: none; }
+  .navbar-hub .user-menu-dropdown { width: 100%; max-width: none; max-height: none; }
+}
 
 .notif-dot {
   display: inline-block;
