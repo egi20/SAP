@@ -238,4 +238,20 @@ maybe()('the page itself', () => {
     expect(res.text).not.toContain('<script>alert(1)</script>');
     expect(res.text).toContain('&lt;script&gt;');
   });
+
+  test('an SAP module code finds the module and the role even when nothing is listed', async () => {
+    /*
+     * "EWM" answered "0 results" from a site whose module filter, taxonomy and rate index
+     * all know EWM. The catalogue block says where it lives instead. Whether any listing
+     * mentions EWM depends on what other suites have written, so this asserts only the
+     * catalogue half, which is read from config.
+     */
+    const res = await request(app).get('/search?q=EWM');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('In the SAP catalogue');
+    expect(res.text).toContain('href="/jobs?modules=ewm"');
+    expect(res.text).toContain('href="/consultants?modules=ewm"');
+    expect(res.text).toContain('href="/rates/s4-ewm"');
+    expect(res.text).not.toContain('Nothing matched');
+  });
 });
