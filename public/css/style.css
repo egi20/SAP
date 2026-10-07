@@ -429,7 +429,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 }
 .navbar-hub .nav-link.active { color: var(--primary-blue); }
 @media (min-width: 992px) {
-  .navbar-hub .nav-main .nav-link.active::after {
+  .navbar-hub .nav-main .nav-link.active::before {
+    /* ::before, because Bootstrap draws the dropdown caret with ::after. */
     content: '';
     position: absolute;
     left: 0.5rem;
@@ -456,6 +457,25 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .navbar-hub .nav-search-btn:hover,
 .navbar-hub .nav-search-btn:focus-visible,
 .navbar-hub .nav-search-btn.active { background: rgba(0, 100, 217, 0.08); text-decoration: none; }
+
+/* The search panel under the magnifier. Opaque, like every other menu in the bar. */
+.navbar-hub .nav-search-panel { width: 360px; max-width: calc(100vw - 2rem); padding: var(--space-3); }
+.nav-search-input {
+  border-radius: var(--radius-lg);
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-light);
+  border-color: var(--border-color);
+}
+.nav-search-input:focus { background: var(--bg-white); }
+.nav-search-results { margin-top: var(--space-2); max-height: 360px; overflow-y: auto; }
+.nav-search-hint { padding: var(--space-4) var(--space-2) var(--space-2); text-align: center; font-size: 0.875rem; color: var(--text-light); }
+.navbar-hub .nav-search-result { display: flex; align-items: center; gap: var(--space-2); font-size: 0.95rem; padding: var(--space-2) var(--space-3); }
+.nav-search-group { flex-shrink: 0; font-size: 0.75rem; color: var(--text-light); }
+.navbar-hub .nav-search-all { color: var(--primary-blue); font-weight: 500; }
+.avatar-unread { position: absolute; top: -6px; right: -10px; }
+@media (max-width: 991.98px) {
+  .navbar-hub .nav-search-panel { width: 100%; max-width: none; }
+}
 
 /*
  * The menus are OPAQUE, and the missing blur is the fix rather than an omission.

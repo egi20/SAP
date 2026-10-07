@@ -113,48 +113,53 @@
 
       <ul class="navbar-nav nav-side align-items-lg-center">
         <%#
-          Search is a button to /search, as on dynamicshub.net, rather than a box in the bar.
-          The box that was here had white text on the white bar, so it was invisible and still
-          took the width that pushed "Home" onto two lines. The results page has the real field.
+          Search opens a panel under the button, as on dynamicshub.net, and finds pages and
+          menu items without leaving the page. The list it searches is READ FROM THIS PAGE by
+          public/js/main.js — the menus above and the footer — so there is no second list of
+          pages to fall out of step with the navigation. The field is a real GET form to
+          /search: Enter with nothing picked runs the full search, and with scripting off the
+          button is a plain link there.
         %>
-        <li class="nav-item">
-          <a class="nav-search-btn <%= path === '/search' ? 'active' : '' %>" href="/search" aria-label="Search the Hub">
+        <li class="nav-item dropdown nav-search-dropdown">
+          <a class="nav-search-btn <%= path === '/search' ? 'active' : '' %>" href="/search" role="button" id="navSearchToggle"
+             data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false"
+             aria-label="Search the Hub">
             <i class="bi bi-search"></i>
           </a>
+          <div class="dropdown-menu dropdown-menu-end nav-search-panel" aria-labelledby="navSearchToggle">
+            <form method="get" action="/search" role="search" class="m-0" data-nav-search>
+              <label class="visually-hidden" for="navSearchInput">Search pages, menus and features</label>
+              <input class="form-control nav-search-input" id="navSearchInput" name="q" type="search"
+                     maxlength="120" autocomplete="off" placeholder="Search pages, menus..."
+                     aria-controls="navSearchResults">
+            </form>
+            <div class="nav-search-results" id="navSearchResults" aria-live="polite">
+              <p class="nav-search-hint mb-0">Type to find pages, menus, or features</p>
+            </div>
+          </div>
         </li>
         <% if (currentUser) { %>
           <%
             /*
-             * The two icons and the user menu read the SAME counts: public/js/main.js makes
-             * one request per count and fills every element carrying its data attribute, so
-             * the bell and the menu cannot disagree about how many are unread.
+             * There is no bell or chat icon in the bar, as on dynamicshub.net: both live in
+             * this menu. public/js/main.js makes one request per count and fills every
+             * element carrying its data attribute — the dot on the avatar, the count beside
+             * "Notifications" and the Messages tile — so they cannot disagree.
              */
             const ROLE_BADGES = { consultant: 'Consultant', company: 'Company', recruiter: 'Agency',
               partner: 'Partner', admin: 'Admin' };
             const badges = (currentUser.roles || []).filter((r) => ROLE_BADGES[r]);
             if (currentUser.isSuperadmin && !badges.includes('admin')) badges.push('admin');
           %>
-          <li class="nav-item">
-            <a class="nav-link" href="/messages" aria-label="Messages">
-              <i class="bi bi-chat-dots"></i>
-              <%# Filled by public/js/main.js, which makes no request when the element %>
-              <%# is absent — so the badge and the endpoint arrive together or not at all. %>
-              <span class="notif-dot d-none" id="messageCount" data-count="messages" aria-live="polite"></span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <%# A link first, so it works with scripting off; main.js turns it into the %>
-            <%# opener for the Notifications section of the user menu. %>
-            <a class="nav-link" href="/notifications" aria-label="Notifications" data-open-notifications>
-              <i class="bi bi-bell"></i>
-              <span class="notif-dot d-none" id="notifCount" data-count="notifications" aria-live="polite"></span>
-            </a>
-          </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" id="userMenuToggle"
                data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false">
-              <img class="avatar" style="width:30px;height:30px"
-                   src="<%= currentUser.profilePicture || '/images/avatar-placeholder.svg' %>" alt="">
+              <span class="position-relative d-inline-flex">
+                <img class="avatar" style="width:30px;height:30px"
+                     src="<%= currentUser.profilePicture || '/images/avatar-placeholder.svg' %>" alt="">
+                <%# Unread notifications, so the bar still says something is waiting. %>
+                <span class="notif-dot avatar-unread d-none" data-count="notifications" aria-label="unread notifications"></span>
+              </span>
               <span class="d-none d-lg-inline"><%= currentUser.name %></span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end user-menu-dropdown" aria-labelledby="userMenuToggle">
@@ -180,7 +185,8 @@
 
               <li class="user-menu-notifications" id="userMenuNotifications">
                 <div class="d-flex justify-content-between align-items-center px-3 pt-2 pb-1">
-                  <span class="user-menu-section-title"><i class="bi bi-bell me-1"></i>Notifications</span>
+                  <span class="user-menu-section-title"><i class="bi bi-bell me-1"></i>Notifications
+                    <span class="notif-dot ms-1 d-none" data-count="notifications"></span></span>
                   <span class="d-flex align-items-center">
                     <a class="btn btn-link btn-sm user-menu-action" href="/notifications">Show all</a>
                     <form method="post" action="/notifications/read-all" class="m-0" data-mark-all-read data-no-guard="true">

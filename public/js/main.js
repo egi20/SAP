@@ -152,15 +152,138 @@
     });
   }
 
-  // The bell opens the user menu at its Notifications section instead of leaving the page.
-  var bell = document.querySelector('[data-open-notifications]');
-  if (bell && userToggle && window.bootstrap && window.bootstrap.Dropdown) {
-    bell.addEventListener('click', function (event) {
+  /**
+   * The search panel under the magnifier: finds pages and menu items without leaving the page.
+   *
+   * The index is READ FROM THIS PAGE — every link in the navbar menus and the footer, with
+   * the menu or footer column it sits under — so it can only offer what the navigation
+   * offers, and adding a page to a menu adds it here with nothing else to edit. Labels are
+   * read and written as text. Enter with no result picked submits the form, which is the
+   * full search at /search.
+   */
+  var searchForm = document.querySelector('[data-nav-search]');
+  var searchResults = document.getElementById('navSearchResults');
+  var searchToggle = document.getElementById('navSearchToggle');
+
+  function fold(text) {
+    return String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function groupOf(link) {
+    var footerColumn = link.closest('.footer-hub [class*="col-"]');
+    if (footerColumn) {
+      var heading = null;
+      Array.prototype.forEach.call(footerColumn.querySelectorAll('h3'), function (h) {
+        // eslint-disable-next-line no-bitwise
+        if (h.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING) heading = h;
+      });
+      return heading ? heading.textContent.trim() : '';
+    }
+    var menu = link.closest('.dropdown-menu');
+    if (menu && menu.classList.contains('user-menu-dropdown')) return 'Your account';
+    var toggle = menu && menu.parentElement.querySelector('.dropdown-toggle');
+    return toggle ? toggle.textContent.trim() : '';
+  }
+
+  var searchIndex = null;
+  function buildIndex() {
+    var seen = {};
+    searchIndex = [];
+    var links = document.querySelectorAll(
+      '.navbar-hub .nav-main a[href^="/"], .navbar-hub .dropdown-item[href^="/"], .navbar-hub .quick-link-item[href^="/"], .footer-hub a[href^="/"]'
+    );
+    Array.prototype.forEach.call(links, function (link) {
+      var href = link.getAttribute('href');
+      var label = link.textContent.replace(/\s+/g, ' ').trim();
+      if (!label || seen[href]) return;
+      seen[href] = true;
+      var group = groupOf(link);
+      var icon = link.querySelector('.bi');
+      searchIndex.push({
+        href: href,
+        label: label,
+        group: group,
+        icon: icon ? icon.className.replace(/\b(me|ms)-\d\b/g, '').trim() : 'bi bi-link-45deg',
+        haystack: fold(label + ' ' + group)
+      });
+    });
+  }
+
+  function searchMessage(text) {
+    var p = document.createElement('p');
+    p.className = 'nav-search-hint mb-0';
+    p.textContent = text;
+    return p;
+  }
+
+  function renderSearch(query) {
+    if (!searchIndex) buildIndex();
+    searchResults.innerHTML = '';
+    var words = fold(query).split(' ').filter(Boolean);
+    if (!words.length) {
+      searchResults.appendChild(searchMessage('Type to find pages, menus, or features'));
+      return;
+    }
+    var matches = searchIndex.filter(function (entry) {
+      return words.every(function (w) { return entry.haystack.indexOf(w) !== -1; });
+    }).slice(0, 8);
+
+    matches.forEach(function (entry) {
+      var a = document.createElement('a');
+      a.className = 'dropdown-item nav-search-result';
+      a.href = entry.href;
+      var i = document.createElement('i');
+      i.className = entry.icon + ' me-2';
+      i.setAttribute('aria-hidden', 'true');
+      var label = document.createElement('span');
+      label.className = 'flex-grow-1 text-truncate';
+      label.textContent = entry.label;
+      a.appendChild(i);
+      a.appendChild(label);
+      if (entry.group) {
+        var group = document.createElement('span');
+        group.className = 'nav-search-group';
+        group.textContent = entry.group;
+        a.appendChild(group);
+      }
+      searchResults.appendChild(a);
+    });
+
+    // Always offered last: the full search, for anything that is not a page name.
+    var all = document.createElement('a');
+    all.className = 'dropdown-item nav-search-result nav-search-all';
+    all.href = '/search?q=' + encodeURIComponent(query.trim());
+    var allIcon = document.createElement('i');
+    allIcon.className = 'bi bi-search me-2';
+    allIcon.setAttribute('aria-hidden', 'true');
+    all.appendChild(allIcon);
+    all.appendChild(document.createTextNode(matches.length ? 'Search the Hub for “' + query.trim() + '”'
+      : 'No page matches. Search the Hub for “' + query.trim() + '”'));
+    searchResults.appendChild(all);
+  }
+
+  if (searchForm && searchResults && searchToggle) {
+    var searchInput = searchForm.querySelector('input[name="q"]');
+    searchToggle.addEventListener('shown.bs.dropdown', function () {
+      buildIndex();
+      searchInput.focus();
+      searchInput.select();
+    });
+    searchInput.addEventListener('input', function () { renderSearch(searchInput.value); });
+    searchInput.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowDown') return;
+      var first = searchResults.querySelector('.nav-search-result');
+      if (first) { event.preventDefault(); first.focus(); }
+    });
+    searchResults.addEventListener('keydown', function (event) {
+      var items = Array.prototype.slice.call(searchResults.querySelectorAll('.nav-search-result'));
+      var at = items.indexOf(document.activeElement);
+      if (at === -1 || (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')) return;
       event.preventDefault();
       event.stopPropagation();
-      window.bootstrap.Dropdown.getOrCreateInstance(userToggle).show();
-      var section = document.getElementById('userMenuNotifications');
-      if (section) section.scrollIntoView({ block: 'nearest' });
+      if (event.key === 'ArrowUp' && at === 0) { searchInput.focus(); return; }
+      var next = items[at + (event.key === 'ArrowDown' ? 1 : -1)];
+      if (next) next.focus();
     });
   }
 

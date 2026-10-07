@@ -78,9 +78,17 @@ describe('navbar menus', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it('the bell, the chat icon and the Messages tile read the counts main.js fills', () => {
-    expect(nav.match(/data-count="messages"/g)).toHaveLength(2);
-    expect(nav.match(/data-count="notifications"/g)).toHaveLength(1);
+  it('has no bell or chat icon in the bar; the counts live on the avatar and in the menu', () => {
+    expect(nav).not.toContain('aria-label="Messages"');
+    expect(nav).not.toContain('aria-label="Notifications"');
+    expect(nav.match(/data-count="messages"/g)).toHaveLength(1);
+    expect(nav.match(/data-count="notifications"/g)).toHaveLength(2);
+  });
+
+  it('search opens a panel instead of leaving the page, and still works without scripting', () => {
+    expect(nav).toMatch(/id="navSearchToggle"[\s\S]*?data-bs-toggle="dropdown"/);
+    expect(nav).toMatch(/<form method="get" action="\/search"[^>]*data-nav-search>/);
+    expect(nav).toContain('placeholder="Search pages, menus..."');
   });
 
   it('the panels are opaque and carry no blur of their own', () => {
