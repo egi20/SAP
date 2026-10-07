@@ -1,7 +1,7 @@
 'use strict';
 
 const { promisePool, withTransaction } = require('../config/database');
-const { containsPattern } = require('../utils/likePattern');
+const { textSearchClause } = require('../utils/likePattern');
 const { SECTIONS, SECTION_KEYS } = require('../config/jobSections');
 const { uniqueSlug } = require('../utils/slug');
 const { isRole } = require('../config/roleTaxonomy');
@@ -162,11 +162,12 @@ function buildFilter(filters = {}) {
     // minimum word length would drop every module code on the board.
     // Every section, built from SECTION_KEYS. A job whose modules are named only under
     // "Requirements" has to be findable by searching for them.
-    where.push(`(j.title LIKE ? OR ${SECTION_KEYS.map((k) => `j.${k} LIKE ?`).join(' OR ')})`);
     // Escaped, so a search for "50%" looks for "50%" and a search for "%" is not a scan
-    // of the whole table. See utils/likePattern.js.
-    const like = containsPattern(filters.q);
-    params.push(...new Array(SECTION_KEYS.length + 1).fill(like));
+    // of the whole table; and a module code like "FI" is matched as a word, so it does not
+    // find "specific" in every advert. See utils/likePattern.js.
+    const text = textSearchClause(['j.title', ...SECTION_KEYS.map((k) => `j.${k}`)], filters.q);
+    where.push(text.clause);
+    params.push(...text.params);
   }
 
   return { clause: where.join(' AND '), params };

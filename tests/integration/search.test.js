@@ -200,6 +200,19 @@ maybe()('one box, four sources', () => {
     expect(results.total).toBe(sum);
     expect(results.total).toBeGreaterThan(1);
   });
+  test('a module code is matched as a word, in either case, against the real database', async () => {
+    /*
+     * The advert says "EWM and MM in scope" and "three plants". A contains-search for a
+     * short code finds it inside other words; this one must not. Run against the database
+     * because REGEXP's case rules belong to the column collation, not to this code.
+     */
+    const Job = require('../../models/Job');
+    const slugsFor = async (q) => (await Job.browse({ q }, { limit: 50, offset: 0 })).rows.map((r) => r.slug);
+
+    expect(await slugsFor('MM')).toContain(openSlug);
+    expect(await slugsFor('mm')).toContain(openSlug);
+    expect(await slugsFor('ree')).not.toContain(openSlug);
+  });
 });
 
 maybe()('the page itself', () => {

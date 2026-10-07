@@ -1,7 +1,7 @@
 'use strict';
 
 const { promisePool, withTransaction } = require('../config/database');
-const { containsPattern } = require('../utils/likePattern');
+const { textSearchClause } = require('../utils/likePattern');
 const { isRole } = require('../config/roleTaxonomy');
 const { isModule } = require('../config/sapProducts');
 const { isCertificationCode, OTHER_CODE, certByCode } = require('../config/certifications');
@@ -136,9 +136,11 @@ function buildFilter(filters = {}) {
     params.push(filters.skill_ids, filters.skill_ids.length);
   }
   if (filters.q) {
-    where.push('(cp.headline LIKE ? OR cp.bio LIKE ? OR u.name LIKE ?)');
-    const like = containsPattern(filters.q);
-    params.push(like, like, like);
+    // A module code is matched as a word (utils/likePattern.js), so "FI" does not find
+    // every bio that says "specific".
+    const text = textSearchClause(['cp.headline', 'cp.bio', 'u.name'], filters.q);
+    where.push(text.clause);
+    params.push(...text.params);
   }
 
   return { clause: where.join(' AND '), params };
