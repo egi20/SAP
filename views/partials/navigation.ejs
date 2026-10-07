@@ -55,33 +55,15 @@
           || path === '/quotes/new';
       %>
 
-      <ul class="navbar-nav me-auto align-items-lg-center">
+      <ul class="navbar-nav nav-main mx-auto align-items-lg-center">
         <li class="nav-item">
-          <a class="nav-link <%= path === '/' ? 'active' : '' %>" href="/"><i class="bi bi-house"></i> Home</a>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= startsWith('/community') ? 'active' : '' %>" href="#" role="button"
-             data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-            <i class="bi bi-people"></i> Community
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="/community"><i class="bi bi-chat-square-text"></i> Questions and posts</a></li>
-            <li><a class="dropdown-item" href="/community/articles"><i class="bi bi-file-earmark-text"></i> Articles</a></li>
-            <li><a class="dropdown-item" href="/community?kind=question&amp;unanswered=1"><i class="bi bi-patch-question"></i> Unanswered questions</a></li>
-            <li><a class="dropdown-item" href="/challenges"><i class="bi bi-lightning"></i> Daily challenge</a></li>
-            <% if (currentUser) { %>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/community/new"><i class="bi bi-pencil"></i> Write a post</a></li>
-              <li><a class="dropdown-item" href="/payments/history"><i class="bi bi-receipt"></i> Payments &amp; invoices</a></li>
-            <% } %>
-          </ul>
+          <a class="nav-link <%= path === '/' ? 'active' : '' %>" href="/"><i class="bi bi-house me-1"></i>Home</a>
         </li>
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %>" href="#" role="button"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-            <i class="bi bi-person-badge"></i> Consultant Hub
+            <i class="bi bi-person-badge me-1"></i>Consultant Hub
           </a>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/consultant-hub') %>" <%- itemCurrent('/consultant-hub') %> href="/consultant-hub"><i class="bi bi-compass me-2"></i>Consultant Hub</a></li>
@@ -95,7 +77,7 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %>" href="#" role="button"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-            <i class="bi bi-building"></i> Companies Hub
+            <i class="bi bi-building me-1"></i>Companies Hub
           </a>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/company-hub') %>" <%- itemCurrent('/company-hub') %> href="/company-hub"><i class="bi bi-compass me-2"></i>Company Hub</a></li>
@@ -111,7 +93,7 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %>" href="#" role="button"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-            <i class="bi bi-tools"></i> Services
+            <i class="bi bi-lightning me-1"></i>Services
           </a>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/tax') %>" <%- itemCurrent('/tax') %> href="/tax"><i class="bi bi-calculator me-2"></i>Tax Optimization</a></li>
@@ -124,23 +106,22 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link <%= startsWith('/about') ? 'active' : '' %>" href="/about">About</a>
+          <a class="nav-link <%= startsWith('/about') ? 'active' : '' %>" href="/about"><i class="bi bi-info-circle me-1"></i>About</a>
         </li>
       </ul>
 
-      <%#
-        The search box, in the slot the stylesheet has had a `.nav-search` rule for since
-        the design system landed and nothing to put in it. A plain GET form: it works with
-        scripting off, the browser remembers what was typed, and the results page is the
-        same URL somebody can bookmark or share.
-      %>
-      <form class="nav-search d-flex me-lg-3 my-2 my-lg-0" method="get" action="/search" role="search">
-        <label class="visually-hidden" for="navSearch">Search the Hub</label>
-        <input class="form-control form-control-sm" id="navSearch" name="q" type="search"
-               maxlength="120" placeholder="Search" value="<%= currentPath === '/search' ? (query.q || '') : '' %>">
-      </form>
 
-      <ul class="navbar-nav align-items-lg-center">
+      <ul class="navbar-nav nav-side align-items-lg-center">
+        <%#
+          Search is a button to /search, as on dynamicshub.net, rather than a box in the bar.
+          The box that was here had white text on the white bar, so it was invisible and still
+          took the width that pushed "Home" onto two lines. The results page has the real field.
+        %>
+        <li class="nav-item">
+          <a class="nav-search-btn <%= path === '/search' ? 'active' : '' %>" href="/search" aria-label="Search the Hub">
+            <i class="bi bi-search"></i>
+          </a>
+        </li>
         <% if (currentUser) { %>
           <%
             /*
@@ -297,7 +278,7 @@
             as the lesser of the two, and signing in is not a lesser action than signing up —
             it is what every returning member came here to do.
           %>
-          <li class="nav-item"><a class="btn btn-outline-light btn-sm" href="/auth/login">Sign in</a></li>
+          <li class="nav-item"><a class="btn btn-outline-primary btn-sm" href="/auth/login">Sign in</a></li>
           <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-primary btn-sm" href="/auth/register">Sign up</a></li>
         <% } %>
       </ul>

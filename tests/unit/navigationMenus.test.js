@@ -14,7 +14,7 @@ const css = fs.readFileSync(path.join(__dirname, '..', '..', 'public', 'css', 's
 
 /** The labels of the dropdown items inside the menu whose toggle reads `toggleLabel`. */
 function menuLabels(toggleLabel) {
-  const start = nav.indexOf(`</i> ${toggleLabel}\n`);
+  const start = nav.indexOf(`</i>${toggleLabel}\n`);
   expect(start).toBeGreaterThan(-1);
   const open = nav.indexOf('<ul class="dropdown-menu', start);
   const close = nav.indexOf('</ul>', open);
@@ -23,6 +23,12 @@ function menuLabels(toggleLabel) {
 }
 
 describe('navbar menus', () => {
+  it('the bar carries the reference menus and no others: three hubs and the account', () => {
+    // Community is reached from the footer and the feed, as on dynamicshub.net.
+    expect(nav.match(/class="nav-link dropdown-toggle/g)).toHaveLength(4);
+    expect(nav).not.toMatch(/<\/i>\s*Community\n/);
+  });
+
   it('Consultant Hub: five items, in order, with their icons', () => {
     expect(menuLabels('Consultant Hub')).toEqual([
       ['bi-compass', 'Consultant Hub'],
@@ -42,7 +48,7 @@ describe('navbar menus', () => {
       ['bi-kanban', 'Project-Based'],
       ['bi-gear', 'Managed Services']
     ]);
-    const start = nav.indexOf('</i> Companies Hub\n');
+    const start = nav.indexOf('</i>Companies Hub\n');
     const block = nav.slice(start, nav.indexOf('</ul>', start));
     expect(block.indexOf('dropdown-divider')).toBeGreaterThan(block.indexOf('Get SOW Quote'));
     expect(block.indexOf('dropdown-divider')).toBeLessThan(block.indexOf('Staff Augmentation'));

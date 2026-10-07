@@ -227,9 +227,10 @@ maybe()('the page itself', () => {
     expect(robots.text).toContain('Disallow: /search');
   });
 
-  test('the search box is in the navigation on every page', async () => {
+  test('search is one click from the navigation on every page', async () => {
+    // A button to /search, as on dynamicshub.net; the field itself is on the results page.
     const home = await request(app).get('/');
-    expect(home.text).toContain('action="/search"');
+    expect(home.text).toMatch(/class="nav-search-btn[^"]*" href="\/search"/);
   });
 
   test('a query is echoed as text, never as markup', async () => {
