@@ -32,7 +32,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Finance',
+    group: 'SAP S/4HANA Finance',
     items: [
       { code: 'C_TS4FI', tier: 'Associate', label: 'SAP S/4HANA Financial Accounting' },
       { code: 'C_TS4CO', tier: 'Associate', label: 'SAP S/4HANA Management Accounting' },
@@ -42,7 +42,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Supply Chain & Manufacturing',
+    group: 'SAP S/4HANA Supply Chain & Manufacturing',
     items: [
       { code: 'C_TS452', tier: 'Associate', label: 'SAP S/4HANA Sourcing & Procurement' },
       { code: 'C_TS462', tier: 'Associate', label: 'SAP S/4HANA Sales' },
@@ -54,7 +54,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Human Experience',
+    group: 'SAP SuccessFactors & HCM',
     items: [
       { code: 'C_THR81', tier: 'Associate', label: 'SuccessFactors Employee Central Core' },
       { code: 'C_THR82', tier: 'Associate', label: 'SuccessFactors Performance & Goals' },
@@ -69,7 +69,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Spend Management',
+    group: 'SAP Spend Management',
     items: [
       { code: 'C_ARSOR', tier: 'Associate', label: 'SAP Ariba Sourcing' },
       { code: 'C_ARCON', tier: 'Associate', label: 'SAP Ariba Contracts' },
@@ -91,7 +91,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Platform & Operations',
+    group: 'SAP Technology & Operations',
     items: [
       { code: 'C_TADM', tier: 'Associate', label: 'SAP System Administration (Basis)' },
       { code: 'C_HANATEC', tier: 'Associate', label: 'SAP HANA Technology' },
@@ -101,7 +101,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Data & Analytics',
+    group: 'SAP Data & Analytics',
     items: [
       { code: 'C_SAC', tier: 'Associate', label: 'SAP Analytics Cloud' },
       { code: 'C_SACP', tier: 'Associate', label: 'SAP Analytics Cloud — Planning' },
@@ -111,7 +111,7 @@ const CERTIFICATIONS = [
     ]
   },
   {
-    group: 'Customer Experience',
+    group: 'SAP Customer Experience',
     items: [
       { code: 'C_C4H410', tier: 'Associate', label: 'SAP Sales Cloud' },
       { code: 'C_C4H510', tier: 'Associate', label: 'SAP Service Cloud' },

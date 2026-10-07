@@ -42,7 +42,13 @@ const PRODUCT_LINES = [
       { value: 'co-pa', label: 'Profitability Analysis (CO-PA)', baseEffortDays: 40, crossModule: ['sd-billing'] },
       { value: 'fi-rar', label: 'Revenue Accounting (RAR / IFRS 15)', baseEffortDays: 55, crossModule: ['sd-billing'] },
       { value: 'group-reporting', label: 'Group Reporting & Consolidation', baseEffortDays: 60, crossModule: ['fi-gl'] },
-      { value: 'treasury', label: 'Treasury & Risk Management (TRM)', baseEffortDays: 55, crossModule: ['fi-gl'] }
+      { value: 'treasury', label: 'Treasury & Risk Management (TRM)', baseEffortDays: 55, crossModule: ['fi-gl'] },
+      { value: 'mdg', label: 'Master Data Governance (MDG)', baseEffortDays: 50, crossModule: [] },
+      { value: 'central-finance', label: 'Central Finance (CFIN)', baseEffortDays: 70, crossModule: ['fi-gl'] },
+      { value: 'fi-ca', label: 'Contract Accounting (FI-CA)', baseEffortDays: 55, crossModule: ['fi-ar'] },
+      { value: 'brim', label: 'BRIM — Subscription Billing & Convergent Invoicing', baseEffortDays: 80, crossModule: ['fi-ca'] },
+      { value: 'drc', label: 'Document & Reporting Compliance (DRC / e-invoicing)', baseEffortDays: 30, crossModule: ['fi-ar'] },
+      { value: 'bpc', label: 'Business Planning & Consolidation (BPC)', baseEffortDays: 50, crossModule: ['fi-gl'] }
     ]
   },
   {
@@ -60,12 +66,23 @@ const PRODUCT_LINES = [
       { value: 'qm', label: 'Quality Management (QM)', baseEffortDays: 35, crossModule: ['mm-purchasing'] },
       { value: 'pm-eam', label: 'Plant Maintenance / EAM', baseEffortDays: 45, crossModule: ['mm-inventory'] },
       { value: 'tm', label: 'Transportation Management (TM)', baseEffortDays: 65, crossModule: ['sd-sales'] },
-      { value: 'ps', label: 'Project System (PS)', baseEffortDays: 40, crossModule: ['co-cca'] }
+      { value: 'ps', label: 'Project System (PS)', baseEffortDays: 40, crossModule: ['co-cca'] },
+      { value: 'wm-classic', label: 'Warehouse Management — classic (WM)', baseEffortDays: 40, crossModule: ['mm-inventory'] },
+      { value: 'aatp', label: 'Advanced Available-to-Promise (aATP)', baseEffortDays: 30, crossModule: ['sd-sales'] },
+      { value: 'gts', label: 'Global Trade Services (GTS)', baseEffortDays: 45, crossModule: ['sd-sales'] },
+      { value: 'ehs', label: 'Environment, Health & Safety (EHS)', baseEffortDays: 45, crossModule: [] },
+      { value: 'plm-vc', label: 'PLM & Variant Configuration (VC / AVC)', baseEffortDays: 55, crossModule: ['sd-sales'] },
+      { value: 'cs-service', label: 'Service Management (CS / S/4HANA Service)', baseEffortDays: 45, crossModule: ['sd-billing'] }
     ]
   },
   {
     value: 'successfactors',
-    label: 'SAP SuccessFactors',
+    /*
+     * "& HCM" because on-premise HCM — PA/OM, time, payroll — is still where a great deal
+     * of SAP HR work is, and a line that only names the cloud product left a payroll
+     * consultant with a role in the taxonomy and no module to record against it.
+     */
+    label: 'SAP SuccessFactors & HCM',
     foundationEffortDays: 30,
     modules: [
       { value: 'sf-ec', label: 'Employee Central', baseEffortDays: 55, crossModule: [] },
@@ -75,7 +92,12 @@ const PRODUCT_LINES = [
       { value: 'sf-comp', label: 'Compensation & Variable Pay', baseEffortDays: 35, crossModule: ['sf-ec'] },
       { value: 'sf-lms', label: 'Learning (LMS)', baseEffortDays: 35, crossModule: [] },
       { value: 'sf-ecp', label: 'Employee Central Payroll', baseEffortDays: 70, crossModule: ['sf-ec'] },
-      { value: 'sf-tm', label: 'Time Tracking & Time Off', baseEffortDays: 30, crossModule: ['sf-ec'] }
+      { value: 'sf-tm', label: 'Time Tracking & Time Off', baseEffortDays: 30, crossModule: ['sf-ec'] },
+      { value: 'sf-sd', label: 'Succession & Development', baseEffortDays: 30, crossModule: ['sf-pmgm'] },
+      { value: 'sf-analytics', label: 'People Analytics & Workforce Planning', baseEffortDays: 25, crossModule: ['sf-ec'] },
+      { value: 'hcm-pa-om', label: 'HCM Personnel Administration & Org Management (PA/OM)', baseEffortDays: 45, crossModule: [] },
+      { value: 'hcm-pt', label: 'HCM Time Management (PT)', baseEffortDays: 35, crossModule: ['hcm-pa-om'] },
+      { value: 'hcm-py', label: 'HCM Payroll (PY)', baseEffortDays: 70, crossModule: ['hcm-pa-om'] }
     ]
   },
   {
@@ -126,7 +148,8 @@ const PRODUCT_LINES = [
       { value: 'btp-fiori', label: 'Fiori / UI5 Custom Applications', baseEffortDays: 35, crossModule: ['btp-cap'] },
       { value: 'btp-automation', label: 'Build Process Automation', baseEffortDays: 30, crossModule: [] },
       { value: 'btp-ai', label: 'AI Foundation & Joule Extensions', baseEffortDays: 40, crossModule: ['btp-integration'] },
-      { value: 'btp-identity', label: 'Identity Authentication & Provisioning (IAS/IPS)', baseEffortDays: 20, crossModule: [] }
+      { value: 'btp-identity', label: 'Identity Authentication & Provisioning (IAS/IPS)', baseEffortDays: 20, crossModule: [] },
+      { value: 'btp-build-workzone', label: 'SAP Build Apps & Work Zone', baseEffortDays: 25, crossModule: [] }
     ]
   },
   {
@@ -138,10 +161,62 @@ const PRODUCT_LINES = [
       { value: 'sac-planning', label: 'Analytics Cloud — Planning', baseEffortDays: 55, crossModule: ['sac-reporting'] },
       { value: 'datasphere', label: 'SAP Datasphere', baseEffortDays: 50, crossModule: ['sac-reporting'] },
       { value: 'bw4hana', label: 'BW/4HANA', baseEffortDays: 60, crossModule: [] },
-      { value: 'signavio', label: 'Signavio Process Insights', baseEffortDays: 30, crossModule: [] }
+      { value: 'signavio', label: 'Signavio Process Insights', baseEffortDays: 30, crossModule: [] },
+      { value: 'signavio-suite', label: 'Signavio Process Manager & Process Intelligence', baseEffortDays: 35, crossModule: [] },
+      { value: 'leanix', label: 'LeanIX Enterprise Architecture', baseEffortDays: 30, crossModule: [] },
+      { value: 'business-data-cloud', label: 'SAP Business Data Cloud', baseEffortDays: 40, crossModule: ['datasphere'] }
+    ]
+  },
+  {
+    /*
+     * The technical half of SAP work. Without it a Basis, ABAP or GRC consultant had a
+     * role in the taxonomy and not a single module to record a delivery against — and the
+     * delivery history is what the directory filters and the match score read.
+     */
+    value: 'technology',
+    label: 'SAP Technology & Operations',
+    foundationEffortDays: 25,
+    modules: [
+      { value: 'basis', label: 'Basis & NetWeaver Administration', baseEffortDays: 40, crossModule: [] },
+      { value: 'abap-classic', label: 'ABAP Development (classic, RICEFW)', baseEffortDays: 50, crossModule: [] },
+      { value: 'pi-po', label: 'Process Integration / Orchestration (PI/PO)', baseEffortDays: 45, crossModule: [] },
+      { value: 'security-auth', label: 'Security & Authorisations', baseEffortDays: 35, crossModule: ['basis'] },
+      { value: 'grc-ac', label: 'GRC Access Control', baseEffortDays: 40, crossModule: ['security-auth'] },
+      { value: 'grc-pc', label: 'GRC Process Control', baseEffortDays: 40, crossModule: [] },
+      { value: 'solman-calm', label: 'Solution Manager / Cloud ALM', baseEffortDays: 30, crossModule: ['basis'] },
+      { value: 'migration-tools', label: 'Data Migration (Migration Cockpit / BODS)', baseEffortDays: 45, crossModule: [] },
+      { value: 's4-conversion', label: 'S/4HANA System Conversion (SUM / DMO)', baseEffortDays: 90, crossModule: ['basis'] },
+      { value: 'walkme', label: 'WalkMe Digital Adoption', baseEffortDays: 20, crossModule: [] }
+    ]
+  },
+  {
+    /*
+     * Industry solutions are separate products with separate consultants: IS-U and IS-Oil
+     * are not one "Oil & Gas / Utilities" skill, and an advert for either is unreadable to
+     * somebody who has only done the other.
+     */
+    value: 'industry-solutions',
+    label: 'SAP Industry Solutions',
+    foundationEffortDays: 40,
+    modules: [
+      { value: 'is-u', label: 'IS-U / Utilities', baseEffortDays: 90, crossModule: ['fi-ca'] },
+      { value: 'is-oil', label: 'IS-Oil (Oil & Gas)', baseEffortDays: 80, crossModule: ['sd-sales'] },
+      { value: 'is-retail', label: 'IS-Retail / S/4HANA Retail', baseEffortDays: 70, crossModule: ['sd-sales'] },
+      { value: 'is-auto', label: 'Automotive (VMS / JIT)', baseEffortDays: 60, crossModule: ['sd-sales'] },
+      { value: 'psm-fm', label: 'Public Sector — Funds Management (PSM-FM)', baseEffortDays: 55, crossModule: ['fi-gl'] },
+      { value: 'fs-banking', label: 'Banking (FS-CML / Transactional Banking)', baseEffortDays: 90, crossModule: [] },
+      { value: 'fs-insurance', label: 'Insurance (FS-CD / FS-PM)', baseEffortDays: 90, crossModule: ['fi-ca'] }
     ]
   }
 ];
+
+/**
+ * OUT OF SCOPE, stated rather than left to be guessed: SAP Business One and SAP Business
+ * ByDesign. They are SAP products, but they are sold and implemented by a different
+ * partner channel to a different market, and their consultants rarely overlap with the
+ * S/4HANA programmes this catalogue sizes. A line for them would be a line nothing else
+ * on the site — estimator baselines, rate index, role taxonomy — could back up.
+ */
 
 const ALL_MODULES = PRODUCT_LINES.flatMap((line) =>
   line.modules.map((m) => ({ ...m, line: line.value, lineLabel: line.label }))

@@ -8,7 +8,17 @@ const Points = require('../models/Points');
 const { isAuthenticated, isConsultant, isEmailVerified } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { ROLE_CATEGORIES, ROLE_SLUGS, isRole, baseDayRate, roleLabel } = require('../config/roleTaxonomy');
+/*
+ * The RATE_ variants throughout: roles outside the SAP day-rate index (a recruiter, an HR
+ * manager) have no base rate and no page here, and the index must not offer them.
+ */
+const {
+  RATE_ROLE_CATEGORIES: ROLE_CATEGORIES,
+  RATE_ROLE_SLUGS: ROLE_SLUGS,
+  isRateRole: isRole,
+  baseDayRate,
+  roleLabel
+} = require('../config/roleTaxonomy');
 const { MIN_SAMPLE } = require('../utils/rateAggregation');
 const { benchmark, benchmarkProblems, curatedTable } = require('../utils/rateBenchmark');
 const benchmarkModel = require('../config/rateBenchmark');

@@ -62,7 +62,7 @@
         </div>
 
         <div class="col-md-4">
-          <label class="form-label" for="contract_type">Contract type</label>
+          <label class="form-label" for="contract_type">Pricing model</label>
           <select class="form-select" id="contract_type" name="contract_type">
             <% model.CONTRACT_TYPES.forEach(function (c) { %>
               <option value="<%= c.key %>" <%= result && result.input.contractType === c.key ? 'selected' : '' %>><%= c.label %></option>

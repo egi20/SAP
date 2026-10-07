@@ -98,7 +98,7 @@
             <p class="mb-1"><span class="rate-figure"><%= curatedBaseline %></span> <span class="text-muted-2">EUR/day</span></p>
             <p class="small text-muted-2 mb-0">
               Our own published starting point for this role. Shown separately and never blended
-              into the contributed figures.
+              into the contributed figures. <a href="#baseline-method">How it is set</a>.
             </p>
           <% } else { %>
             <p class="small text-muted-2 mb-0">Choose a role to see the editorial baseline.</p>
@@ -107,6 +107,35 @@
       </div>
     </div>
   </div>
+
+  <%#
+    The baseline is a judgement, and the page says so in full rather than in a tooltip. A
+    figure with no stated basis on a page that is otherwise strict about where its numbers
+    come from is the one number on it that cannot be argued with — which is backwards.
+  %>
+  <details class="glass-card mb-4" id="baseline-method"><summary class="card-body py-3 fw-semibold">How the editorial baseline is set</summary>
+    <div class="card-body pt-0 small">
+      <p>
+        The baseline is an <strong>editorial judgement by the SAP Hub team</strong>, not a
+        measurement. It is not calculated from a survey, from adverts scraped off other
+        sites, or from the contributions on this page. It exists because on day one nobody has
+        contributed anything, and "we cannot tell you" is not a usable answer to "what is this
+        role worth".
+      </p>
+      <p>
+        Each figure means one specific person: a <strong>senior</strong> consultant (six to nine
+        years), on <strong>time and materials</strong>, working <strong>hybrid</strong>, in the
+        reference region, with no certifications counted, in euros before tax. The
+        <a href="/rates/calculator">calculator</a> moves away from that point by five published
+        multipliers and prints each one, so any figure it gives can be checked by hand.
+      </p>
+      <p class="mb-0">
+        Where the contributed figures disagree with the baseline, believe the contributed figures
+        — they are what people actually said they are paid. The baseline is shown beside them so
+        the disagreement is visible, never mixed in to hide it.
+      </p>
+    </div>
+  </details>
 
   <% if (filters.role && trend.length) { %>
     <div class="glass-card mb-4">

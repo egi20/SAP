@@ -11,7 +11,7 @@
 
 const { benchmark, benchmarkProblems, curatedTable, normaliseInput } = require('../../utils/rateBenchmark');
 const model = require('../../config/rateBenchmark');
-const { BASE_DAY_RATES, ROLE_SLUGS } = require('../../config/roleTaxonomy');
+const { BASE_DAY_RATES, RATE_ROLE_SLUGS: ROLE_SLUGS } = require('../../config/roleTaxonomy');
 
 describe('the model asserts itself', () => {
   it('passes its own integrity check', () => {

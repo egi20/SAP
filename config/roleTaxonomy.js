@@ -22,19 +22,35 @@
  * FI, CO, MM, SD, PP, EWM — because that is what job adverts in this ecosystem actually
  * say, far more often than the product's marketing name.
  */
+// Read for the integrity check only: a role category that names a product line must name
+// one that exists. sapProducts.js does not require this file, so there is no cycle.
+const PRODUCT_LINE_VALUES = new Set(require('./sapProducts').PRODUCT_LINES.map((l) => l.value));
+
 const ROLE_CATEGORIES = [
+  /*
+   * Category names follow the product lines in config/sapProducts.js wherever a category
+   * corresponds to one, word for word. They used to be a parallel vocabulary — "Human
+   * Experience" here, "SAP SuccessFactors" there, "Spend & Network" against "SAP Spend
+   * Management", and one category that was two product lines glued together — so the rate
+   * index, the job board and the module picker grouped the same things under different
+   * names. A unit test now compares them.
+   */
   {
-    category: 'S/4HANA Finance',
+    category: 'SAP S/4HANA Finance',
+    line: 's4hana-finance',
     roles: [
       { value: 's4-fi', label: 'Financial Accounting (FI) Consultant' },
       { value: 's4-co', label: 'Management Accounting (CO) Consultant' },
       { value: 's4-rar', label: 'Revenue Accounting (RAR) Consultant' },
       { value: 'group-reporting', label: 'Group Reporting / Consolidation Consultant' },
-      { value: 'treasury', label: 'Treasury & Risk Management Consultant' }
+      { value: 'treasury', label: 'Treasury & Risk Management Consultant' },
+      { value: 'mdg-consultant', label: 'Master Data Governance (MDG) Consultant' },
+      { value: 'brim-consultant', label: 'BRIM / Contract Accounting (FI-CA) Consultant' }
     ]
   },
   {
-    category: 'S/4HANA Logistics & Manufacturing',
+    category: 'SAP S/4HANA Supply Chain & Manufacturing',
+    line: 's4hana-supply-chain',
     roles: [
       { value: 's4-mm', label: 'Sourcing & Procurement (MM) Consultant' },
       { value: 's4-sd', label: 'Sales & Distribution (SD) Consultant' },
@@ -43,11 +59,13 @@ const ROLE_CATEGORIES = [
       { value: 's4-qm', label: 'Quality Management (QM) Consultant' },
       { value: 's4-pm', label: 'Plant Maintenance / EAM Consultant' },
       { value: 's4-tm', label: 'Transportation Management (TM) Consultant' },
-      { value: 's4-ps', label: 'Project System (PS) Consultant' }
+      { value: 's4-ps', label: 'Project System (PS) Consultant' },
+      { value: 'gts-consultant', label: 'Global Trade Services (GTS) Consultant' }
     ]
   },
   {
-    category: 'Human Experience',
+    category: 'SAP SuccessFactors & HCM',
+    line: 'successfactors',
     roles: [
       { value: 'sf-employee-central', label: 'SuccessFactors Employee Central Consultant' },
       { value: 'sf-recruiting', label: 'SuccessFactors Recruiting & Onboarding Consultant' },
@@ -58,7 +76,8 @@ const ROLE_CATEGORIES = [
     ]
   },
   {
-    category: 'Spend & Network',
+    category: 'SAP Spend Management',
+    line: 'spend-management',
     roles: [
       { value: 'ariba', label: 'SAP Ariba Consultant' },
       { value: 'concur', label: 'SAP Concur Consultant' },
@@ -66,16 +85,31 @@ const ROLE_CATEGORIES = [
     ]
   },
   {
-    category: 'Supply Chain & Customer Experience',
+    category: 'SAP Supply Chain Planning',
+    line: 'supply-chain-planning',
     roles: [
-      { value: 'ibp', label: 'Integrated Business Planning (IBP) Consultant' },
+      { value: 'ibp', label: 'Integrated Business Planning (IBP) Consultant' }
+    ]
+  },
+  {
+    category: 'SAP Customer Experience',
+    line: 'customer-experience',
+    roles: [
       { value: 'cx-sales-service', label: 'SAP Sales & Service Cloud Consultant' },
       { value: 'cx-commerce', label: 'SAP Commerce Cloud Consultant' },
       { value: 'cx-cdc', label: 'SAP Customer Data Cloud Consultant' }
     ]
   },
   {
-    category: 'Technical Roles',
+    category: 'SAP Industry Solutions',
+    line: 'industry-solutions',
+    roles: [
+      { value: 'is-u-consultant', label: 'IS-U / Utilities Consultant' }
+    ]
+  },
+  {
+    category: 'SAP Technology & Operations',
+    line: 'technology',
     roles: [
       { value: 'abap-developer', label: 'ABAP Developer' },
       { value: 'abap-cloud-developer', label: 'ABAP Cloud / RAP Developer' },
@@ -86,17 +120,27 @@ const ROLE_CATEGORIES = [
       { value: 'hana-specialist', label: 'HANA Database Specialist' },
       { value: 'security-grc', label: 'SAP Security & GRC Consultant' },
       { value: 'data-migration', label: 'Data Migration Specialist' },
-      { value: 'bw-analytics', label: 'BW/4HANA & Datasphere Consultant' },
-      { value: 'sac-consultant', label: 'Analytics Cloud (SAC) Consultant' },
+      { value: 'conversion-lead', label: 'S/4HANA Conversion Technical Lead' },
+      { value: 'release-manager', label: 'Release & Transport Manager' },
+      { value: 'ams-analyst', label: 'AMS / Application Support Analyst' },
       { value: 'qa-engineer', label: 'SAP Test & QA Engineer' }
     ]
   },
   {
-    category: 'AI & Automation',
+    category: 'SAP Data & Analytics',
+    line: 'analytics',
+    roles: [
+      { value: 'bw-analytics', label: 'BW/4HANA & Datasphere Consultant' },
+      { value: 'sac-consultant', label: 'Analytics Cloud (SAC) Consultant' },
+      { value: 'signavio', label: 'Signavio Process Consultant' }
+    ]
+  },
+  {
+    category: 'SAP Business Technology Platform',
+    line: 'btp',
     roles: [
       { value: 'joule-ai', label: 'Joule / SAP AI Consultant' },
-      { value: 'process-automation', label: 'Build Process Automation Consultant' },
-      { value: 'signavio', label: 'Signavio Process Consultant' }
+      { value: 'process-automation', label: 'Build Process Automation Consultant' }
     ]
   },
   {
@@ -105,14 +149,16 @@ const ROLE_CATEGORIES = [
       { value: 'solution-architect', label: 'SAP Solution Architect' },
       { value: 'enterprise-architect', label: 'Enterprise Architect' },
       { value: 'technical-architect', label: 'Technical Architect' },
+      { value: 'coe-lead', label: 'SAP Centre of Excellence (CoE) Lead' },
       { value: 'business-analyst', label: 'Business Process Analyst' }
     ]
   },
   {
-    category: 'Program & Business',
+    category: 'Programme & Delivery',
     roles: [
       { value: 'project-manager', label: 'Project Manager (SAP Activate)' },
       { value: 'program-manager', label: 'Programme Manager' },
+      { value: 'product-owner', label: 'SAP Product Owner' },
       { value: 'change-manager', label: 'Change Manager' },
       /*
        * Neither reference implementation has a training role. SAP delivery does: a
@@ -123,12 +169,22 @@ const ROLE_CATEGORIES = [
        */
       { value: 'training-lead', label: 'Training & Enablement Lead' },
       { value: 'pmo', label: 'PMO' },
-      { value: 'business-developer', label: 'Business Developer' }
+      { value: 'presales', label: 'SAP Presales / Solution Advisor' }
     ]
   },
   {
-    category: 'HR & Recruitment',
+    /*
+     * Roles an SAP partner hires for that are not SAP work. They stay selectable on an
+     * advert and a profile — a partner does hire a recruiter — but they are NOT in the SAP
+     * day-rate index: an "SAP day rate" for an HR manager is a number about something
+     * else, and printing it beside FI and EWM made the whole index look less like what it
+     * says it is. `rateIndex: false` keeps them out of the index, the calculator, the
+     * per-role pages and the sitemap, and the assertion below refuses a base rate for them.
+     */
+    category: 'Non-consulting roles at SAP partners',
+    rateIndex: false,
     roles: [
+      { value: 'business-developer', label: 'Business Developer' },
       { value: 'hr-manager', label: 'HR Manager' },
       { value: 'recruiter', label: 'Recruiter' }
     ]
@@ -138,6 +194,11 @@ const ROLE_CATEGORIES = [
 const ALL_ROLES = ROLE_CATEGORIES.flatMap((c) => c.roles);
 const ROLE_SLUGS = ALL_ROLES.map((r) => r.value);
 const ROLE_LABELS = new Map(ALL_ROLES.map((r) => [r.value, r.label]));
+
+/** The categories, and roles, the SAP day-rate index covers. */
+const RATE_ROLE_CATEGORIES = ROLE_CATEGORIES.filter((c) => c.rateIndex !== false);
+const RATE_ROLE_SLUGS = RATE_ROLE_CATEGORIES.flatMap((c) => c.roles.map((r) => r.value));
+const RATE_ROLE_SET = new Set(RATE_ROLE_SLUGS);
 
 /**
  * Curated editorial base day rates (EUR) per role slug.
@@ -191,21 +252,28 @@ const BASE_DAY_RATES = {
   'bw-analytics': 800,
   'sac-consultant': 800,
   'qa-engineer': 600,
+  'conversion-lead': 1100,
+  'release-manager': 750,
+  'ams-analyst': 600,
+  'mdg-consultant': 900,
+  'brim-consultant': 1000,
+  'gts-consultant': 950,
+  'is-u-consultant': 950,
   'joule-ai': 950,
   'process-automation': 750,
   signavio: 900,
   'solution-architect': 1150,
   'enterprise-architect': 1250,
   'technical-architect': 1100,
+  'coe-lead': 1100,
   'business-analyst': 700,
   'project-manager': 850,
   'program-manager': 1050,
   'change-manager': 750,
   'training-lead': 650,
   pmo: 600,
-  'business-developer': 650,
-  'hr-manager': 550,
-  recruiter: 500
+  'product-owner': 900,
+  presales: 900
 };
 
 /**
@@ -260,18 +328,28 @@ const ROLE_ALIASES = {
   'bw-analytics': ['bw', 'bw/4hana', 'datasphere', 'data warehouse cloud', 'dwc', 'hana cloud'],
   'sac-consultant': ['sac', 'analytics cloud', 'sac planning', 'stories', 'dashboards'],
   'qa-engineer': ['test automation', 'tricentis', 'tosca', 'cbta', 'qa', 'uat'],
+  'conversion-lead': ['system conversion', 'brownfield', 'readiness check', 'sum dmo', 'dmo', 'selective data transition', 'sdt'],
+  'release-manager': ['release management', 'transport', 'charm', 'change request management', 'retrofit'],
+  'ams-analyst': ['ams', 'application management', 'support analyst', 'incident management', 'hypercare'],
+  'mdg-consultant': ['mdg', 'master data governance', 'master data'],
+  'brim-consultant': ['brim', 'fi-ca', 'contract accounting', 'convergent invoicing', 'convergent charging', 'subscription billing'],
+  'gts-consultant': ['gts', 'global trade services', 'customs management', 'export control'],
+  'is-u-consultant': ['is-u', 'isu', 'utilities', 'meter to cash', 'device management'],
   'joule-ai': ['joule', 'sap ai core', 'ai foundation', 'generative ai hub', 'business ai'],
   'process-automation': ['spa', 'build process automation', 'irpa', 'workflow', 'rpa'],
   signavio: ['signavio', 'process mining', 'process intelligence', 'lean ix'],
   'solution-architect': ['solution architect', 'lead consultant', 'lead architect'],
   'enterprise-architect': ['enterprise architect', 'ea', 'sap eaf', 'north star'],
   'technical-architect': ['technical architect', 'platform architect', 'landscape architect'],
+  'coe-lead': ['coe', 'centre of excellence', 'center of excellence', 'sap coe'],
   'business-analyst': ['business analyst', 'process lead', 'functional analyst', 'requirements'],
   'project-manager': ['project manager', 'sap activate', 'pm', 'delivery manager'],
   'program-manager': ['programme manager', 'program manager', 'transformation lead'],
   'change-manager': ['change management', 'ocm', 'organisational change'],
   'training-lead': ['training', 'enablement', 'end user training', 'sap enable now'],
   pmo: ['pmo', 'project office', 'project coordinator'],
+  'product-owner': ['product owner', 'backlog owner', 'scrum product owner'],
+  presales: ['presales', 'pre-sales', 'solution advisor', 'solution engineer', 'bid support'],
   'business-developer': ['business development', 'sales', 'account executive'],
   'hr-manager': ['hr manager', 'people manager', 'talent manager'],
   recruiter: ['recruiter', 'talent acquisition', 'resourcing']
@@ -320,9 +398,20 @@ function assertTaxonomyIntegrity() {
     if (!/^[a-z0-9-]+$/.test(slug)) problems.push(`role slug is not url-safe: ${slug}`);
   }
 
-  for (const slug of ROLE_SLUGS) {
+  for (const slug of RATE_ROLE_SLUGS) {
     if (!Object.prototype.hasOwnProperty.call(BASE_DAY_RATES, slug)) {
       problems.push(`role ${slug} has no base day rate`);
+    }
+  }
+  for (const slug of ROLE_SLUGS) {
+    // A role outside the index must not carry one: a base rate is what the index prints.
+    if (!RATE_ROLE_SET.has(slug) && Object.prototype.hasOwnProperty.call(BASE_DAY_RATES, slug)) {
+      problems.push(`role ${slug} is outside the SAP rate index but has a base day rate`);
+    }
+  }
+  for (const category of ROLE_CATEGORIES) {
+    if (category.line !== undefined && !PRODUCT_LINE_VALUES.has(category.line)) {
+      problems.push(`role category "${category.category}" names unknown product line ${category.line}`);
     }
   }
   for (const slug of Object.keys(BASE_DAY_RATES)) {
@@ -372,6 +461,11 @@ function isRole(slug) {
   return ROLE_LABELS.has(slug);
 }
 
+/** Whether a role is covered by the SAP day-rate index (and so has a base rate and a page). */
+function isRateRole(slug) {
+  return RATE_ROLE_SET.has(slug);
+}
+
 function baseDayRate(slug) {
   return Object.prototype.hasOwnProperty.call(BASE_DAY_RATES, slug) ? BASE_DAY_RATES[slug] : null;
 }
@@ -381,6 +475,8 @@ module.exports = {
   ALL_ROLES,
   ROLE_SLUGS,
   ROLE_LABELS,
+  RATE_ROLE_CATEGORIES,
+  RATE_ROLE_SLUGS,
   BASE_DAY_RATES,
   ROLE_ALIASES,
   INTENDED_ALIAS_COLLISIONS,
@@ -389,5 +485,6 @@ module.exports = {
   assertTaxonomyIntegrity,
   roleLabel,
   isRole,
+  isRateRole,
   baseDayRate
 };

@@ -20,10 +20,41 @@ describe('the catalogues assert their own integrity', () => {
 });
 
 describe('role taxonomy', () => {
-  test('every role has a positive integer base day rate', () => {
-    for (const slug of taxonomy.ROLE_SLUGS) {
+  test('every role in the SAP rate index has a positive integer base day rate', () => {
+    for (const slug of taxonomy.RATE_ROLE_SLUGS) {
       expect(Number.isInteger(taxonomy.baseDayRate(slug))).toBe(true);
       expect(taxonomy.baseDayRate(slug)).toBeGreaterThan(0);
+    }
+  });
+
+  test('roles that are not SAP work are selectable but outside the rate index', () => {
+    // An "SAP day rate" for an HR manager is a figure about something else, and printing
+    // it beside FI and EWM made the index look less like what it says it is.
+    for (const slug of ['business-developer', 'hr-manager', 'recruiter']) {
+      expect(taxonomy.isRole(slug)).toBe(true);
+      expect(taxonomy.isRateRole(slug)).toBe(false);
+      expect(taxonomy.baseDayRate(slug)).toBeNull();
+    }
+  });
+
+  test('a role category tied to a product line carries that line\'s exact label', () => {
+    /*
+     * The rate index, the job board and the module picker used to group the same things
+     * under different names — "Human Experience" against "SAP SuccessFactors", "Spend &
+     * Network" against "SAP Spend Management", two lines glued into one category.
+     */
+    const tied = taxonomy.ROLE_CATEGORIES.filter((c) => c.line);
+    expect(tied.length).toBeGreaterThan(5);
+    for (const category of tied) {
+      expect(category.category).toBe(products.lineByValue(category.line).label);
+    }
+  });
+
+  test('every technical role has modules to record a delivery against', () => {
+    // A Basis or GRC consultant with a role and no module cannot fill in the delivery
+    // history the directory filters on.
+    for (const value of ['basis', 'abap-classic', 'pi-po', 'grc-ac', 'security-auth', 'solman-calm', 'migration-tools']) {
+      expect(products.isModule(value)).toBe(true);
     }
   });
 

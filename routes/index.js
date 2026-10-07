@@ -6,7 +6,7 @@ const countries = require('../config/all-countries.json');
 const AccountClosure = require('../models/AccountClosure');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
-const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
+const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const Job = require('../models/Job');
 const Points = require('../models/Points');
@@ -629,7 +629,7 @@ router.get(
        * leaves. A hand-written list here would be the second copy of a vocabulary the
        * config already owns.
        */
-      ...ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
+      ...RATE_ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
       // Same argument: the engagement models own their own slugs, so the sitemap reads them
       // rather than repeating them.
       ...ENGAGEMENT_MODELS.map((m) => ({ loc: canonicalUrl(`/companies/${m.slug}`), changefreq: 'monthly' })),

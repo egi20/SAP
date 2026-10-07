@@ -1,6 +1,6 @@
 'use strict';
 
-const { BASE_DAY_RATES, ROLE_SLUGS } = require('./roleTaxonomy');
+const { BASE_DAY_RATES, RATE_ROLE_SLUGS: ROLE_SLUGS } = require('./roleTaxonomy');
 
 /**
  * The editorial day-rate model, and every number that can move a benchmark.
@@ -115,12 +115,19 @@ const CERTIFICATION_BANDS = Object.freeze([
   { key: 'many', label: '3 or more', minCount: 3, multiplier: 1.07 }
 ]);
 
-/** How the engagement is contracted. T&M is the anchor. */
+/**
+ * How the work is PRICED. T&M is the anchor.
+ *
+ * Pricing models only. "Staff augmentation" used to sit in this list, and it is not a way
+ * of pricing anything — it is an engagement model (config/engagementModels.js), usually
+ * paid on time and materials. Offering it beside T&M asked the reader to choose between
+ * two answers to different questions. An old link carrying it falls back to the anchor,
+ * like any other unrecognised value.
+ */
 const CONTRACT_TYPES = Object.freeze([
   { key: 'time-and-materials', label: 'Time & materials', multiplier: 1.00 },
   { key: 'fixed-price', label: 'Fixed price', multiplier: 1.05 },
-  { key: 'retainer', label: 'Retainer', multiplier: 0.95 },
-  { key: 'staff-augmentation', label: 'Staff augmentation', multiplier: 0.97 }
+  { key: 'retainer', label: 'Retainer', multiplier: 0.95 }
 ]);
 
 /**
