@@ -1,7 +1,7 @@
 <%- include('../partials/layout-start') %>
 <% const POSTED_LABELS = { 1: 'Last 24 hours', 7: 'Last 7 days', 14: 'Last 2 weeks', 30: 'Last month', 90: 'Last 3 months' }; %>
 
-<%- include('../partials/page-header', { icon: 'bi-briefcase', heading: 'SAP jobs and contracts', sub: 'Filter by cloud, role, seniority, work mode and country.' }) %>
+<%- include('../partials/page-header', { icon: 'bi-briefcase', heading: 'SAP jobs and contracts', sub: 'Filter by module, role, seniority, work mode and country.' }) %>
 
 <section class="glass-section pb-5">
 <div class="container">
@@ -84,13 +84,33 @@
           <div class="form-text">A role scoped to one phase says so. Permanent hires usually span all of them.</div>
         </div>
 
+        <div class="mb-3">
+          <label class="form-label" for="f-deployment">Deployment</label>
+          <select class="form-select" id="f-deployment" name="deployment">
+            <option value="">Any deployment</option>
+            <% deployments.forEach(function (d) { %>
+              <option value="<%= d.value %>" <%= filters.deployment === d.value ? 'selected' : '' %>><%= d.label %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="f-transition">Transition approach</label>
+          <select class="form-select" id="f-transition" name="transition_approach">
+            <option value="">Any approach</option>
+            <% transitions.forEach(function (t) { %>
+              <option value="<%= t.value %>" <%= filters.transition_approach === t.value ? 'selected' : '' %>><%= t.label %></option>
+            <% }); %>
+          </select>
+        </div>
+
         <div class="row g-2 mb-3">
           <div class="col-6">
             <label class="form-label" for="f-seniority">Seniority</label>
             <select class="form-select" id="f-seniority" name="seniority">
               <option value="">Any</option>
               <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= s %></option>
+                <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
               <% }); %>
             </select>
           </div>
@@ -99,7 +119,7 @@
             <select class="form-select" id="f-mode" name="work_mode">
               <option value="">Any</option>
               <% ['remote','hybrid','onsite'].forEach(function (m) { %>
-                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= m %></option>
+                <option value="<%= m %>" <%= filters.work_mode === m ? 'selected' : '' %>><%= optionLabel(m) %></option>
               <% }); %>
             </select>
           </div>
@@ -118,9 +138,7 @@
           <label class="form-label" for="f-country">Country</label>
           <select class="form-select" id="f-country" name="country">
             <option value="">Any country</option>
-            <% countries.forEach(function (c) { %>
-              <option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-            <% }); %>
+            <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
           </select>
         </div>
 

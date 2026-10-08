@@ -75,11 +75,11 @@ sound go-live fails — and it is a line item on real statements of work.
 | Admin: users, jobs, moderation, analytics, settings | 33 | 18 | **done** — the other 15 belong to areas not built yet |
 | Referrals & commissions | 4 | 4 | **done** |
 | LinkedIn confirmation | 3 | 3 | **done** |
-| AI drafting, every draft verified | — | — | after the core |
+| AI drafting, every draft verified | — | 2 | **done** — a draft and nothing else, verified before anybody reads it |
 | Search across everything | 1 | 1 | **done** — four sources; agencies join with that area |
 | Recruiters (agencies) | 6 | 6 | **done** |
 | Success stories, reviews | 10 | 11 | **done** |
-| Sales CRM | 16 | ~16 | after the core |
+| Sales CRM | 16 | 16 | **done** — superadmin only, and nothing in it sends anything |
 | Finance: invoices, costs, P&L | 20 | ~15 | after the core |
 | Tax optimisation — page, calculator, application form and queue | 3 | 6 | **done** (owner's decision, 2026-10-07) |
 | Daily challenge, graded on the server | 3 | 3 | **done** — one game, not nine |
@@ -724,6 +724,97 @@ Everything else in the shape of DynamicsHub's version was refused for a stated r
 claim link (an access grant to whoever an inbox forwards to), resolving the address to an
 account at creation (an account-existence oracle any company could query), and an external
 application URL on the advert (it empties the pipeline and the public count at once).
+
+## The sales CRM
+
+Ported from Salesforce Hub, which had already done most of the thinking: the source
+requirement, the hashed suppression list with no foreign key, the count interlock on bulk
+delete, and the refusal to send. Those are taken as they are, and the count interlock is
+worth naming as something the reference got right rather than something corrected.
+
+Four things changed on the way.
+
+**The source became first-touch.** The reference's `upsert` rewrites `source` and
+`source_detail` on every re-import, so a lead acquired from an inbound enquiry quietly
+becomes one scraped from a directory the next time a file is loaded. It is the lawful-basis
+record; a record a later file can rewrite is not one. A disagreement now goes into the
+activity log, dated.
+
+**Unsubscribing erases the person.** The reference writes the suppression and leaves the
+row intact, relying on the status being read — which works until a query forgets to. Here
+it writes the suppression, nulls the contact details, and keeps the company and the
+activity log, which carry no personal data. Same shape as the account closure built
+earlier in this port.
+
+**A contacted lead cannot be bulk-deleted.** The activity log is the record that answers a
+complaint, and it cascades with the row. Those leads are reported back rather than skipped
+silently, and the way to remove one is the unsubscribe above.
+
+**The import is pasted rather than uploaded, and leads carry product lines.** The first
+keeps a file of contact details out of the image-upload middleware and out of any
+server-side draft between two requests; the second makes the CRM speak the vocabulary the
+job board, the community tree and the estimator already share instead of inventing a fifth
+list of SAP product names.
+
+**The drafting came next**, into the columns migration 024 had already provided. It is the
+reference's `utils/outreachDrafting.js` with its two best ideas intact — the model is given
+no personal detail, and every draft is verified before anybody reads it — plus one check
+this ecosystem needs: a draft may name only the SAP product areas the lead was actually
+recorded against, because guessing which products a company runs is the most
+plausible-sounding invention available and the easiest for the reader to catch.
+
+Two things changed. The prompt's SAP vocabulary is generated from `config/sapProducts.js`
+rather than typed into the prompt, for the same reason the assistant's is. And
+`config/drafting.js` defaults its model and its prices from `config/assistant.js`, so the
+common deployment turns one knob rather than three — with a boot assertion that refuses a
+model overridden without its prices, which is the silent failure the whole config exists
+for. `/admin/ai` now prints both models.
+
+Writing the verifier found a contradiction between two of its own rules: the catalogue's
+product names contain digits, so "no numerals" rejected every draft that obeyed "use these
+names". What the model was given is now cut out of the text before it is checked.
+
+## Applications oversight
+
+Built as the state of the marketplace rather than as a list of applications, which is the
+difference between a health screen and a drawer full of other people's letters. It shows
+who applied to what and whether anybody has moved it; the cover letter stays on the
+application's own page, and both carry the superadmin guard `/admin/rates` carries.
+
+Building it found the thing worth recording: `POST /applications/:id/transition` treated
+any administrator as the employer. An administrator could therefore reject a candidate, or
+mark them hired, on behalf of a company that had decided nothing — with a notification
+telling the candidate their employer had done it. The audit event named the administrator
+correctly the whole time, which is what made it easy to miss.
+
+DynamicsHub's version has a second detail page for an application. This has none: there is
+already one, it is already admin-reachable, and a second would be a second place that
+decides what an application looks like.
+
+## Tax advisory
+
+**Superseded on 2026-10-07.** The owner decided /tax should match dynamicshub.net, calculator
+and application form included (see "The tax savings calculator" in the excluded list, and
+CLAUDE.md "The tax programme"). The public form below was retired; its migration, its kind on
+`enquiries`, its admin view and its retention purge stay, for the rows it already collected.
+What follows is the record of what it was.
+
+The introduction, and nothing else. The calculator is refused for the third time — first as
+`savings_monthly` on a success story, then as a Budget Planner on the company comparison,
+now as its own page — and this time the refusal is asserted at boot as well as by a test:
+`config/taxAdvisory.js` fails to load if the page's "what this does not do" list loses the
+sentence about a saving.
+
+It is a third KIND on `enquiries` rather than a table of its own, which is migration 018's
+rule applied rather than argued with. The three things that looked like they needed a second
+table did not: "introduced" is a fact with a date so it is a column, the retention rule is a
+WHERE on the purge, and one-open-per-address is a generated column under a unique key.
+
+What is deliberately not collected is the longer half of the decision. The reference's form
+takes forty fields from an anonymous visitor including gross and net pay, the current
+employer, the notice period and the current tax rate. Six are enough to route an
+introduction; the rest belongs to the specialist, under terms where a duty of
+confidentiality actually attaches.
 
 ## Known at the start, so nobody discovers it at the end
 

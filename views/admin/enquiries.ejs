@@ -9,6 +9,28 @@
   <%- include('./_tabs', { current: 'enquiries' }) %>
   <%- include('../partials/flash') %>
 
+  <%#
+    The retention promise, printed rather than claimed. The tax form tells somebody we keep
+    their enquiry for a stated period and then delete it; this is where that sentence is
+    either true or visibly not.
+  -%>
+  <% if (dueForPurge > 0) { %>
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-3">
+      <div class="flex-grow-1 small mb-0">
+        <strong><%= dueForPurge %></strong> closed tax advisory
+        <%= dueForPurge === 1 ? 'enquiry is' : 'enquiries are' %> past the
+        <%= retentionDays %>-day retention this site promised on the form.
+      </div>
+      <% if (currentUser && currentUser.isSuperadmin) { %>
+        <form method="post" action="/admin/enquiries/purge-tax"
+              data-confirm="Permanently delete the closed tax enquiries past their retention window? This cannot be undone.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-outline-danger" type="submit">Delete them</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
   <div class="glass-card mb-3"><div class="card-body">
     <p class="mb-3">
       <strong><%= openCount %></strong> waiting
@@ -25,7 +47,7 @@
         <select class="form-select" id="f-status" name="status">
           <option value="">Any</option>
           <% statuses.forEach(function (st) { %>
-            <option value="<%= st %>" <%= filters.status === st ? 'selected' : '' %>><%= st %></option>
+            <option value="<%= st %>" <%= filters.status === st ? 'selected' : '' %>><%= optionLabel(st) %></option>
           <% }) %>
         </select>
       </div>
@@ -34,7 +56,7 @@
         <select class="form-select" id="f-kind" name="kind">
           <option value="">Any</option>
           <% kinds.forEach(function (k) { %>
-            <option value="<%= k %>" <%= filters.kind === k ? 'selected' : '' %>><%= k %></option>
+            <option value="<%= k %>" <%= filters.kind === k ? 'selected' : '' %>><%= optionLabel(k) %></option>
           <% }) %>
         </select>
       </div>

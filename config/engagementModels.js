@@ -3,6 +3,15 @@
 /**
  * The three ways a company buys SAP delivery here, and the one place that describes them.
  *
+ * THE HUB IS A MARKETPLACE, AND EVERY SENTENCE HERE HAS TO SAY SO. The Terms of Service
+ * state that the Hub is not a party to any engagement and does not employ, vet or
+ * guarantee anybody. These pages once said "we own the plan, the team and the delivery",
+ * which is a promise the Terms disclaim in the same breath — and the one a client with a
+ * failed project would quote back. So each model names three parties: what the client
+ * owns, what the consultant or partner they contract owns, and what the Hub provides,
+ * which is tooling and nothing that could be read as delivery. The assertion below
+ * refuses the first-person ownership phrasing outright.
+ *
  * They are a vocabulary before they are three pages: the same three words appear on the
  * landing page, in the navigation, on each page's own heading and in the "compare" row at
  * the foot of each one. Written out four times they would drift, and drift in a page that
@@ -20,18 +29,19 @@ const ENGAGEMENT_MODELS = Object.freeze([
     summary: 'One or more consultants join your team and work to your plan.',
     bestFor: 'A gap in a team you already have, and a backlog you already own.',
     youOwn: 'Scope, priorities, delivery method and the outcome.',
-    weOwn: 'Finding people who have done this module on a real programme, and the contract.',
+    supplierOwns: 'Their own work, to your direction, under the contract you agree with them.',
+    hubProvides: 'A directory filtered by delivery history, and a thread anchored to the role so you can talk to people.',
     steps: [
-      ['Tell us the gap', 'The module, the Activate phase you are in, the seniority and when you need somebody.'],
+      ['Describe the gap', 'Post a role with the module, the Activate phase you are in, the seniority and when you need somebody.'],
       ['See candidates', 'Profiles filtered by what they have delivered, not what they have ticked.'],
       ['Talk to them', 'Through the Hub, anchored to the role, so the thread has a subject.'],
-      ['They start', 'On your plan, in your stand-up, reporting to you.']
+      ['Contract and start', 'You agree terms with them directly; they join your plan, your stand-up, and report to you.']
     ],
     benefits: [
       'You keep control of the plan — nothing about how you deliver has to change.',
       'Scale down as easily as up: the commitment is per person, per month.',
       'Filter on delivery history, so "has done EWM" means a project and not a course.',
-      'No finder\'s fee on a permanent hire if you later want to keep somebody.'
+      'The Hub charges no placement fee: what you agree with the consultant is between the two of you.'
     ],
     watchOut: 'If nobody on your side owns the design, this is the model that quietly fails — an augmented team needs somebody to augment.'
   },
@@ -42,12 +52,13 @@ const ENGAGEMENT_MODELS = Object.freeze([
     summary: 'A defined scope, a defined price, delivered against a statement of work.',
     bestFor: 'A piece of work whose edges you can describe: a rollout, a migration, a module going live.',
     youOwn: 'The business decisions, sign-off at each phase, and your own people\'s time.',
-    weOwn: 'The plan, the team, the estimate and the delivery against it.',
+    supplierOwns: 'The plan, the team and the delivery against the statement of work you sign with them.',
+    hubProvides: 'The estimator, and an itemised estimate you can export for your own approvals and for comparing partners\' bids.',
     steps: [
       ['Size it', 'The estimator turns a scope into consultant-days, phases and a budget in minutes.'],
-      ['Agree the statement of work', 'What is in, what is out, and what each phase produces.'],
-      ['Deposit and start', 'A deposit against the accepted quote; the balance is invoiced as phases complete.'],
-      ['Deliver and hand over', 'Through Explore, Realize, Deploy and Run, against the plan you signed.']
+      ['Find a delivery partner', 'Consultants and agencies whose delivery history covers the modules in scope.'],
+      ['Agree the statement of work with them', 'What is in, what is out, and what each phase produces — the contract is between you and them.'],
+      ['They deliver', 'Through Explore, Realize, Deploy and Run, against the plan you both signed.']
     ],
     benefits: [
       'The cost is known before you commit, and the breakdown reconciles line by line.',
@@ -64,18 +75,19 @@ const ENGAGEMENT_MODELS = Object.freeze([
     summary: 'Ongoing support and small change for a system that is already live.',
     bestFor: 'Life after go-live: incidents, support packs, small enhancements, the quiet half of SAP.',
     youOwn: 'Priorities, business sign-off, and what counts as urgent.',
-    weOwn: 'The rota, the response, and keeping the knowledge when individuals move on.',
+    supplierOwns: 'The rota, the response times you agree, and keeping the knowledge when individuals move on.',
+    hubProvides: 'A place to find a team whose delivery history covers your estate, and to talk to them.',
     steps: [
       ['Describe the estate', 'Modules, versions, interfaces and how much of it is standard.'],
-      ['Agree the shape', 'Hours, response expectations and who may raise what.'],
-      ['Transition', 'A handover from whoever built it, documented rather than remembered.'],
-      ['Run', 'Support, plus a monthly allowance for small change so the backlog does not calcify.']
+      ['Find a provider', 'Consultants or agencies whose delivery history covers what you run.'],
+      ['Agree the shape with them', 'Hours, response expectations and who may raise what — in your contract with them.'],
+      ['Transition and run', 'A documented handover from whoever built it, then support plus a small-change allowance.']
     ],
     benefits: [
       'Cover that does not depend on one person\'s holiday plans.',
-      'Small change included, so "we will raise it next year" stops being the answer.',
-      'The same people who can quote a bigger piece of work when one appears.',
-      'Knowledge stays with the engagement rather than leaving with a contractor.'
+      'Ask for small change in the same contract, so "we will raise it next year" stops being the answer.',
+      'Knowledge stays with the engagement rather than leaving with a contractor.',
+      'Providers are filtered by what they have run before, not by what they claim.'
     ],
     watchOut: 'If what you actually have is a half-finished implementation, support will spend its time on it — finish the project first.'
   }
@@ -102,7 +114,7 @@ function assertEngagementIntegrity() {
     if (seen.has(model.slug)) problems.push(`${model.slug} is declared twice`);
     seen.add(model.slug);
 
-    ['label', 'icon', 'summary', 'bestFor', 'youOwn', 'weOwn', 'watchOut'].forEach((field) => {
+    ['label', 'icon', 'summary', 'bestFor', 'youOwn', 'supplierOwns', 'hubProvides', 'watchOut'].forEach((field) => {
       if (!model[field] || !String(model[field]).trim()) problems.push(`${model.slug} has no ${field}`);
     });
 
@@ -127,6 +139,15 @@ function assertEngagementIntegrity() {
      */
     const prose = JSON.stringify(model);
     if (/[€$£]\s?\d/.test(prose)) problems.push(`${model.slug} names a price, which belongs in config/payments.js`);
+
+    /*
+     * No delivery promises in the Hub's own voice. The Terms say the Hub is not a party to
+     * any engagement; "we own the delivery" on a sales page says the opposite, and it is
+     * the sentence a client with a failed project would quote.
+     */
+    if (/\bwe (own|deliver|guarantee|vet|staff|run|provide the team)\b/i.test(prose) || /\bweOwn\b/.test(prose)) {
+      problems.push(`${model.slug} promises delivery in the Hub's own voice, which the Terms disclaim`);
+    }
   });
 
   if (problems.length) {

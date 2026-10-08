@@ -15,11 +15,7 @@
             month, and updating replaces your previous figure rather than adding a second one.
           </p>
 
-          <% if (errors.length) { %>
-            <div class="alert alert-danger">
-              <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }); %></ul>
-            </div>
-          <% } %>
+          <%- include('../partials/form-errors') %>
 
           <% if (own) { %>
             <div class="alert alert-info small">
@@ -28,6 +24,17 @@
             </div>
           <% } %>
 
+          <%
+            /*
+             * What was typed beats what was stored, so a refused submission is corrected
+             * rather than retyped. Named `pick` and not `form`: a `const form` here would
+             * shadow the local for the whole block and throw before it is assigned.
+             */
+            const pick = (key, fallback) => {
+              const typed = form && form[key];
+              return typed === undefined || typed === '' ? fallback : typed;
+            };
+          %>
           <form method="post" action="/rates/submit">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
@@ -38,7 +45,7 @@
                 <% roleCategories.forEach(function (cat) { %>
                   <optgroup label="<%= cat.category %>">
                     <% cat.roles.forEach(function (r) { %>
-                      <option value="<%= r.value %>" <%= own && own.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+                      <option value="<%= r.value %>" <%= pick('role', own && own.role) === r.value ? 'selected' : '' %>><%= r.label %></option>
                     <% }); %>
                   </optgroup>
                 <% }); %>
@@ -50,21 +57,24 @@
                 <label class="form-label" for="seniority">Seniority</label>
                 <select class="form-select" id="seniority" name="seniority" required>
                   <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-                    <option value="<%= s %>" <%= own && own.seniority === s ? 'selected' : '' %>><%= s %></option>
+                    <option value="<%= s %>" <%= pick('seniority', own && own.seniority) === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
                   <% }); %>
                 </select>
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="engagement_type">Type</label>
                 <select class="form-select" id="engagement_type" name="engagement_type" required>
-                  <option value="contract">Contract (day rate)</option>
-                  <option value="permanent">Permanent (annual)</option>
+                  <% Object.keys(amountBounds).forEach(function (t) { %>
+                    <option value="<%= t %>" <%= pick('engagement_type', own && own.engagement_type) === t ? 'selected' : '' %>>
+                      <%= t === 'contract' ? 'Contract' : 'Permanent' %> (<%= amountBounds[t].label.replace(/^an? /, '') %>)
+                    </option>
+                  <% }); %>
                 </select>
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="work_mode">Work mode</label>
                 <select class="form-select" id="work_mode" name="work_mode" required>
-                  <% ['remote','hybrid','onsite'].forEach(function (m) { %><option value="<%= m %>"><%= m %></option><% }); %>
+                  <% ['remote','hybrid','onsite'].forEach(function (m) { %><option value="<%= m %>" <%= pick('work_mode', own && own.work_mode) === m ? 'selected' : '' %>><%= optionLabel(m) %></option><% }); %>
                 </select>
               </div>
             </div>
@@ -72,14 +82,34 @@
             <div class="row g-2 mb-3">
               <div class="col-md-5">
                 <label class="form-label" for="amount">Amount</label>
-                <input class="form-control" id="amount" name="amount" type="number" min="1" step="10" required
-                       value="<%= own ? Math.round(own.amount) : '' %>">
+                <%
+                  /*
+                   * `step` is 1 and there is no `min`/`max` attribute, deliberately. The
+                   * real bound depends on the engagement type AND the currency, which are
+                   * two other controls on this form, and an HTML constraint cannot say
+                   * that. A fixed one would refuse honest figures for every pair it was
+                   * not written for — which is what `min="1" step="10"` did, rejecting 600
+                   * and 1000 while accepting 611. The server states the bound it enforces.
+                   */
+                %>
+                <input class="form-control" id="amount" name="amount" type="number"
+                       step="<%= amountStep %>" required aria-describedby="amount-help"
+                       value="<%= pick('amount', own ? Math.round(own.amount) : '') %>">
+                <div class="form-text" id="amount-help">
+                  In EUR: <%= amountBounds.contract.label %> between
+                  <%= amountBounds.contract.minEur.toLocaleString('en-GB') %> and
+                  <%= amountBounds.contract.maxEur.toLocaleString('en-GB') %>, or
+                  <%= amountBounds.permanent.label %> between
+                  <%= amountBounds.permanent.minEur.toLocaleString('en-GB') %> and
+                  <%= amountBounds.permanent.maxEur.toLocaleString('en-GB') %>.
+                  Other currencies are converted.
+                </div>
               </div>
               <div class="col-md-3">
                 <label class="form-label" for="currency">Currency</label>
                 <select class="form-select" id="currency" name="currency" required>
                   <% currencies.forEach(function (c) { %>
-                    <option value="<%= c %>" <%= own && own.currency === c ? 'selected' : '' %>><%= c %></option>
+                    <option value="<%= c %>" <%= pick('currency', own && own.currency) === c ? 'selected' : '' %>><%= c %></option>
                   <% }); %>
                 </select>
               </div>
@@ -87,9 +117,7 @@
                 <label class="form-label" for="country">Country</label>
                 <select class="form-select" id="country" name="country" required>
                   <option value="">Choose</option>
-                  <% countries.forEach(function (c) { %>
-                    <option value="<%= c.code %>" <%= own && own.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-                  <% }); %>
+                  <%- include('../partials/country-options', { countries: countries, selected: pick('country', own && own.country) }) %>
                 </select>
               </div>
             </div>

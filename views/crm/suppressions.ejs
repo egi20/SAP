@@ -1,0 +1,94 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-slash-circle',
+  heading: 'Do not contact',
+  sub: 'The list that outlives every row it protects'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../admin/_tabs', { current: 'crm' }) %>
+  <%- include('../partials/flash') %>
+
+  <nav aria-label="Breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0 small">
+      <li class="breadcrumb-item"><a href="/crm">Leads</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Do not contact</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2"><%= total %> addresses</h2>
+          <%#
+            There are no addresses on this page because there are none in the table. It
+            holds a SHA-256 of each one and nothing else: a suppression list full of
+            plaintext addresses is a mailing list of people who asked not to be mailed.
+          -%>
+          <p class="small text-muted-2 mb-3">
+            The list holds a hash of each address and nothing else, so it can answer "is
+            this one on it?" and no other question. Nothing in this application removes an
+            entry, and deleting a lead does not remove one — that is exactly how an
+            application forgets somebody asked to be left alone and re-imports them next
+            quarter.
+          </p>
+
+          <% if (entries.length === 0) { %>
+            <div class="empty-state"><i class="bi bi-slash-circle"></i>Nobody has asked yet.</div>
+          <% } else { %>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0 align-middle">
+                <thead><tr><th>Reason</th><th>Note</th><th>Recorded by</th><th>When</th></tr></thead>
+                <tbody>
+                  <% entries.forEach(function (e) { %>
+                    <tr>
+                      <td><span class="badge-hub"><%= e.reason %></span></td>
+                      <td class="small"><%= e.note || '—' %></td>
+                      <td class="small"><%= e.actor_name %></td>
+                      <td class="small"><%= new Date(e.created_at).toLocaleDateString('en-GB') %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Add an address</h2>
+          <%#
+            Somebody writes in asking never to be contacted and there may be no lead to
+            move: the address came from a list somebody else holds, or the lead was deleted
+            last quarter. The suppression is the half that has to work without the lead.
+          -%>
+          <p class="small text-muted-2 mb-3">
+            For when somebody asks and there is no lead to unsubscribe. The address is
+            hashed on the way in and is not stored.
+          </p>
+          <form method="post" action="/crm/suppressions">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-2">
+              <label class="form-label" for="email">Address</label>
+              <input class="form-control" id="email" name="email" type="email" required maxlength="190">
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="note">Note</label>
+              <input class="form-control" id="note" name="note" maxlength="500" placeholder="How they asked">
+            </div>
+            <button class="btn btn-outline-danger btn-sm w-100" type="submit">Add to the list</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

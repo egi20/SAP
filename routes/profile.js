@@ -16,6 +16,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { singleImage } = require('../middleware/fileUpload');
 const { requireIdParam } = require('../utils/ids');
 const { sanitizeRichText } = require('../utils/sanitize');
+const { normaliseProfileUrls, COMPANY_URL_COLUMNS } = require('../utils/profileUrl');
 const { slugify } = require('../utils/slug');
 const Job = require('../models/Job');
 const Quote = require('../models/Quote');
@@ -25,7 +26,7 @@ const { buildCvDocx } = require('../utils/documents/cvDocx');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
 const { PRODUCT_LINES, ALL_MODULES, isModule } = require('../config/sapProducts');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 
 const router = express.Router();
 
@@ -246,6 +247,30 @@ router.get(
   })
 );
 
+/**
+ * The posted profile fields, under the column names the template reads.
+ *
+ * Used only when a submission is refused: the member's answers go over the stored row so
+ * the form comes back as they left it. A checkbox is read from its own presence — an
+ * unticked box posts nothing, and "absent" has to mean false here exactly as it does in
+ * `AppSetting.setMany`, or correcting one field would silently clear another.
+ */
+function submittedProfileFields(body, urlValues) {
+  const out = {
+    willing_to_travel: body.willing_to_travel === 'on' ? 1 : 0,
+    ...urlValues
+  };
+  const passthrough = [
+    'headline', 'primary_role', 'seniority', 'years_experience', 'full_lifecycles',
+    'country', 'city', 'work_mode', 'day_rate', 'currency', 'availability', 'available_from'
+  ];
+  for (const key of passthrough) {
+    if (body[key] !== undefined) out[key] = body[key];
+  }
+  if (body.bio !== undefined) out.bio = sanitizeRichText(body.bio || '');
+  return out;
+}
+
 router.get(
   '/consultant',
   isConsultant,
@@ -284,10 +309,21 @@ router.post(
   isConsultant,
   writeLimiter,
   [
-    body('headline').optional({ checkFalsy: true }).isLength({ max: 200 }),
-    body('primary_role').optional({ checkFalsy: true }).isIn(ROLE_SLUGS),
-    body('day_rate').optional({ checkFalsy: true }).isFloat({ min: 0, max: 100000 }),
-    body('years_experience').optional({ checkFalsy: true }).isInt({ min: 0, max: 60 }),
+    /*
+     * EVERY rule carries a message naming its own field. Without one express-validator
+     * says "Invalid value", and the form then refuses a profile without saying which of
+     * fifteen boxes it is refusing — reported from a real session, against `day_rate` and
+     * `years_experience`, where the member's only option is to guess. `full_lifecycles`
+     * had a message and was the one field people could correct.
+     */
+    body('headline').optional({ checkFalsy: true }).isLength({ max: 200 })
+      .withMessage('Your headline can be at most 200 characters.'),
+    body('primary_role').optional({ checkFalsy: true }).isIn(ROLE_SLUGS)
+      .withMessage('Choose your primary role from the list.'),
+    body('day_rate').optional({ checkFalsy: true }).isFloat({ min: 0, max: 100000 })
+      .withMessage('Your day rate must be a number between 0 and 100,000.'),
+    body('years_experience').optional({ checkFalsy: true }).isInt({ min: 0, max: 60 })
+      .withMessage('Years of experience must be a whole number between 0 and 60.'),
     /*
      * `checkFalsy` is wrong here and that is the whole point of the separate validator:
      * '0' is falsy, and zero full lifecycles is a real, honest answer that has to survive
@@ -299,10 +335,49 @@ router.post(
       .withMessage('Full lifecycles must be a whole number between 0 and 40.')
   ],
   asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      req.flash('error', errors.array()[0].msg || 'Please check the form.');
-      return res.redirect('/profile/consultant');
+    const userId = req.session.user.id;
+    /*
+     * The URLs are checked here rather than as express-validator rules because the same
+     * allow-list produces the stored value: validating in one place and normalising in
+     * another is two descriptions of one rule, and `javascript:alert(...)` reached the
+     * column because neither existed.
+     */
+    const urls = normaliseProfileUrls(req.body);
+    const problems = [...validationResult(req).array(), ...urls.errors];
+
+    if (problems.length) {
+      /*
+       * RE-RENDER, never redirect. A redirect re-reads the profile from the database and
+       * everything typed is gone — a long form, fifteen fields, one of them wrong, and
+       * the member starts again. Their answers go over the stored row so the page comes
+       * back exactly as they left it, with the refusals named beside it.
+       */
+      const [profile, skills, certifications, experiences, projects] = await Promise.all([
+        ConsultantProfile.ensureExists(userId),
+        Skill.forConsultant(userId),
+        ConsultantProfile.listCertifications(userId),
+        ConsultantProfile.listExperiences(userId),
+        ConsultantProfile.listProjects(userId)
+      ]);
+
+      return res.status(422).render('profile/consultant', {
+        title: 'Your consultant profile',
+        profile: { ...profile, ...submittedProfileFields(req.body, urls.values) },
+        skills,
+        submittedSkills: typeof req.body.skills === 'string' ? req.body.skills : null,
+        certifications,
+        experiences,
+        projects,
+        allModules: ALL_MODULES,
+        productLines: PRODUCT_LINES,
+        activatePhases: Job.ACTIVATE_PHASES,
+        roleCategories: ROLE_CATEGORIES,
+        certificationGroups: CERTIFICATIONS,
+        otherCertificationCode: OTHER_CODE,
+        countries,
+        minCompleteness: ConsultantProfile.MIN_COMPLETENESS_TO_PUBLISH,
+        errors: problems
+      });
     }
 
     await ConsultantProfile.update(req.session.user.id, {
@@ -323,9 +398,9 @@ router.post(
       currency: /^[A-Z]{3}$/.test(req.body.currency || '') ? req.body.currency : 'EUR',
       availability: req.body.availability || 'not_available',
       available_from: req.body.available_from || null,
-      linkedin_url: req.body.linkedin_url || null,
-      website_url: req.body.website_url || null,
-      sap_community_url: req.body.sap_community_url || null
+      linkedin_url: urls.values.linkedin_url,
+      website_url: urls.values.website_url,
+      sap_community_url: urls.values.sap_community_url
     });
 
     const names = String(req.body.skills || '')
@@ -558,10 +633,24 @@ router.post(
   writeLimiter,
   [body('company_name').trim().isLength({ min: 2, max: 200 }).withMessage('Please enter the company name.')],
   asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      req.flash('error', errors.array()[0].msg);
-      return res.redirect('/profile/company');
+    /*
+     * The same allow-list as the consultant's, over this table's own column names. The
+     * company's `website` is the one URL on the site that IS rendered as a link today —
+     * "About the company" is gated on `about || website` — so an unchecked `javascript:`
+     * here was not a latent problem, it was a live one.
+     */
+    const urls = normaliseProfileUrls(req.body, COMPANY_URL_COLUMNS);
+    const problems = [...validationResult(req).array(), ...urls.errors];
+    if (problems.length) {
+      // Re-rendered, not redirected: the same answer as the consultant profile, for the
+      // same reason — a redirect re-reads the row and loses everything that was typed.
+      const company = await CompanyProfile.ensureExists(req.session.user.id, req.session.user.name);
+      return res.status(422).render('profile/company', {
+        title: 'Your company profile',
+        company: { ...company, ...req.body, ...urls.values, is_public: req.body.is_public === 'on' ? 1 : 0 },
+        countries,
+        errors: problems
+      });
     }
 
     await CompanyProfile.update(req.session.user.id, {
@@ -573,8 +662,8 @@ router.post(
       company_type: ['end_customer', 'consulting_partner', 'isv', 'staffing'].includes(req.body.company_type)
         ? req.body.company_type
         : 'end_customer',
-      website: req.body.website || null,
-      linkedin_url: req.body.linkedin_url || null,
+      website: urls.values.website,
+      linkedin_url: urls.values.linkedin_url,
       country: /^[A-Z]{2}$/.test(req.body.country || '') ? req.body.country : null,
       city: req.body.city || null,
       is_public: req.body.is_public === 'on' ? 1 : 0

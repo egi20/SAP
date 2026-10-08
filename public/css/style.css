@@ -1821,3 +1821,94 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .tax-apply-header h1 { font-weight: 800; color: #fff; }
 .tax-form-wrap { max-width: 960px; }
 .tax-form-h { border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: var(--space-4); }
+
+/* ============================================================================
+   TOUCH AND SMALL SCREENS
+
+   Everything in this block came from one pass over the site in a 390x844 viewport.
+   The layout itself held — nothing scrolled sideways at 320px — so these are the
+   things a narrow screen makes wrong rather than things it breaks.
+   ========================================================================== */
+
+/*
+ * iOS Safari zooms the whole page when a form control under 16px takes focus, and it does
+ * not zoom back out. Every field here was 0.925rem — 14.8px — so tapping any box on any
+ * form threw the layout off and left the person pinching to recover.
+ *
+ * Scoped to touch pointers, so the desktop scale is untouched: this is a fix for one
+ * browser behaviour, not a change of mind about type size.
+ */
+@media (hover: none) and (pointer: coarse) {
+  .form-control, .form-select, textarea.form-control { font-size: 1rem; }
+}
+
+@media (max-width: 991.98px) {
+  /*
+   * Sixteen admin tabs wrapped into eight rows and took the whole first screen, so every
+   * admin page opened on its own navigation. One row that scrolls sideways keeps the page
+   * where somebody expects it, and the fade below says the row continues.
+   */
+  .admin-tabs .nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: var(--space-1);
+  }
+  .admin-tabs .nav::-webkit-scrollbar { display: none; }
+  .admin-tabs .nav-link { white-space: nowrap; }
+}
+
+/*
+ * A table that scrolls sideways with nothing saying so is a table whose last columns do
+ * not exist — the Void button on /admin/rates was off the edge with no hint it was there.
+ * Bootstrap's .table-responsive already scrolls; what it has never had is an affordance.
+ *
+ * A right-edge fade, painted only while there is more to see: the gradient is attached to
+ * the scroll container rather than the viewport, so it slides away as the last column
+ * arrives. Pure CSS, no scroll listener.
+ */
+.table-responsive {
+  background-image: linear-gradient(to right, transparent calc(100% - 2.5rem), rgba(0, 0, 0, 0.08));
+  background-repeat: no-repeat;
+  background-attachment: local, scroll;
+}
+
+@media (max-width: 575.98px) {
+  /*
+   * The cookie notice took about a third of the screen and sat on top of whatever was at
+   * the bottom of the page — including form buttons and validation messages — until it was
+   * dismissed. It is smaller here, and `body` reserves the space it occupies, so nothing
+   * is permanently underneath it. main.js sets the class; it is removed with the notice.
+   */
+  .cookie-notice { padding: 0.625rem 0.75rem; gap: 0.5rem; left: 0.5rem; right: 0.5rem; bottom: 0.5rem; }
+  .cookie-notice-text { font-size: 0.8125rem; line-height: 1.35; flex-basis: 100%; }
+  .cookie-notice .btn { padding: 0.35rem 0.9rem; font-size: 0.8125rem; }
+
+  /* Small enough not to sit over a figure in the column beside it. */
+  .back-to-top { width: 2.25rem; height: 2.25rem; right: 0.5rem; bottom: 0.5rem; }
+  .cookie-notice ~ .back-to-top { bottom: 4.5rem; }
+}
+
+body.has-cookie-notice { padding-bottom: 7rem; }
+@media (min-width: 576px) { body.has-cookie-notice { padding-bottom: 5.5rem; } }
+
+/*
+ * Touch targets.
+ *
+ * "Open →" was 21px tall and the footer links about 19px, against a 24px minimum that
+ * WCAG 2.2 sets and a 44px one that every platform guideline does. The height is bought
+ * with padding rather than font size, so nothing about the type scale moves — and only on
+ * a touch pointer, where a miss costs something.
+ */
+@media (hover: none) and (pointer: coarse) {
+  footer a,
+  .btn-link,
+  .card-body a.small,
+  a.small.text-reset {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  /* A link inside a sentence must not become a 44px block in the middle of it. */
+  p a, li a.d-inline, .form-text a { display: inline; min-height: 0; }
+}

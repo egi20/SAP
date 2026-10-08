@@ -1,0 +1,123 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', { icon: 'bi-person-plus', heading: 'Add a lead', sub: 'Where it came from is not optional' }) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../admin/_tabs', { current: 'crm' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <form method="post" action="/crm" class="glass-card">
+        <div class="card-body">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="mb-3">
+            <label class="form-label" for="company">Company <span aria-hidden="true">*</span></label>
+            <input class="form-control" id="company" name="company" required maxlength="200"
+                   value="<%= values.company || '' %>">
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="contact_name">Contact</label>
+              <input class="form-control" id="contact_name" name="contact_name" maxlength="200"
+                     value="<%= values.contact_name || '' %>">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="job_title">Job title</label>
+              <input class="form-control" id="job_title" name="job_title" maxlength="200"
+                     value="<%= values.job_title || '' %>">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="contact_email">Email</label>
+              <input class="form-control" id="contact_email" name="contact_email" type="email" maxlength="190"
+                     value="<%= values.contact_email || '' %>">
+              <p class="form-text">Checked against the do-not-contact list before it is saved.</p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="contact_phone">Phone</label>
+              <input class="form-control" id="contact_phone" name="contact_phone" maxlength="40"
+                     value="<%= values.contact_phone || '' %>">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="country">Country</label>
+              <select class="form-select" id="country" name="country">
+                <option value="">—</option>
+                <%- include('../partials/country-options', { countries: countries, selected: values.country }) %>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="website">Website</label>
+              <input class="form-control" id="website" name="website" maxlength="500"
+                     value="<%= values.website || '' %>">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="linkedin_url">LinkedIn</label>
+            <input class="form-control" id="linkedin_url" name="linkedin_url" maxlength="500"
+                   value="<%= values.linkedin_url || '' %>">
+          </div>
+
+          <%#
+            Product lines from config/sapProducts.js — the same eight the job board, the
+            community tree and the estimator use. Not a new taxonomy, and not free text:
+            eight tick boxes get filled in honestly, fifty-seven do not.
+          -%>
+          <fieldset class="mb-3">
+            <legend class="form-label">What they run</legend>
+            <div class="row g-2">
+              <% productLines.forEach(function (l) { %>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="product_lines" value="<%= l.value %>"
+                           id="pl-<%= l.value %>"
+                           <%= (values.product_lines || []).includes && (values.product_lines || []).includes(l.value) ? 'checked' : '' %>>
+                    <label class="form-check-label small" for="pl-<%= l.value %>"><%= l.label %></label>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </fieldset>
+
+          <hr>
+
+          <%#
+            The required half. A lead cannot exist without an answer to "where did you get
+            this person's address", because that is the first question anybody will ask and
+            it cannot be reconstructed from memory a year later. It is also FIRST-TOUCH: a
+            later import can correct a phone number and never this.
+          -%>
+          <div class="mb-3">
+            <label class="form-label" for="source">Where did this come from? <span aria-hidden="true">*</span></label>
+            <select class="form-select" id="source" name="source" required>
+              <option value="">Choose one</option>
+              <% sources.forEach(function (s) { %>
+                <option value="<%= s.value %>" <%= values.source === s.value ? 'selected' : '' %>><%= s.label %></option>
+              <% }); %>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="source_detail">Specifically where</label>
+            <input class="form-control" id="source_detail" name="source_detail" maxlength="300"
+                   value="<%= values.source_detail || '' %>">
+            <ul class="form-text mb-0">
+              <% sources.forEach(function (s) { %>
+                <li><strong><%= s.label %>:</strong> <%= s.help %></li>
+              <% }); %>
+            </ul>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save</button>
+          <a class="btn btn-outline-secondary" href="/crm">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

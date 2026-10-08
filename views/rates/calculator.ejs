@@ -39,9 +39,7 @@
           <label class="form-label" for="country">Where you work from</label>
           <select class="form-select" id="country" name="country">
             <option value="">Not sure / elsewhere</option>
-            <% countries.forEach(function (c) { %>
-              <option value="<%= c.code %>" <%= result && result.input.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-            <% }) %>
+            <%- include('../partials/country-options', { countries: countries, selected: result && result.input.country }) %>
           </select>
           <p class="form-text">Used to pick a region, never stored.</p>
         </div>
@@ -62,7 +60,7 @@
         </div>
 
         <div class="col-md-4">
-          <label class="form-label" for="contract_type">Contract type</label>
+          <label class="form-label" for="contract_type">Pricing model</label>
           <select class="form-select" id="contract_type" name="contract_type">
             <% model.CONTRACT_TYPES.forEach(function (c) { %>
               <option value="<%= c.key %>" <%= result && result.input.contractType === c.key ? 'selected' : '' %>><%= c.label %></option>

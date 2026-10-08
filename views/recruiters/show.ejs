@@ -17,7 +17,7 @@
         <ul class="list-unstyled small mb-0">
           <% if (profile.contact_name) { %><li class="mb-1"><i class="bi bi-person"></i> <%= profile.contact_name %></li><% } %>
           <% if (profile.city || profile.country) { %>
-            <li class="mb-1"><i class="bi bi-geo-alt"></i> <%= [profile.city, profile.country].filter(Boolean).join(', ') %></li>
+            <li class="mb-1"><i class="bi bi-geo-alt"></i> <%= locationLabel(profile.city, profile.country) %></li>
           <% } %>
           <%
             /*

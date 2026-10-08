@@ -1,7 +1,7 @@
 'use strict';
 
 const { promisePool, withTransaction } = require('../config/database');
-const { containsPattern } = require('../utils/likePattern');
+const { textSearchClause } = require('../utils/likePattern');
 const { isRole } = require('../config/roleTaxonomy');
 const { isModule } = require('../config/sapProducts');
 const { isCertificationCode, OTHER_CODE, certByCode } = require('../config/certifications');
@@ -62,7 +62,13 @@ function completenessOf(profile, { skillCount = 0, certificationCount = 0, proje
  * @returns {{clause:string, params:Array}}
  */
 function buildFilter(filters = {}) {
-  const where = ['cp.is_public = 1', 'u.is_active = 1'];
+  /*
+   * THREE conditions, not two. `is_public` is the member's own switch and
+   * `admin_hidden_at` is a moderator's; the directory, the search sources and the feed all
+   * come through here, so a profile taken down by an administrator leaves every one of
+   * them without any of those pages knowing why.
+   */
+  const where = ['cp.is_public = 1', 'cp.admin_hidden_at IS NULL', 'u.is_active = 1'];
   const params = [];
 
   if (filters.role && isRole(filters.role)) {
@@ -87,6 +93,16 @@ function buildFilter(filters = {}) {
   }
   if (filters.certified === '1') {
     where.push('EXISTS (SELECT 1 FROM consultant_certifications cc WHERE cc.user_id = cp.user_id)');
+  }
+  /*
+   * One named credential — "who holds C_TS4FI?" — which "certified only" cannot answer:
+   * a SuccessFactors certificate satisfies that box for a finance search. The stored code
+   * is the catalogue STEM (migration 002), so this is an equality on the stem and matches
+   * whatever year the person sat it in.
+   */
+  if (filters.cert_code && isCertificationCode(filters.cert_code) && filters.cert_code !== OTHER_CODE) {
+    where.push('EXISTS (SELECT 1 FROM consultant_certifications cc2 WHERE cc2.user_id = cp.user_id AND cc2.code = ?)');
+    params.push(filters.cert_code);
   }
 
   /*
@@ -130,9 +146,11 @@ function buildFilter(filters = {}) {
     params.push(filters.skill_ids, filters.skill_ids.length);
   }
   if (filters.q) {
-    where.push('(cp.headline LIKE ? OR cp.bio LIKE ? OR u.name LIKE ?)');
-    const like = containsPattern(filters.q);
-    params.push(like, like, like);
+    // A module code is matched as a word (utils/likePattern.js), so "FI" does not find
+    // every bio that says "specific".
+    const text = textSearchClause(['cp.headline', 'cp.bio', 'u.name'], filters.q);
+    where.push(text.clause);
+    params.push(...text.params);
   }
 
   return { clause: where.join(' AND '), params };
@@ -223,8 +241,21 @@ class ConsultantProfile {
    */
   static async setPublic(userId, isPublic) {
     return withTransaction(async (conn) => {
-      const [[row]] = await conn.query('SELECT completeness FROM consultant_profiles WHERE user_id = ? FOR UPDATE', [userId]);
+      const [[row]] = await conn.query(
+        'SELECT completeness, admin_hidden_at FROM consultant_profiles WHERE user_id = ? FOR UPDATE',
+        [userId]
+      );
       if (!row) throw new Error(`No consultant profile for user ${userId}`);
+
+      /*
+       * A profile an administrator has taken down cannot be put back by its owner. If this
+       * check were missing the member would undo the decision by pressing Publish again,
+       * which would make it a suggestion rather than a moderation action — and nothing on
+       * their screen would even tell them a decision had been made.
+       */
+      if (isPublic && row.admin_hidden_at) {
+        return { published: false, completeness: row.completeness, adminHidden: true };
+      }
 
       if (isPublic && row.completeness < MIN_COMPLETENESS_TO_PUBLISH) {
         return { published: false, completeness: row.completeness };

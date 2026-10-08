@@ -237,6 +237,27 @@ async function status() {
   }
 }
 
+/**
+ * Which migration files have not been applied to the database this process is pointed at.
+ *
+ * Takes a connection rather than making one, so the running server can ask through its own
+ * pool without opening a second connection at boot. Returns [] when the bookkeeping table
+ * does not exist yet, which is "all of them, and nothing has ever run" — the caller's
+ * length check says the same thing without this function having to guess.
+ */
+async function pendingMigrations(conn) {
+  const files = migrationFiles();
+  let applied;
+  try {
+    const [rows] = await conn.query('SELECT filename FROM schema_migrations');
+    applied = new Set(rows.map((r) => r.filename));
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return files;
+    throw err;
+  }
+  return files.filter((f) => !applied.has(f));
+}
+
 async function main() {
   const command = process.argv[2] || 'up';
   if (command === 'up') return up();
@@ -251,4 +272,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { splitStatements, checksum, migrationFiles };
+module.exports = { splitStatements, checksum, migrationFiles, pendingMigrations };

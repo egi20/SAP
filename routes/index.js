@@ -4,7 +4,7 @@ const express = require('express');
 const AccountClosure = require('../models/AccountClosure');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
-const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
+const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const Job = require('../models/Job');
 const Points = require('../models/Points');
@@ -153,6 +153,9 @@ function greetingFor(now) {
  */
 router.get('/privacy', (req, res) => res.redirect(301, '/legal/privacy'));
 router.get('/terms', (req, res) => res.redirect(301, '/legal/terms'));
+// The estimator lives under /quotes because an estimate is stored as a quote, but
+// "/estimator" is the address people guess, and it answered 404.
+router.get(['/estimator', '/estimate'], (req, res) => res.redirect(301, '/quotes/new'));
 
 /*
  * /forum is the reference's name for what is /community here. A 302 rather than a 301:
@@ -628,7 +631,7 @@ router.get(
        * leaves. A hand-written list here would be the second copy of a vocabulary the
        * config already owns.
        */
-      ...ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
+      ...RATE_ROLE_SLUGS.map((slug) => ({ loc: canonicalUrl(`/rates/${slug}`), changefreq: 'weekly' })),
       // Same argument: the engagement models own their own slugs, so the sitemap reads them
       // rather than repeating them.
       ...ENGAGEMENT_MODELS.map((m) => ({ loc: canonicalUrl(`/companies/${m.slug}`), changefreq: 'monthly' })),

@@ -1,6 +1,6 @@
 'use strict';
 
-const { BASE_DAY_RATES, roleLabel, isRole } = require('../config/roleTaxonomy');
+const { BASE_DAY_RATES, roleLabel, isRateRole: isRole } = require('../config/roleTaxonomy');
 const model = require('../config/rateBenchmark');
 
 /**
@@ -71,7 +71,7 @@ function benchmark(input = {}) {
     { key: 'region', label: 'Region', choice: chosen.region.label, multiplier: chosen.region.multiplier },
     { key: 'workMode', label: 'Work arrangement', choice: chosen.workMode.label, multiplier: chosen.workMode.multiplier },
     { key: 'certifications', label: 'SAP certifications', choice: certification.label, multiplier: certification.multiplier },
-    { key: 'contractType', label: 'Contract type', choice: chosen.contractType.label, multiplier: chosen.contractType.multiplier }
+    { key: 'contractType', label: 'Pricing model', choice: chosen.contractType.label, multiplier: chosen.contractType.multiplier }
   ];
 
   const product = factors.reduce((acc, factor) => acc * factor.multiplier, 1);

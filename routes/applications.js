@@ -94,7 +94,14 @@ router.get(
     if (!job) return res.status(404).render('errors/404', { title: 'Not found' });
 
     const user = req.session.user;
-    if (job.company_user_id !== user.id && !user.isAdmin) {
+    /*
+     * SUPERADMIN, not admin. This page is a list of cover letters, day rates and names,
+     * and the rule that governs it is the one `/admin/rates` carries: everywhere else a
+     * figure somebody gave us is only seen inside an aggregate, and the screens that set
+     * that aside are the narrowest in the application. Moderating a forum is not a reason
+     * to read what a candidate wrote to an employer.
+     */
+    if (job.company_user_id !== user.id && !user.isSuperadmin) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
@@ -131,7 +138,8 @@ router.get(
     const user = req.session.user;
     const isEmployer = application.company_user_id === user.id;
     const isApplicant = application.consultant_user_id === user.id;
-    if (!isEmployer && !isApplicant && !user.isAdmin) {
+    // Same rule as the pipeline above: the content of an application is superadmin-only.
+    if (!isEmployer && !isApplicant && !user.isSuperadmin) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 
@@ -158,7 +166,18 @@ router.post(
     if (!application) return res.status(404).render('errors/404', { title: 'Not found' });
 
     const user = req.session.user;
-    const isEmployer = application.company_user_id === user.id || user.isAdmin;
+    /*
+     * NO ADMINISTRATOR BRANCH HERE, and its absence is deliberate.
+     *
+     * This used to read `application.company_user_id === user.id || user.isAdmin`, so any
+     * administrator could move anybody's application through a hiring pipeline — reject a
+     * candidate, or mark them hired — on behalf of a company that had decided nothing. The
+     * audit event would have named the administrator honestly, and the notification would
+     * still have told the candidate their application was rejected by an employer who
+     * never touched it. An administrator may READ an application; the decision belongs to
+     * the two parties in it.
+     */
+    const isEmployer = application.company_user_id === user.id;
     const isApplicant = application.consultant_user_id === user.id;
     if (!isEmployer && !isApplicant) {
       return res.status(404).render('errors/404', { title: 'Not found' });

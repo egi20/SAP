@@ -37,11 +37,18 @@
         const here = (href) => path === href.split('?')[0];
         const itemClass = (href) => 'dropdown-item' + (here(href) ? ' active' : '');
         const itemCurrent = (href) => (here(href) ? 'aria-current="page"' : '');
-        const isConsultantArea = startsWith('/jobs') || startsWith('/consultant-hub')
+        /*
+         * Writing an advert is a company action and reading one is a consultant action,
+         * and they share a path prefix. `/jobs/new` and `/jobs/:slug/edit` lit the
+         * Consultant menu because `/jobs` matched first — the menu telling a company that
+         * the page they are on belongs to the other side of the marketplace.
+         */
+        const isJobAuthoring = path === '/jobs/new' || /^\/jobs\/[^/]+\/edit$/.test(path);
+        const isConsultantArea = (startsWith('/jobs') && !isJobAuthoring) || startsWith('/consultant-hub')
           || path === '/cv-generator' || path === '/dashboard/saved'
           || (currentUser && startsWith('/profile/consultant'));
         const isCompanyArea = path === '/consultants' || startsWith('/companies')
-          || startsWith('/company-hub') || path === '/quotes/new';
+          || startsWith('/company-hub') || path === '/quotes/new' || isJobAuthoring;
         /*
          * Services is what the Hub DOES for you, as opposed to who it is for — the two
          * hubs above are audiences, this one is tools. The estimator is in both: it is how
@@ -59,10 +66,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isConsultantArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-person-badge me-1"></i>Consultant Hub
-          </a>
+          </button>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/consultant-hub') %>" <%- itemCurrent('/consultant-hub') %> href="/consultant-hub"><i class="bi bi-compass me-2"></i>Consultant Hub</a></li>
             <li><a class="<%= itemClass('/jobs') %>" <%- itemCurrent('/jobs') %> href="/jobs"><i class="bi bi-briefcase me-2"></i>Find Jobs</a></li>
@@ -73,10 +80,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isCompanyArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-building me-1"></i>Companies Hub
-          </a>
+          </button>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/company-hub') %>" <%- itemCurrent('/company-hub') %> href="/company-hub"><i class="bi bi-compass me-2"></i>Company Hub</a></li>
             <li><a class="<%= itemClass('/consultants') %>" <%- itemCurrent('/consultants') %> href="/consultants"><i class="bi bi-people me-2"></i>Browse Talent</a></li>
@@ -89,10 +96,10 @@
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %>" href="#" role="button"
+          <button type="button" class="nav-link dropdown-toggle <%= isServicesArea ? 'active' : '' %> border-0 bg-transparent"
              data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
             <i class="bi bi-lightning me-1"></i>Services
-          </a>
+          </button>
           <ul class="dropdown-menu">
             <li><a class="<%= itemClass('/tax') %>" <%- itemCurrent('/tax') %> href="/tax"><i class="bi bi-calculator me-2"></i>Tax Optimization</a></li>
             <li><a class="<%= itemClass('/rates') %>" <%- itemCurrent('/rates') %> href="/rates"><i class="bi bi-cash-stack me-2"></i>Rate &amp; Salary Index</a></li>
@@ -150,7 +157,7 @@
             if (currentUser.isSuperadmin && !badges.includes('admin')) badges.push('admin');
           %>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" id="userMenuToggle"
+            <button type="button" class="nav-link dropdown-toggle d-flex align-items-center gap-2 border-0 bg-transparent" id="userMenuToggle"
                data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false">
               <span class="position-relative d-inline-flex">
                 <img class="avatar" style="width:30px;height:30px"
@@ -158,8 +165,9 @@
                 <%# Unread notifications, so the bar still says something is waiting. %>
                 <span class="notif-dot avatar-unread d-none" data-count="notifications" aria-label="unread notifications"></span>
               </span>
-              <span class="d-none d-lg-inline"><%= currentUser.name %></span>
-            </a>
+              <%# Shown in the collapsed menu too: a bare avatar is a row with no name. %>
+              <span><%= currentUser.name %></span>
+            </button>
             <ul class="dropdown-menu dropdown-menu-end user-menu-dropdown" aria-labelledby="userMenuToggle">
               <li class="dropdown-header user-menu-profile">
                 <a href="/profile" class="d-flex align-items-center gap-3 text-reset text-decoration-none">

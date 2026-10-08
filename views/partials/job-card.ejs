@@ -24,9 +24,10 @@
           <span class="badge-hub featured"><i class="bi bi-stars"></i> Featured</span>
         <% } %>
         <span class="badge-hub accent"><%= roleLabel(job.role) %></span>
-        <span class="badge-hub"><%= job.seniority %></span>
-        <span class="badge-hub"><%= job.work_mode %></span>
-        <span class="badge-hub"><%= job.engagement_type %></span>
+        <% if (job.deployment) { %><span class="badge-hub accent"><%= deploymentShort(job.deployment) %></span><% } %>
+        <span class="badge-hub"><%= optionLabel(job.seniority) %></span>
+        <span class="badge-hub"><%= optionLabel(job.work_mode) %></span>
+        <span class="badge-hub"><%= optionLabel(job.engagement_type) %></span>
         <% if (job.rate_visible && job.rate_min && job.rate_max) { %>
           <span class="badge-hub ok">
             <%= Math.round(job.rate_min) %>–<%= Math.round(job.rate_max) %> <%= job.currency %><%= job.engagement_type === 'contract' ? '/day' : '/yr' %>

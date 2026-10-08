@@ -104,7 +104,7 @@
                 <select class="form-select" id="to_status" name="to_status" required>
                   <% transitions.forEach(function (t) { %>
                     <% if (isEmployer || ['withdrawn','submitted'].includes(t)) { %>
-                      <option value="<%= t %>"><%= t %></option>
+                      <option value="<%= t %>"><%= optionLabel(t) %></option>
                     <% } %>
                   <% }); %>
                 </select>

@@ -1,0 +1,147 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-send',
+  heading: 'Applications',
+  sub: 'Every application on the platform, and whether anybody is looking at them.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'applications' }) %>
+  <%- include('../partials/flash') %>
+
+  <%#
+    The state, never the content. The cover letter and the day rate are on the
+    application's own page, behind the same guard — this screen exists to answer whether
+    the marketplace is working, not to read what somebody wrote to an employer.
+  -%>
+  <div class="alert alert-info small">
+    This is the state of each application, not what is in it. A candidate spends an evening
+    on one of these; a board where they sit untouched is broken in a way no count of
+    adverts shows.
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+      <a class="stat-tile d-block text-reset text-decoration-none"
+         href="/admin/applications?stalled=<%= stalledAfterDays %>">
+        <div class="value"><%= stalledCount %></div>
+        <div class="label">stalled over <%= stalledAfterDays %> days</div>
+      </a>
+    </div>
+    <% statuses.filter(function (s) { return s !== 'withdrawn'; }).forEach(function (s) { %>
+      <div class="col-6 col-lg-3">
+        <a class="stat-tile d-block text-reset text-decoration-none" href="/admin/applications?status=<%= s %>">
+          <div class="value"><%= counts[s] || 0 %></div>
+          <div class="label"><%= s %></div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <form class="glass-card mb-4" method="get" action="/admin/applications">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-4">
+          <label class="form-label" for="q">Search</label>
+          <%# One builder, so an employer's own pipeline searches the same three things. -%>
+          <input class="form-control" type="search" id="q" name="q" maxlength="120"
+                 value="<%= filters.q %>" placeholder="Candidate, advert or company">
+        </div>
+        <div class="col-6 col-lg-3">
+          <label class="form-label" for="status">Stage</label>
+          <select class="form-select" id="status" name="status">
+            <option value="">Any</option>
+            <% statuses.forEach(function (s) { %>
+              <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="stalled">Stalled over</label>
+          <select class="form-select" id="stalled" name="stalled">
+            <option value="">Any age</option>
+            <% [7, 14, 30, 90].forEach(function (d) { %>
+              <option value="<%= d %>" <%= String(filters.stalled_days) === String(d) ? 'selected' : '' %>>
+                <%= d %> days
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="reached" name="reached" value="interviewing"
+                   <%= filters.reached ? 'checked' : '' %>>
+            <label class="form-check-label small" for="reached">Interviewed</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="withdrawn" name="withdrawn" value="1"
+                   <%= filters.include_withdrawn ? 'checked' : '' %>>
+            <label class="form-check-label small" for="withdrawn">Include withdrawn</label>
+          </div>
+        </div>
+        <div class="col-lg-1 d-grid">
+          <button class="btn btn-primary" type="submit">Filter</button>
+        </div>
+      </div>
+      <p class="form-text mb-0 mt-2">
+        <strong><%= total %></strong> match. "Stalled" means submitted, never moved, and
+        older than that — read from the event log rather than from a timestamp any
+        unrelated write would refresh.
+      </p>
+    </div>
+  </form>
+
+  <% if (!applications.length) { %>
+    <div class="glass-card"><div class="card-body text-center py-5">
+      <p class="text-muted-2 mb-0">No application matches that.</p>
+    </div></div>
+  <% } else { %>
+    <div class="glass-card">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Candidate</th>
+              <th scope="col">Advert</th>
+              <th scope="col">Company</th>
+              <th scope="col">Stage</th>
+              <th scope="col">Applied</th>
+              <th scope="col">Last moved</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% applications.forEach(function (a) { %>
+              <tr>
+                <td>
+                  <a href="/applications/<%= a.id %>"><%= a.consultant_name %></a>
+                  <% if (a.linkedin_verified) { %>
+                    <i class="bi bi-patch-check-fill text-primary" title="LinkedIn confirmed"></i>
+                  <% } %>
+                </td>
+                <td class="small"><a href="/jobs/<%= a.job_slug %>"><%= a.job_title %></a></td>
+                <td class="small text-muted-2"><%= a.company_name %></td>
+                <td><span class="badge-hub status-<%= a.status %>"><%= a.status %></span></td>
+                <td class="small text-muted-2"><%= new Date(a.created_at).toLocaleDateString('en-GB') %></td>
+                <td class="small text-muted-2">
+                  <%#
+                    "Never" is the answer that matters here, and it is read from the event
+                    log: `updated_at` moves on any write and would make an untouched
+                    application look attended to.
+                  -%>
+                  <%= a.last_moved_at ? new Date(a.last_moved_at).toLocaleDateString('en-GB') : 'never' %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <%- include('../partials/pagination') %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

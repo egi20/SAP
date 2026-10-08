@@ -9,6 +9,12 @@ wrong produced a real bug, in this repository or in one of the two it was ported
 - **The schema is migrations.** Never add `CREATE TABLE` or `ALTER TABLE` to a model. Add a
   numbered file under `scripts/migrations/`. An applied migration is immutable — the runner
   compares checksums and refuses to start if one changed. Correct a mistake with a new file.
+  **022 was edited in place once, and that is the only exception there has ever been.** It
+  could not be corrected by a later file, because on MySQL the `CREATE TABLE` itself failed
+  and there was no table for 028 to alter; a follow-up would have had to branch on the
+  engine, which is worse than the bug. The rule protects history that exists, and the only
+  databases carrying the old 022 were development ones. If a checksum failure names 022,
+  that is why: drop the database and migrate from empty.
 - **All SQL is parameterised.** Filter clauses are assembled from fixed fragments plus a
   `params[]` array. No value is ever interpolated into a query string.
 - **Never add a second filter builder.** `Job.buildFilter` and
@@ -43,6 +49,27 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   variable, host-pinned and asserted at boot, and an account that is not configured is not
   rendered. The footer and the fixed rail read the same list, or the two drift the moment
   an account is added.
+- **The server refuses a database the code has outgrown.** `npm start` migrates first;
+  `npm run dev` does not, and the failure that produces is the worst-shaped one available —
+  every page touching a new column answers 500 with `Unknown column 'j.admin_hidden_at'`,
+  which reads like a bug in the query. A QA pass lost most of a day of the company role to
+  it and could not delete its own test advert, because the page holding the delete button
+  was one of the broken ones. `checkSchemaIsCurrent()` names the files and the command;
+  production exits rather than serving a schema that does not match the code.
+- **A foreign key must not sit on the BASE COLUMN of a stored generated column.** MySQL 8
+  refuses CASCADE, SET NULL and SET DEFAULT there and the whole `CREATE TABLE` fails;
+  MariaDB does not enforce it. Migration 022 shipped with `pending_job_id AS (IF(status =
+  'pending', job_id, NULL)) STORED` over a `job_id` carrying `ON DELETE CASCADE`, applied
+  cleanly here for weeks, and died on the first MySQL 8 it met with a bare "Cannot add
+  foreign key constraint" — errno 1215, which names neither the column nor the rule. The
+  fix is NOT to drop the cascade: keep the column out of the EXPRESSION and put it in the
+  KEY. A marker derived from `status` alone under `UNIQUE (job_id, marker)` is the same
+  guarantee on both engines. `tests/unit/migrationPortability.test.js` scans every
+  migration for the pattern, and fails on the old 022 if you put it back.
+- **This whole schema is developed against MariaDB and deployed against MySQL**, so
+  anything the two disagree about is invisible until somebody else runs it. The two found
+  so far are that rule and `CAST(? AS JSON)`, which MariaDB rejects and MySQL accepts —
+  the same class of bug pointing in the opposite direction. Both are scanned for.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
 - **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use
@@ -451,6 +478,38 @@ reads the route and the template and fails if either grows one.
 every declared key: a form that submits a subset must not be read as a form that cleared
 the rest.
 
+**The tax advisory introduction form was RETIRED on 2026-10-07.** From 2026-10-06 `/tax`
+was a six-field "talk to a specialist" form that computed nothing and fed this queue as a
+third kind of enquiry. A day later the owner decided `/tax` should match
+dynamicshub.net/tax-optimization, calculator and application form included — see "The tax
+programme" below — and the two could not both be the page. The public form and its
+`POST /tax` are gone; a test asserts the route answers 404 and writes nothing. What stays
+is everything about the rows it already collected: migration 027 is applied and immutable,
+`tax_advisory` is still a kind, the admin screen still shows them, and the retention
+promise made to the people who sent them is still owed and still purged. `config/taxAdvisory.js`
+keeps its vocabulary and its boot assertion for those rows; its `PROMISE` list is no longer
+rendered anywhere.
+
+**It is a THIRD KIND on `enquiries`, not a second table.** Three things looked like they
+needed one and none of them did: "introduced" is a fact with a date, so it is a column and
+the shared `new/open/closed` vocabulary is untouched; the retention rule is a WHERE on the
+purge; and "one open enquiry per address" is a generated column under a unique key, scoped
+to this kind, exactly as `pending_job_id` scopes one live offer per advert. One queue,
+because "somebody is watching it" is the whole justification for having a form.
+
+**`introduced_at` is set once and never cleared**, through a conditional UPDATE. It is the
+moment the Hub's involvement ends, and a date that can be moved is one nobody can rely on.
+It does not close the enquiry: whether anything is left to do is the queue-worker's call,
+and the retention clock starts when they say so.
+
+**The retention is scoped to the kind AND to closed rows.** The promise is made on the tax
+form and nowhere else; a purge that dropped the kind from its WHERE would quietly extend a
+promise nobody made to messages nobody promised it about. The admin screen prints how many
+are due, so "we keep it for 180 days" is checkable rather than claimed.
+
+**One honeypot, in one partial.** Two copies of a defence is one that breaks silently the
+day somebody renames the field in the other.
+
 **Testing consequence:** the enquiry limiter counts every POST, including the ones that 422
 or fail CSRF. A suite that exercises the limit spends the budget its other cases need, and
 the next test to be reordered then fails as a validation error for a reason that has
@@ -490,6 +549,57 @@ of the SEQUENCE of decisions rather than of the current state. Here hiding settl
 content's own subject to zero and restoring settles it back, so hide → restore → hide
 leaves the author exactly one award down however many times the flag moved, and a reversal
 of something that was never awarded cannot happen. A test drives three half-cycles.
+
+**An administrator can take a profile or an advert out of public view, and that is a
+FOURTH and FIFTH thing `Moderation` writes.** Before migrations 025 and 026 the only way to
+remove an inappropriate consultant profile or job advert was to deactivate the whole
+account — which also ends their applications, their messages and their community standing.
+That is a sledgehammer for a headline somebody should not have written, and an
+administrator offered only that makes the wrong choice or none.
+
+**Each one writes its OWN column, never the member's.** `consultant_profiles.admin_hidden_at`
+sits beside `is_public`, and `jobs.admin_hidden_at` beside `status`. If a moderator wrote to
+the member's column the member would undo the decision from their own page — press Publish,
+press Reopen — and nothing on their screen would even have said a decision was made. Same
+shape as `posts.hidden_at` beside the author's own control. `ConsultantProfile.setPublic`
+refuses while the moderator's column is set, and reports `adminHidden` so the member's page
+can say so rather than silently failing.
+
+**Both filter builders require both switches clear, and NEITHER has an `include_hidden`
+option.** The directory, the search source, the match, the board and the feed all come
+through `ConsultantProfile.buildFilter` and `Job.buildFilter`, so a takedown reaches every
+one of them without any of them knowing the rule exists. The one screen that has to see
+what was taken down reads `Moderation.hiddenContent()` instead — an option on the builder
+is how the rule ends up switched off on whichever page forgets to pass it. A test asserts
+the option does not exist.
+
+**The page and the PHOTOGRAPH both go.** `/consultants/photo/:id` only ever checked that the
+reader was signed in, so an unlisted profile's photograph was reachable by anybody with an
+account and a number. Same rule as a draft story's image: a page taken down whose picture is
+still served by id is a page that was not taken down.
+
+**Restoring clears our decision and nothing else.** Whether the profile or the advert
+reappears is still the member's own switch — an administrator undoing a removal does not
+publish somebody's profile for them, exactly as restoring a reply gives back the writing
+points but not the accepted-answer mark.
+
+**There is no admin path that creates or edits a job advert.** An advert belongs to a
+company account: it carries that company's "About the company" box, its applications land
+in that account's pipeline, and the threads about it are anchored to that account. An
+advert written from the admin screen would name a company that did not write it.
+
+**The user list shows the country the member STATED, never `users.signup_country`.** That
+column is derived from the address a request arrived from and the member has never seen it;
+a VPN, a holiday and an office abroad all produce the wrong answer and nothing on the screen
+could tell. A guess presented under a heading that says "Country" is worse than no column.
+
+**The error log has one filter builder too**, used by the list, the count, the top-paths
+summary and the export — so "where they are" describes the rows on the screen rather than
+everything ever recorded, which is the number somebody wants once they have narrowed to one
+day. `to` is `< DATE_ADD(?, INTERVAL 1 DAY)` and not `<= ?`: the obvious spelling means
+midnight at the START of that day and silently drops everything that happened on it. The
+export leaves out the stack trace — it is the one field that can carry a value from the
+request behind it, in a file that leaves the machine.
 
 **A rate submission is VOIDED, never hidden, and there is no "correct the value" path.**
 The wording is the decision: hiding is about speech, voiding is about arithmetic. An
@@ -572,6 +682,164 @@ though it were a finished answer.
 **A 400 is logged as its own thing.** Every other failure here is transient and "try again
 in a moment" is true; a 400 is the request shape being wrong, which fails identically
 forever, and the generic message would otherwise be a lie sitting in the log for weeks.
+
+## The sales CRM
+
+**Read this before changing anything in `models/Crm*.js`.** Every other table in this
+schema holds something somebody gave us — an account they created, a profile they
+published, a rate they contributed, an enquiry they sent. `crm_leads` holds the names,
+addresses, phone numbers and job titles of people who have NOT asked to be contacted, so
+that somebody can contact them. That is a different kind of object and every rule below
+follows from it.
+
+**SUPERADMIN ONLY**, the narrowest guard in the application alongside `/admin/rates`, and
+for the same reason: moderating a forum is not a reason to read the contact details of
+people who are not members. It is mounted at `/crm` rather than under `/admin` because it
+is not an administration screen for this site's own members, and it appears in the admin
+tab strip because a surface reachable only by typing its URL is one nobody audits.
+
+**NOTHING HERE SENDS ANYTHING.** A draft is written, a person sends it from their own mail
+client, and a person records that they did. There is no mail call, no queue and no
+scheduler, and a test greps the route, the models and the views for one. `marked_sent_at`
+is named for what it is — a note somebody made — so nobody later reads it as a delivery
+receipt. This is the standing refusal the port plan opens with, and it is the reason this
+area is a CRM rather than a sending tool.
+
+**A lead cannot exist without a source.** `source` is NOT NULL, validated against
+`config/crm.js`, and most values require a detail — "a public directory" means something
+only with the directory named. "Where did you get this person's address" is the first
+question anybody will ask and it cannot be reconstructed from memory a year later.
+
+**The source is FIRST-TOUCH and permanent.** A re-import corrects a phone number and never
+the provenance; where the two disagree the second answer is written to the activity log,
+dated and visible, instead of silently replacing the first. Same argument as
+`referral_attributions`: a record a later file can rewrite is not one. The reference
+overwrites it on every import, so a lead acquired from an inbound enquiry quietly becomes
+one scraped from a directory.
+
+**Suppression outlives the row.** `crm_suppressions` is keyed on a SHA-256 of the
+lower-cased address and holds no address, because a suppression list full of plaintext
+addresses IS a mailing list of people who asked not to be mailed. It has NO foreign key to
+`crm_leads` and nothing anywhere deletes from it: deleting a lead is exactly how an
+application forgets its subject asked to be left alone, and the next quarterly import
+writes them straight back in. The hash is unsalted on purpose — a salt would make the list
+useless for its only job, checking an address somebody is about to import.
+
+**The suppression check runs on every write path, not at send time.** By the time something
+is about to go out the address is already in the database, already in an export, and
+already in somebody's list. A suppressed address is REFUSED, never "imported and flagged":
+a row that exists is a row somebody eventually writes to.
+
+**Unsubscribing does three things in one transaction, and any two without the third is a
+half-kept promise:** it writes the suppression, it ERASES the contact details from the lead
+row, and it keeps the company and the activity log. Same shape as
+`models/AccountClosure.js` — erase the identity, keep the record. The reference keeps the
+row intact and relies on the status being read, which works exactly until somebody writes a
+query that forgets to. `unsubscribed` is terminal and reachable from every live status in
+ONE step, and the boot assertion checks both: somebody asking to be left alone must never
+depend on the pipeline being in the right place first.
+
+**A lead somebody has actually contacted is never bulk-deleted.** Its activity log is the
+answer to a complaint about that contact and the log cascades with the row, so the bulk
+action reports those rows back rather than skipping them silently. The way to remove one is
+`unsubscribed`, which erases the person and keeps the record. The count interlock is
+ported as-is from the reference, which got it right: the screen posts the number it showed
+and the model aborts on a mismatch.
+
+**`crm_lead_activities` carries no contact details of its own**, which is what makes
+erasing a lead leave an intact, personal-data-free record behind. Append-only, no edit, no
+delete.
+
+**One filter builder**, used by the list, the count, the CSV export and both bulk actions —
+the rule exists for exactly that last case: a bulk delete and the screen that showed what
+it would delete must provably target the same rows.
+
+**Product lines come from `config/sapProducts.js`**, not a new taxonomy. A CRM with its own
+list of "what they run" is the fifth place SAP's product names would be written down and
+the first to drift. Filtered with `JSON_CONTAINS` + `JSON_QUOTE` and the serialised string
+bound directly, never `CAST(? AS JSON)` — the MariaDB lesson from the agency directory.
+
+**The import is pasted, not uploaded, and previewed before it writes.** An upload path
+would hand a file full of other people's contact details to middleware configured for
+profile photographs and would put it somewhere for the length of a request; pasted text
+lives in one request body and is written or discarded. Two posts of the same text — the
+first shows what would happen, the second does it — so there is no server-side draft
+holding contact details between requests. CSV only: the reference sniffs every sheet of an
+.xlsx and guesses which tabs are leads, and guessing at the shape of a file full of other
+people's details is the wrong place to be clever. One import is one provenance, so the
+source describes the FILE and there is no per-row source column.
+
+**A lead whose address already has an account here is flagged, never blocked.** A cold
+approach to somebody who is already a member is the one message this site should not send,
+and the person writing it needs to know before they write it.
+
+**Testing consequence:** a suppression is permanent, so a suite that suppresses a FIXED
+address passes once and fails on every run after. Use a fresh address per run — clearing
+the table in `beforeAll` would "fix" it by deleting the one record this area exists to
+keep.
+
+## Drafting outreach with a model
+
+**It writes a draft and nothing else.** There is no send path in `utils/outreachDrafting.js`
+or in the route above it, and a test greps both for a transport. A generate endpoint feeding
+a queue is one scheduler away from an application that mails a thousand strangers on its
+own, which is the standing refusal this whole area is built around.
+
+**The model is given no personal detail.** `factsFor` hands over the company, the country,
+the job title and the product areas somebody recorded — not the name, not the address, not
+the phone number, not the LinkedIn profile. None of it improves a first paragraph about
+what the Hub does, and all of it would be somebody's contact details leaving for a third
+party. The name is put back by the sender afterwards, locally, from the row. A test asserts
+what is in the payload and what is not.
+
+**It spends from the SAME ledger and the same month-to-date cap as the assistant.** Two AI
+features with two budgets is two invoices and no answer to "what did this cost". The
+feature name on each `ai_usage` row is what separates them, and `/admin/ai` prints both
+models with their prices for the same reason it printed one: a model changed without its
+prices makes the breaker charge the wrong rate, silently, and the invoice is the first
+anybody hears of it. `config/drafting.js` defaults its model AND its prices from the
+assistant's, and its boot assertion refuses a model overridden without them.
+
+**The SAP vocabulary in the prompt is generated from `config/sapProducts.js`.** Same rule as
+the assistant's: a hand-typed list of SAP products in a prompt is a second catalogue, and
+here the drift is worse than a wrong link — it is a sentence somebody sends to a stranger
+under their own name.
+
+**Every draft is verified before anybody reads it, and a failed one is never stored.** The
+checks are: no fabricated familiarity ("I saw your recent…" is a lie in a first line and
+the one that gets an address blocked), no commitment terms, no numerals, no placeholders,
+word bounds, and the SAP rule below. A rejected draft is RENDERED with its reasons and the
+text it produced — never silently retried. Somebody should see that the model invented a
+relationship, because that is the failure this feature has to be watched for, and a retry
+loop would hide it while paying for every attempt.
+
+**The SAP rule: a draft may name only the product areas the lead was recorded against.**
+Guessing which SAP products a company runs is the most plausible-sounding invention
+available to a model and the easiest for the reader to catch. With nothing recorded, no
+module, component or two-letter code may appear at all. The long names are matched
+case-insensitively and the two-letter codes only as WHOLE WORDS IN UPPER CASE —
+`utils/jobMatcher.js` learned this from the other side: `includes('mm')` matches
+"committed" and `includes('fi')` matches "specific".
+
+**What the model was GIVEN is cut out of the text before it is checked**, and there are two
+things in it. The company's own name, so an SAP partner called "FI Consulting GmbH" does
+not fail every check about module codes. And the product labels the lead was recorded
+against — because the catalogue's own names contain digits. "SAP S/4HANA Finance" is a name
+the prompt tells the model to use, and the no-numerals rule would then reject every draft
+that obeyed. The two rules contradict each other unless the given names come out first, and
+a test caught exactly that.
+
+**`stop_reason: max_tokens` is never served as a draft.** Thinking is on and thinking
+tokens count against the same ceiling, so arriving here half-written is the realistic case
+rather than the odd one.
+
+**The retry is bounded by `CrmDraft.MAX_DRAFTS_PER_LEAD`**, which existed before this button
+did. A "write me another one" control with no ceiling is an unbounded bill, and the limit
+reads like tidiness only until something is paying per press.
+
+**Which model wrote it is stored with the draft**, along with its token counts, in columns
+that were on the table from migration 024. A generated draft that could not say where it
+came from is the unaccountable version of this feature.
 
 ## Referrals and commissions
 
@@ -665,6 +933,17 @@ out, is what retired that: a marketplace that shows a stranger a page of claims 
 members see the activity hides the only evidence the claims are true, from exactly the
 person who needs it. The landing material survives around the feed, above and below, and
 renders for nobody who is signed in.
+
+**There is no Community tab in the navigation, because `/` is it.** The dropdown held six
+items and five already existed somewhere else: "Questions and posts", "Articles" and
+"Unanswered questions" are the kind filters on the feed, over the same `Post.browse` with
+the same defaults — a menu entry re-asking the question the page below it is already
+asking; "Write a post" and "Payments and invoices" are both in the account menu, where the
+second one belongs, since an invoice is not community content and was only there because
+the menu had room. The daily challenge was the one item with nowhere else to go, and it is
+a tool, so it joined Services. `/community` keeps its categories, its author picker and its
+sort — which the feed has none of — so it is one click from the feed's own heading and
+from the footer, reachable without being a second front door competing with the first.
 
 **`services/feed.js` adds no filter of its own, for the same reason `services/search.js`
 does not.** Both sources go through the same `browse` their own list pages call, so a draft
@@ -869,6 +1148,36 @@ arrive.
 **Saved jobs are a consultant's shortlist.** The dashboard fetched them for every account,
 so a company carried a permanently empty "Saved jobs" panel for a list it has no way of
 adding to — the dashboard telling somebody they have missed a feature they do not have.
+
+**Reading an application and deciding its outcome are different rights.** The transition
+route used to treat any administrator as the employer, so an administrator could reject a
+candidate — or mark them hired — on behalf of a company that had decided nothing, and the
+candidate's notification would still have said the employer did it. The audit event would
+have named the administrator honestly, which is exactly what makes the gap easy to miss:
+the log was never wrong, the decision was. There is no administrator branch on that route
+now. Reading is superadmin; deciding belongs to the two parties.
+
+**An application's CONTENT is superadmin, like a contributed rate.** Everywhere else on
+this site something somebody gave us is only seen inside an aggregate; the screens that
+set that aside are the narrowest in the application, and a cover letter beside a name and
+a day rate is the same class of thing. `/applications/:id` and `/applications/job/:slug`
+carry that guard for anybody who is not in the application.
+
+**`/admin/applications` shows the STATE and never the content.** It exists to answer
+whether the marketplace is working, not to read what somebody wrote to an employer — and
+the figure it exists for is `stalled`: submitted, never moved, older than fourteen days. A
+candidate spends an evening on an application, and a board where those sit untouched is
+broken in a way no count of adverts shows. "Never moved" is read from the append-only
+event log and not from `updated_at`, which any unrelated write refreshes and which would
+make an ignored application look attended to.
+
+**`unscoped` is a NAMED opt-in on `Application.buildFilter`, not a default.** The builder
+still throws for a caller that passed neither a company nor a job, because that is almost
+always a forgotten argument rather than a question. It is not the `include_hidden` escape
+hatch the job and profile builders refuse: that one would let a page forget a VISIBILITY
+rule and show rows a moderator took down, while this one cannot reveal anything a scoped
+call would have hidden — it only widens whose rows are counted, from a route carrying the
+narrowest guard there is.
 
 **Testing consequence:** `<% const x = typeof x !== 'undefined' ? x : false %>` in a partial
 reads like a default for an optional local and is a temporal dead zone error — the
@@ -1378,6 +1687,19 @@ is a 404 and never a redirect to the index: these URLs are linked to from outsid
 silent redirect turns a typo nobody notices into a page quietly answering a different
 question. The sitemap generates them from `ROLE_SLUGS` rather than listing them.
 
+**A contributed figure has bounds, and `config/rateBounds.js` is the only place that knows
+them.** The validator accepted anything from 1 to a million for both a day rate and an
+annual salary — two things a factor of two hundred apart — so 5 EUR/day was stored for a
+senior consultant and counted towards a published bucket. The form stated a different rule
+again: `min="1" step="10"`, and an HTML `step` counts FROM `min`, so 600 and 1000 were
+refused in the browser while 611 was accepted. One rule, described twice, neither right.
+`boundsFor(engagementType, currency)` is read by the validator AND by the form, the ranges
+are declared in EUR and converted through the same frozen `FX_TO_EUR` the submission is
+normalised with, and the boot assertion checks the two ranges do not overlap — that is what
+lets a mis-picked engagement type be refused instead of averaged in. The amount field
+carries `step="1"` and NO `min`/`max`: the real bound depends on two other controls, and an
+HTML constraint that cannot express that must not pretend to.
+
 `RATE_MIN_SAMPLE` is configurable, but lowering it below 3 to make a sparse index look
 fuller defeats the point of having it. It is an environment variable and not a setting,
 precisely so that lowering it is a deployment decision with a diff behind it.
@@ -1440,6 +1762,115 @@ contributed to this role". None was about the feature it sat in. Run the suite w
 seed present AND without it; a test that needs one or the other is a test with a hidden
 assumption.
 
+## Forms, URLs and one clock
+
+**A refused form RE-RENDERS; it never redirects.** The consultant profile flashed
+`errors.array()[0].msg` and redirected, which re-reads the row — so one wrong field in a
+fifteen-field form threw away everything typed, and the member started again. Both long
+profile forms now answer 422 with their own answers merged over the stored row. The short
+forms beside them (a password change, adding one certification) still redirect, because
+they lose nothing worth keeping.
+
+**Every validator carries a message naming its own field.** Without `.withMessage()`,
+express-validator says "Invalid value", and a form then refuses a profile without saying
+which of fifteen boxes it is refusing. `full_lifecycles` had a message and was the one
+field people could correct. `views/partials/form-errors.ejs` prints the whole list, not the
+first one: express-validator reports per field, so showing one throws the rest away.
+
+**`utils/profileUrl.js` is an allow-list on the WRITE path, and it is the only one.** A QA
+pass stored `javascript:alert(...)` and `not a url` in `linkedin_url`, `website_url` and
+`sap_community_url`, because nothing checked them. `videoEmbed` can afford to decide at
+render time because it derives something from a URL it is handed; here the COLUMN is what
+other code will trust, and the first template that decides to make a row clickable inherits
+whatever has been sitting there. The company profile shares the list through
+`COMPANY_URL_COLUMNS`, because its `website` is the one URL the site renders as a link
+today — "About the company" is gated on `about || website` — so over there it was live
+rather than latent. LinkedIn is pinned to `linkedin.com` and SAP Community to `sap.com`: a
+field labelled "LinkedIn" pointing somewhere else is a label that is false about its own
+content. Credentials are refused too — `https://linkedin.com@evil.example/` has hostname
+`evil.example` and reads as the real thing.
+
+**Every connection speaks UTC, and it is set per connection.** `timezone: 'Z'` tells the
+DRIVER to read a DATETIME back as UTC; nothing told the SERVER to write one, so `NOW()` and
+every `DEFAULT CURRENT_TIMESTAMP` ran in whatever zone the database host was in. Reported
+from a machine in CEST as a message sent at 16:35 displaying as 18:35. The clock skew is
+the visible half — the silent half is every window computed in SQL (`DATE_SUB(NOW(),
+INTERVAL ? DAY)` on stalled applications, the error purge, the tax retention purge,
+`earns_until`, the rate period) being off by the host's offset with nothing on screen to
+compare against. It never showed in development because the containers run UTC. Set in
+`config/database.js` on the pool's `connection` event rather than asked of the deployment:
+a rule that depends on how somebody configured their database server is a rule this
+application cannot check.
+
+**A country is printed by name.** `countryName`/`locationLabel` in `utils/geo.js` read the
+same `config/all-countries.json` every country select is built from, so a name can never be
+one the form could not have produced. "Tirana, AL" on a CV asks an employer to expand an
+abbreviation.
+
+## The chrome, and what a crawl found
+
+**A control written for a dark header on a white one is invisible, not ugly.**
+`.navbar-hub` is `rgba(255,255,255,0.82)`. The "Sign in" button was `btn-outline-light` —
+`#f8f9fa` text in an `#f8f9fa` border — so for every signed-out visitor, on every page, the
+only visible control was "Sign up". The search box beside it had `color: #fff` on a 12%
+white fill, which is why a phone pass reported "a large empty space between About and the
+icons": an invisible field between two visible things. Neither was reported as a contrast
+bug, because nobody signed out looks at their own navigation.
+
+**A link to a screen that was never built is worse than no link.** `/profile/company/template`
+had a button on the company profile and no route anywhere: `routes/quotes.js` passes
+`branding = null` with a comment saying company branding is a later area. It comes back
+with the screen, not before it. `tests/integration/navigation.test.js` opens every link in
+the two chrome partials — it does not reach a sidebar, which is where both dead links were.
+
+**A leaderboard over `points_ledger` must not link into the talent directory.** Anybody can
+earn points — a company, an administrator, a consultant who has never published a profile —
+so `/consultants/:id` 404'd with a real name on it. `/community/author/:id` is the page
+those points were earned on and publishes nothing the feed does not.
+
+**Writing an advert is a company action and reading one is a consultant action, and they
+share a path prefix.** `/jobs/new` lit the Consultant menu, which is the navigation telling
+a company that the page they are on belongs to the other side of the marketplace.
+
+**A card renders only when a branch has filled it.** The advert's sidebar card covered the
+owner, a consultant and a signed-out visitor — and nobody else, so a signed-in company or
+an administrator got an empty white strip. Same rule as "About the company": a heading with
+nothing under it reads as a box that failed to load.
+
+**One `data-confirm` attribute, one listener in `main.js`.** The community delete carried
+its own inline `onsubmit` and the quote draft carried nothing, which is how a button ends
+up without one. It degrades to today's behaviour without scripting — which is why it may
+be built in `main.js` at all, unlike the password toggle, where a dead control would be a
+promise the person has already decided to trust.
+
+## Small screens
+
+Nothing scrolled sideways at 320px and the layout held. These are the things a narrow
+screen makes WRONG rather than things it breaks, and all of them are in one block at the
+end of `public/css/style.css`.
+
+**iOS Safari zooms the page when a form control under 16px takes focus, and does not zoom
+back.** Every field was `0.925rem` — 14.8px — so tapping any box on any form threw the
+layout off. Raised under `(hover: none) and (pointer: coarse)` only: this is a fix for one
+browser behaviour, not a change of mind about type size.
+
+**A fixed element cannot push anything out of its way.** The cookie notice took about a
+third of a phone screen and sat on top of the form buttons underneath it until it was
+dismissed. `main.js` adds `has-cookie-notice` to `body` so the space is reserved, and
+removes it with the notice.
+
+**Sixteen admin tabs wrapped into eight rows**, so every admin page opened on its own
+navigation. One row that scrolls sideways, with the same right-edge fade `.table-responsive`
+now carries — a table that scrolls with nothing saying so is a table whose last columns do
+not exist, and the Void button on `/admin/rates` was off the edge.
+
+**A `title` is a tooltip and a tooltip does not exist on a touch screen.** The superadmin
+mark was an unexplained "S"; it is an icon with hidden text and a legend under the strip.
+
+**A touch target is bought with padding, not font size**, and only on a coarse pointer —
+"Open →" was 21px and the footer links about 19px. A link inside a sentence stays inline,
+or it becomes a 44px block in the middle of the paragraph.
+
 ## Tests
 
 **Run `npm test`, not `npx jest`.** The script sets `NODE_OPTIONS=--experimental-vm-modules`,
@@ -1476,6 +1907,44 @@ Clear fixtures on the way IN, which also makes a run independent of how the last
 Two `afterAll`s in one file both ending the pool is the same trap one step earlier: every
 test in the describe after the first one queries a closed pool, and it surfaces as a 500
 from the route, which reads exactly like an application bug.
+
+**A globally-summed ledger gets exactly ONE owning suite.** The assistant's budget tests
+empty `ai_usage`, put a row above the cap into it and assert sums over it. Jest runs test
+FILES in parallel, so a second file doing the same thing is a second owner of one global
+number, and the two take turns failing — each blaming the other's feature. Outreach drafting
+therefore lives in `tests/integration/assistant.test.js`, which is isolation rather than
+organisation.
+
+**An ENUM test must be scoped to its TABLE, and its SQL comments stripped first.** Both
+halves were found by failures. Scanning every migration for `status ENUM(...)` finds
+`crm_leads`, which is a different `status` in a different table. And splitting a migration
+into statements on `;` cuts `CREATE TABLE enquiries` in half, because the PROSE in these
+files contains semicolons — the half naming the table then has no columns and the half
+with the columns no longer names the table. Strip `/^\s*--.*$/gm`, not `/^--.*$/gm`: the
+comments inside a CREATE TABLE are indented.
+
+**Do not pin an ENUM test to the migration that created the column.** `subject_type` was
+created in 011 and widened twice; a test comparing the code against `011_moderation.sql`
+failed on the second widening while the code was correct and the file it was checked
+against was stale. `effectiveEnumValues` walks every migration in order and takes the last
+definition, exactly as the runner does.
+
+**A test must create the rows it asserts on.** `adminTakedown` checked that the error
+log's "Where they are" summary rendered — against whatever `error_logs` happened to hold,
+which on a database developed against for weeks was always something. Rebuilding the schema
+from empty turned it red, and the failure blamed the summary rather than the assumption:
+that heading only renders when there is at least one row, so the test was really asserting
+that some other suite had failed earlier. Same trap as an unscoped `COUNT(*)`, one step
+further along — and the only thing that exposes it is a fresh database, which is a reason
+to rebuild one now and again.
+
+**A frozen catalogue cannot be sorted in place.** `expect(ENGAGEMENT_TYPES.sort())` throws
+rather than failing, because `Object.freeze` is doing its job. Copy first.
+
+**A refusal that writes nothing leaves NULL, not a filtered string.** Asserting
+`expect(row.url).not.toMatch(/javascript/i)` fails on `null` with "received value must be a
+string" — which reads like the fix did not work when it worked completely. The claim is
+that the write never happened, so say that.
 
 **A hard-coded hex in `public/css/style.css` fails the palette test**, which scans that
 file for colours from the two reference palettes. `var(--token, #fallback)` counts: the

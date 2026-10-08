@@ -2,6 +2,7 @@
 
 const { promisePool } = require('../config/database');
 const { containsPattern } = require('../utils/likePattern');
+const { RETENTION_DAYS, isTopic, isArrangement } = require('../config/taxAdvisory');
 
 /**
  * Enquiries: what the contact form and the issue reporter both produce.
@@ -14,7 +15,13 @@ const { containsPattern } = require('../utils/likePattern');
  * Written out by hand in the form, the validator and the admin filter is how an option
  * gets added to a dropdown and silently rejected behind it.
  */
-const KINDS = Object.freeze(['contact', 'issue']);
+/*
+ * THREE kinds and still one queue. A tax advisory enquiry is the same object as a contact
+ * message — a person writing in and expecting an answer — differing in which fields the
+ * form asked for, which is exactly the reason migration 018 refused to give the issue
+ * reporter a table of its own.
+ */
+const KINDS = Object.freeze(['contact', 'issue', 'tax_advisory']);
 const ISSUE_TYPES = Object.freeze(['bug', 'question', 'account', 'billing', 'abuse', 'other']);
 const SEVERITIES = Object.freeze(['low', 'normal', 'high']);
 const STATUSES = Object.freeze(['new', 'open', 'closed']);
@@ -53,16 +60,19 @@ class Enquiry {
   static get STATUSES() { return STATUSES; }
   static buildFilter = buildFilter;
 
+  static get RETENTION_DAYS() { return RETENTION_DAYS; }
+
   /**
    * Record one.
    *
-   * The issue fields are NULLED for a contact message rather than defaulted, matching the
-   * CHECK in the migration: "not asked" and "answered with the first option" are different
-   * facts, and only one of them is true.
+   * Each kind's own fields are NULLED for the others rather than defaulted, matching the
+   * CHECK in migrations 018 and 027: "not asked" and "answered with the first option" are
+   * different facts, and only one of them is true.
    */
   static async create({
     kind, userId = null, name, email, subject, body,
-    issueType = null, severity = null, pageUrl = null
+    issueType = null, severity = null, pageUrl = null,
+    topic = null, arrangement = null, country = null, privacyVersion = null
   }) {
     if (!KINDS.includes(kind)) throw new Error(`Unknown enquiry kind: ${kind}`);
 
@@ -71,17 +81,72 @@ class Enquiry {
       throw new Error('An issue needs a type and a severity');
     }
 
+    const isTax = kind === 'tax_advisory';
+    if (isTax && (!isTopic(topic) || !isArrangement(arrangement) || !/^[A-Z]{2}$/.test(String(country || '')))) {
+      throw new Error('A tax advisory enquiry needs a topic, an arrangement and a country');
+    }
+
+    try {
+      const [result] = await promisePool.query(
+        `INSERT INTO enquiries
+           (kind, user_id, name, email, subject, body, issue_type, severity, page_url,
+            topic, arrangement, country, privacy_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          kind, userId, name, email, subject, body,
+          isIssue ? issueType : null,
+          isIssue ? severity : null,
+          isIssue ? pageUrl : null,
+          isTax ? topic : null,
+          isTax ? arrangement : null,
+          isTax ? country : null,
+          isTax ? privacyVersion : null
+        ]
+      );
+      return { id: result.insertId };
+    } catch (err) {
+      /*
+       * The unique key on the generated `open_tax_email` is what holds "one open enquiry
+       * per address", not a SELECT-then-INSERT in the handler. Two submissions arriving
+       * together is the ordinary case for a double-tapped button, and only the database
+       * can decide which one won.
+       */
+      if (err.code === 'ER_DUP_ENTRY') {
+        const dup = new Error('There is already an open enquiry from that address. We will come back to it.');
+        dup.code = 'ALREADY_OPEN';
+        throw dup;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Delete tax advisory enquiries past their retention.
+   *
+   * Scoped to this kind and to CLOSED rows: the retention promise is made on the tax form
+   * and nowhere else, so it applies to the rows that form produced and to no others. A
+   * purge that took the kind out of the WHERE would quietly extend a promise nobody made
+   * to messages nobody promised it about.
+   */
+  static async purgeExpiredTaxEnquiries(days = RETENTION_DAYS) {
     const [result] = await promisePool.query(
-      `INSERT INTO enquiries (kind, user_id, name, email, subject, body, issue_type, severity, page_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        kind, userId, name, email, subject, body,
-        isIssue ? issueType : null,
-        isIssue ? severity : null,
-        isIssue ? pageUrl : null
-      ]
+      `DELETE FROM enquiries
+        WHERE kind = 'tax_advisory' AND status = 'closed'
+          AND handled_at IS NOT NULL AND handled_at < (NOW() - INTERVAL ? DAY)`,
+      [days]
     );
-    return { id: result.insertId };
+    return result.affectedRows;
+  }
+
+  /** How many are due to go, so the retention promise is checkable rather than claimed. */
+  static async taxEnquiriesDueForPurge(days = RETENTION_DAYS) {
+    const [[row]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM enquiries
+        WHERE kind = 'tax_advisory' AND status = 'closed'
+          AND handled_at IS NOT NULL AND handled_at < (NOW() - INTERVAL ? DAY)`,
+      [days]
+    );
+    return Number(row.total);
   }
 
   static async browse(filters = {}, { limit = 25, offset = 0 } = {}) {
@@ -132,6 +197,26 @@ class Enquiry {
    * alone when it is not — an empty textarea on a status form must not erase what somebody
    * wrote earlier, which is the same reason `AppSetting.setMany` takes every key.
    */
+  /**
+   * Record that the introduction was made.
+   *
+   * SET ONCE AND NEVER CLEARED, through a conditional UPDATE rather than a read-then-write:
+   * it is the moment the Hub's involvement ends, and a date that can be moved is a date
+   * nobody can rely on. It is a column rather than a status because it is a fact about
+   * what happened, not a place in a queue — and `introduced` on a contact message would
+   * be a state that screen has no meaning for.
+   *
+   * It does not close the enquiry. Whether there is anything left to do is the person
+   * working the queue's call, and the retention clock starts when they say so.
+   */
+  static async markIntroduced(id) {
+    const [result] = await promisePool.query(
+      "UPDATE enquiries SET introduced_at = NOW() WHERE id = ? AND kind = 'tax_advisory' AND introduced_at IS NULL",
+      [id]
+    );
+    return result.affectedRows === 1;
+  }
+
   static async setStatus(id, status, adminUserId, note = null) {
     if (!STATUSES.includes(status)) throw new Error(`Unknown enquiry status: ${status}`);
 

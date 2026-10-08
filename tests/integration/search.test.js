@@ -200,6 +200,19 @@ maybe()('one box, four sources', () => {
     expect(results.total).toBe(sum);
     expect(results.total).toBeGreaterThan(1);
   });
+  test('a module code is matched as a word, in either case, against the real database', async () => {
+    /*
+     * The advert says "EWM and MM in scope" and "three plants". A contains-search for a
+     * short code finds it inside other words; this one must not. Run against the database
+     * because REGEXP's case rules belong to the column collation, not to this code.
+     */
+    const Job = require('../../models/Job');
+    const slugsFor = async (q) => (await Job.browse({ q }, { limit: 50, offset: 0 })).rows.map((r) => r.slug);
+
+    expect(await slugsFor('MM')).toContain(openSlug);
+    expect(await slugsFor('mm')).toContain(openSlug);
+    expect(await slugsFor('ree')).not.toContain(openSlug);
+  });
 });
 
 maybe()('the page itself', () => {
@@ -238,5 +251,21 @@ maybe()('the page itself', () => {
     expect(res.status).toBe(200);
     expect(res.text).not.toContain('<script>alert(1)</script>');
     expect(res.text).toContain('&lt;script&gt;');
+  });
+
+  test('an SAP module code finds the module and the role even when nothing is listed', async () => {
+    /*
+     * "EWM" answered "0 results" from a site whose module filter, taxonomy and rate index
+     * all know EWM. The catalogue block says where it lives instead. Whether any listing
+     * mentions EWM depends on what other suites have written, so this asserts only the
+     * catalogue half, which is read from config.
+     */
+    const res = await request(app).get('/search?q=EWM');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('In the SAP catalogue');
+    expect(res.text).toContain('href="/jobs?modules=ewm"');
+    expect(res.text).toContain('href="/consultants?modules=ewm"');
+    expect(res.text).toContain('href="/rates/s4-ewm"');
+    expect(res.text).not.toContain('Nothing matched');
   });
 });

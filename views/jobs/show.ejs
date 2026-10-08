@@ -54,6 +54,14 @@
             <% if (job.status !== 'open') { %><span class="badge-hub warn"><%= job.status %></span><% } %>
           </div>
 
+          <% if (job.deployment || job.transition_approach) { %>
+            <p class="small text-muted-2 mb-1">Landscape</p>
+            <div class="mb-3">
+              <% if (job.deployment) { %><span class="badge-hub accent"><%= deploymentLabel(job.deployment) %></span><% } %>
+              <% if (job.transition_approach) { %><span class="badge-hub"><%= transitionLabel(job.transition_approach) %></span><% } %>
+            </div>
+          <% } %>
+
           <% if (job.activate_phase) { %>
             <p class="small text-muted-2 mb-1">Delivery phase</p>
             <div class="mb-3">
@@ -93,6 +101,20 @@
     </div>
 
     <aside class="col-lg-4">
+      <%
+        /*
+         * The card renders only when one of its branches has something to put in it.
+         *
+         * The three branches below cover the owner, a consultant and a signed-out
+         * visitor — and nobody else. A signed-in COMPANY reading somebody else's advert,
+         * or an administrator, fell through all three and got the card with an empty body:
+         * a white strip between the description and the question box, reported from both
+         * mobile and desktop. A heading with nothing under it reads as a box that failed
+         * to load, which is the same argument "About the company" is gated on.
+         */
+        const hasPrimaryAction = isOwner || !currentUser || Boolean(currentUser && currentUser.isConsultant);
+      %>
+      <% if (hasPrimaryAction) { %>
       <div class="glass-card mb-3">
         <div class="card-body">
           <% if (isOwner) { %>
@@ -107,7 +129,7 @@
               <div class="d-flex gap-2">
                 <select class="form-select" id="status" name="status">
                   <% jobStatuses.forEach(function (s) { %>
-                    <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= s %></option>
+                    <option value="<%= s %>" <%= job.status === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
                   <% }); %>
                 </select>
                 <button class="btn btn-outline-primary" type="submit">Set</button>
@@ -230,6 +252,7 @@
           <% } %>
         </div>
       </div>
+      <% } %>
 
       <% if (currentUser && !isOwner && job.status === 'open') { %>
         <div class="glass-card mb-3">
@@ -240,7 +263,10 @@
               <input type="hidden" name="kind" value="enquiry">
               <input type="hidden" name="job_id" value="<%= job.id %>">
               <input type="hidden" name="recipient_user_id" value="<%= job.company_user_id %>">
-              <textarea class="form-control mb-2" name="body" rows="3" required maxlength="5000"
+              <%# A placeholder is not a label: it disappears on focus and a screen reader
+                  announces an unnamed box. The label is visually hidden, not absent. %>
+              <label class="visually-hidden" for="enquiry-body">Your question about this role</label>
+              <textarea class="form-control mb-2" id="enquiry-body" name="body" rows="3" required maxlength="5000"
                         placeholder="Ask the advertiser directly"></textarea>
               <button class="btn btn-outline-primary w-100 btn-sm" type="submit">Send question</button>
             </form>
@@ -284,14 +310,17 @@
         <div class="card-body">
           <h2 class="h6">Job overview</h2>
           <ul class="list-unstyled small mb-0 job-overview">
-            <li><span class="text-muted-2">Engagement</span><span><%= job.engagement_type %></span></li>
-            <li><span class="text-muted-2">Work mode</span><span><%= job.work_mode %></span></li>
+            <li><span class="text-muted-2">Engagement</span><span><%= optionLabel(job.engagement_type) %></span></li>
+            <li><span class="text-muted-2">Work mode</span><span><%= optionLabel(job.work_mode) %></span></li>
             <li>
               <span class="text-muted-2">Location</span>
-              <span><%= [job.city, job.country].filter(Boolean).join(', ') || 'Not stated' %></span>
+              <span><%= locationLabel(job.city, job.country) || 'Not stated' %></span>
             </li>
-            <li><span class="text-muted-2">Experience</span><span><%= job.seniority %></span></li>
-            <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase %></span></li>
+            <li><span class="text-muted-2">Experience</span><span><%= optionLabel(job.seniority) %></span></li>
+            <li><span class="text-muted-2">Phase</span><span><%= job.activate_phase ? optionLabel(job.activate_phase) : 'Spans phases' %></span></li>
+            <% if (job.deployment) { %>
+              <li><span class="text-muted-2">Deployment</span><span><%= deploymentLabel(job.deployment) %></span></li>
+            <% } %>
             <% if (job.duration_months) { %>
               <li><span class="text-muted-2">Duration</span><span><%= job.duration_months %> months</span></li>
             <% } %>

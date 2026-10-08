@@ -12,10 +12,21 @@
 -- nobody at that address accepts") rather than the answer for this address.
 --
 -- ONE PENDING OFFER PER ADVERT, held by the schema rather than by an `if` in a handler.
--- `pending_job_id` is NULL for every row that is not pending, and in SQL a NULL never
--- equals another NULL, so any number of settled offers coexist while a second live one is
--- refused by the key. Same technique as `cert_key` in migration 002, and for the same
+-- `pending_marker` is 1 while the offer is pending and NULL once it is settled, and the
+-- UNIQUE key spans (job_id, pending_marker). In SQL a NULL never equals another NULL, so
+-- any number of settled offers coexist while a second live one collides on (job_id, 1) and
+-- is refused by the key. Same technique as `cert_key` in migration 002, and for the same
 -- reason: a check in the handler is a check with a gap in front of it.
+--
+-- THE MARKER IS DERIVED FROM `status` ALONE, AND `job_id` SITS IN THE KEY RATHER THAN IN
+-- THE EXPRESSION. The obvious spelling — `pending_job_id AS (IF(status = 'pending', job_id,
+-- NULL)) STORED` under a single-column UNIQUE key — is the same guarantee and MySQL 8
+-- refuses to create the table at all: a foreign key on the BASE COLUMN of a stored
+-- generated column may not carry CASCADE, SET NULL or SET DEFAULT, and `job_id` carries
+-- ON DELETE CASCADE. MariaDB does not enforce that restriction, so it applied cleanly here
+-- and failed with a bare "Cannot add foreign key constraint" on the first MySQL 8 it met —
+-- errno 1215, which names neither the column nor the rule. Keeping `job_id` out of the
+-- expression keeps the cascade AND the guarantee on both engines.
 --
 -- Nothing here is ever deleted. The row IS the audit trail for an advert changing hands,
 -- and "who gave this to whom, and when" is the question asked afterwards.
@@ -44,10 +55,10 @@ CREATE TABLE job_transfers (
   responded_at   DATETIME     NULL DEFAULT NULL,
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  pending_job_id INT UNSIGNED AS (IF(status = 'pending', job_id, NULL)) STORED,
+  pending_marker TINYINT UNSIGNED AS (IF(status = 'pending', 1, NULL)) STORED,
 
   PRIMARY KEY (id),
-  UNIQUE KEY uq_job_transfer_pending (pending_job_id),
+  UNIQUE KEY uq_job_transfer_pending (job_id, pending_marker),
   KEY idx_job_transfer_job (job_id, status),
   KEY idx_job_transfer_from (from_user_id, status),
   KEY idx_job_transfer_to (to_email, status),

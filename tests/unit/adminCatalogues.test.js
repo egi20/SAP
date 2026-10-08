@@ -23,6 +23,33 @@ function enumValues(file, column) {
   return match[1].split(',').map((v) => v.trim().replace(/^'|'$/g, ''));
 }
 
+/**
+ * The EFFECTIVE values of an ENUM, across every migration in order.
+ *
+ * Pinning a test to the migration that first created a column is pinning it to a schema
+ * that no longer exists: the moment a later file alters the column the test is comparing
+ * the code against history. `subject_type` was created in 011 and widened twice since, and
+ * this test failed on the second of those — correctly, but for the wrong reason, because
+ * the code was right and the file it was being checked against was stale.
+ *
+ * The last definition wins, exactly as it does when the runner applies them in order.
+ */
+function effectiveEnumValues(column) {
+  const files = fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort();
+  let values = null;
+  files.forEach((file) => {
+    const sql = fs.readFileSync(path.join(MIGRATIONS, file), 'utf8');
+    const pattern = new RegExp(`${column}\\s+ENUM\\(([^)]+)\\)`, 'gi');
+    let match = pattern.exec(sql);
+    while (match) {
+      values = match[1].split(',').map((v) => v.trim().replace(/^'|'$/g, ''));
+      match = pattern.exec(sql);
+    }
+  });
+  if (!values) throw new Error(`No ENUM found for ${column} in any migration`);
+  return values;
+}
+
 describe('the admin lists mirror the schema', () => {
   /*
    * `Job.STATUSES` was written out by hand in three places before this — the employer's
@@ -34,12 +61,33 @@ describe('the admin lists mirror the schema', () => {
     expect(Job.STATUSES).toEqual(enumValues('003_jobs.sql', 'status'));
   });
 
-  test('the moderation subject types are exactly the ENUM in migration 011', () => {
-    expect(Moderation.SUBJECT_TYPES).toEqual(enumValues('011_moderation.sql', 'subject_type'));
+  test('the moderation subject types are exactly the ENUM as the migrations leave it', () => {
+    // 011 created it; 025 and 026 widened it. The last definition is the live one.
+    expect(Moderation.SUBJECT_TYPES).toEqual(effectiveEnumValues('subject_type'));
   });
 
   test('neither list can be mutated by a caller', () => {
     expect(Object.isFrozen(Job.STATUSES)).toBe(true);
     expect(Object.isFrozen(Moderation.SUBJECT_TYPES)).toBe(true);
+  });
+});
+
+describe('the advert\'s landscape vocabularies mirror the schema', () => {
+  /*
+   * Deployment and transition approach (migration 028). Same rule as the job statuses: a
+   * value offered in the form and refused by the column behind it is what a second copy
+   * produces. The transition values are the estimator's own keys, so a quote and an
+   * advert use the same three words.
+   */
+  const { DEPLOYMENT_VALUES, TRANSITION_VALUES } = require('../../config/sapDeployments');
+  const { TRANSITION_APPROACHES } = require('../../config/estimation');
+
+  test('deployments are exactly the ENUM in migration 028', () => {
+    expect([...DEPLOYMENT_VALUES]).toEqual(enumValues('028_job_deployment.sql', 'deployment'));
+  });
+
+  test('transition approaches are the ENUM, and the estimator\'s own keys', () => {
+    expect([...TRANSITION_VALUES]).toEqual(enumValues('028_job_deployment.sql', 'transition_approach'));
+    expect([...TRANSITION_VALUES]).toEqual(Object.keys(TRANSITION_APPROACHES));
   });
 });

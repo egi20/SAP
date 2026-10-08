@@ -14,13 +14,15 @@
     </ol>
   </nav>
 
+  <%#
+    Three parties, named separately. The Hub is a marketplace and the Terms say it is not a
+    party to any engagement, so this row must never read as the Hub promising delivery —
+    the middle column is the consultant or partner the client contracts.
+  %>
+  <div class="glass-card mb-3"><div class="card-body py-3">
+    <p class="small mb-0"><strong>Best for:</strong> <%= model.bestFor %></p>
+  </div></div>
   <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <div class="glass-card h-100"><div class="card-body">
-        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Best for</h2>
-        <p class="mb-0 small"><%= model.bestFor %></p>
-      </div></div>
-    </div>
     <div class="col-md-4">
       <div class="glass-card h-100"><div class="card-body">
         <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">You own</h2>
@@ -29,11 +31,22 @@
     </div>
     <div class="col-md-4">
       <div class="glass-card h-100"><div class="card-body">
-        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">We own</h2>
-        <p class="mb-0 small"><%= model.weOwn %></p>
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">Your consultant or partner owns</h2>
+        <p class="mb-0 small"><%= model.supplierOwns %></p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted-2 mb-2" style="letter-spacing:.06em">SAP Hub provides</h2>
+        <p class="mb-0 small"><%= model.hubProvides %></p>
       </div></div>
     </div>
   </div>
+  <p class="small text-muted-2 mb-4">
+    SAP Hub is a marketplace. The contract for the work is between you and the consultant or
+    partner you choose; the Hub is not a party to it and does not vet or guarantee anybody
+    listed here. See the <a href="/legal/terms">terms of service</a>.
+  </p>
 
   <div class="row g-3 mb-4">
     <div class="col-lg-7">

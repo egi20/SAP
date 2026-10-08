@@ -12,8 +12,9 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { ROLE_CATEGORIES, isRole } = require('../config/roleTaxonomy');
+const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
 const { PRODUCT_LINES, isModule } = require('../config/sapProducts');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 
 const router = express.Router();
 
@@ -30,6 +31,9 @@ router.get(
       work_mode: ['remote', 'hybrid', 'onsite'].includes(req.query.work_mode) ? req.query.work_mode : '',
       availability: ['immediate', 'two_weeks', 'one_month'].includes(req.query.availability) ? req.query.availability : '',
       certified: req.query.certified === '1' ? '1' : '',
+      // A catalogue stem, or nothing. `OTHER` is free text per person, so there is no one
+      // credential to filter on.
+      cert_code: isCertificationCode(req.query.cert_code) && req.query.cert_code !== OTHER_CODE ? req.query.cert_code : '',
       /*
        * "Who has actually delivered EWM?" — the search this ecosystem runs, and the one
        * `ConsultantProfile.buildFilter` was already written to answer. It read the delivery
@@ -62,6 +66,7 @@ router.get(
       sort,
       roleCategories: ROLE_CATEGORIES,
       productLines: PRODUCT_LINES,
+      certificationGroups: CERTIFICATIONS,
       countries,
       pagination: paginationMeta({ page, perPage, total }),
       pageUrl: (p) => pageUrl('/consultants', req.query, p)
@@ -85,6 +90,21 @@ router.get(
      * person relying on it.
      */
     if (!req.session.user) return res.redirect('/images/avatar-placeholder.svg');
+
+    /*
+     * And the photograph of a profile that is not publicly visible is refused as well as
+     * its page. Same rule as an unpublished story's image: a page taken down whose picture
+     * is still served by id is a page that was not taken down. This route only ever
+     * checked that the reader was signed in, so an unlisted profile's photograph was
+     * reachable by anybody with an account and a number.
+     */
+    const viewer = req.session.user;
+    const subject = await ConsultantProfile.findByUserId(req.params.id);
+    const visible =
+      subject && subject.is_public && !subject.admin_hidden_at;
+    if (!visible && viewer.id !== req.params.id && !viewer.isAdmin) {
+      return res.redirect('/images/avatar-placeholder.svg');
+    }
 
     const etag = await ImageBlob.getEtag('consultant_photos', req.params.id);
     if (!etag) return res.redirect('/images/avatar-placeholder.svg');
@@ -110,7 +130,14 @@ router.get(
     const isSelf = viewer && viewer.id === req.params.id;
 
     // A profile that is not public is visible to its owner and to admins only.
-    if (!profile || (!profile.is_public && !isSelf && !(viewer && viewer.isAdmin))) {
+    /*
+     * TWO switches, not one. `is_public` is the member's; `admin_hidden_at` is a
+     * moderator's. Either one closes the page to everybody but its owner and an
+     * administrator — the owner still sees what they wrote, and an administrator has to be
+     * able to look at what they took down.
+     */
+    const publiclyVisible = profile && profile.is_public && !profile.admin_hidden_at;
+    if (!profile || (!publiclyVisible && !isSelf && !(viewer && viewer.isAdmin))) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 

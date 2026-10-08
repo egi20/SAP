@@ -4,6 +4,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 
 const Job = require('../models/Job');
+// The floor lives in the catalogue, where the form reads it too.
+const DESCRIPTION_MIN_LENGTH = Job.SECTIONS.find((section) => section.required).minLength;
 const Skill = require('../models/Skill');
 const Application = require('../models/Application');
 const JobTransfer = require('../models/JobTransfer');
@@ -23,9 +25,26 @@ const config = require('../config/config');
 const { matchScore } = require('../utils/jobMatcher');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { returnTo } = require('../utils/returnTo');
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
+const {
+  DEPLOYMENTS, TRANSITIONS, DEPLOYMENT_VALUES, TRANSITION_VALUES, isDeployment, isTransition,
+  deploymentLabel, transitionLabel
+} = require('../config/sapDeployments');
 
 const router = express.Router();
+
+/*
+ * The deployment and transition vocabularies, for every page this router renders: the
+ * filter, the form (rendered from five places, including every re-render after a refused
+ * post) and the advert. Set once here so no render call can forget them.
+ */
+router.use((req, res, next) => {
+  res.locals.deployments = DEPLOYMENTS;
+  res.locals.transitions = TRANSITIONS;
+  res.locals.deploymentLabel = deploymentLabel;
+  res.locals.transitionLabel = transitionLabel;
+  next();
+});
 
 const SENIORITIES = ['junior', 'mid', 'senior', 'lead'];
 const WORK_MODES = ['remote', 'hybrid', 'onsite'];
@@ -51,6 +70,8 @@ function filtersFrom(query) {
       .filter((slug) => slug && isModule(slug))
       .slice(0, 20),
     activate_phase: Job.ACTIVATE_PHASES.includes(query.activate_phase) ? query.activate_phase : '',
+    deployment: isDeployment(query.deployment) ? query.deployment : '',
+    transition_approach: isTransition(query.transition_approach) ? query.transition_approach : '',
     // Checked against the windows the control offers, so a hand-edited value cannot
     // produce a page answering a question the form cannot ask.
     posted_within: Job.POSTED_WITHIN_DAYS.includes(Number(query.posted_within))
@@ -117,7 +138,8 @@ router.get(
 
 const jobValidators = [
   body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Give the role a title of at least 5 characters.'),
-  body('description').trim().isLength({ min: 50 }).withMessage('Please describe the engagement in at least 50 characters.'),
+  body('description').trim().isLength({ min: DESCRIPTION_MIN_LENGTH })
+    .withMessage(`Please describe the engagement in at least ${DESCRIPTION_MIN_LENGTH} characters.`),
   /*
    * The optional sections are bounded and nothing else. `optional({ checkFalsy: true })`
    * is right here and would be wrong on a number — see `full_lifecycles` — because an
@@ -134,6 +156,10 @@ const jobValidators = [
   // Optional: a permanent hire spans phases, and saying so is the honest answer.
   body('activate_phase').optional({ checkFalsy: true }).isIn(Job.ACTIVATE_PHASES)
     .withMessage('Choose an SAP Activate phase from the list, or leave it unset.'),
+  body('deployment').optional({ checkFalsy: true }).isIn(DEPLOYMENT_VALUES)
+    .withMessage('Choose a deployment from the list, or leave it unset.'),
+  body('transition_approach').optional({ checkFalsy: true }).isIn(TRANSITION_VALUES)
+    .withMessage('Choose a transition approach from the list, or leave it unset.'),
   body('rate_min').optional({ checkFalsy: true }).isFloat({ min: 0 }),
   body('rate_max')
     .optional({ checkFalsy: true })
@@ -178,6 +204,8 @@ function jobFieldsFrom(body_) {
     duration_months: body_.duration_months || null,
     starts_on: body_.starts_on || null,
     activate_phase: Job.ACTIVATE_PHASES.includes(body_.activate_phase) ? body_.activate_phase : null,
+    deployment: isDeployment(body_.deployment) ? body_.deployment : null,
+    transition_approach: isTransition(body_.transition_approach) ? body_.transition_approach : null,
     expires_at: body_.expires_at || null,
     status: body_.publish === 'on' ? 'open' : 'draft'
   };
@@ -364,7 +392,14 @@ router.get(
 
     const isOwner = req.session.user && req.session.user.id === job.company_user_id;
     // A draft, paused or closed job is visible to its owner and to admins only.
-    if (job.status !== 'open' && !isOwner && !(req.session.user && req.session.user.isAdmin)) {
+    /*
+     * Two switches again. `status` is the advertiser's own; `admin_hidden_at` is a
+     * moderator's. Either one closes the page to everybody but the advertiser and an
+     * administrator — the advertiser still sees what they wrote, and an administrator has
+     * to be able to look at what they took down.
+     */
+    const publiclyVisible = job.status === 'open' && !job.admin_hidden_at;
+    if (!publiclyVisible && !isOwner && !(req.session.user && req.session.user.isAdmin)) {
       return res.status(404).render('errors/404', { title: 'Not found' });
     }
 

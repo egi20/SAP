@@ -10,6 +10,7 @@
  * EWM, with nothing anywhere saying why.
  */
 
+const { wholeWordPattern } = require('../../utils/likePattern');
 const fs = require('fs');
 const path = require('path');
 const { SECTIONS, SECTION_KEYS, sectionText, assertJobSectionsIntegrity } = require('../../config/jobSections');
@@ -52,17 +53,28 @@ describe('config/jobSections.js', () => {
 });
 
 describe('every reader of an advert reads every section', () => {
-  it('the search clause names all of them', () => {
-    const { clause } = Job.buildFilter({ q: 'ewm' });
-    SECTION_KEYS.forEach((key) => expect(clause).toContain(`j.${key} LIKE ?`));
+  /*
+   * Both shapes of query: a phrase is a contains-LIKE, a module code is a whole-word
+   * REGEXP (utils/likePattern.js) so "FI" does not find "specific". Either way every
+   * section is searched, with one bound value per column.
+   */
+  it.each([
+    ['warehouse', 'LIKE', '%warehouse%'],
+    ['ewm', 'REGEXP', wholeWordPattern('ewm')]
+  ])('the search clause for "%s" names all of them', (q, op) => {
+    const { clause } = Job.buildFilter({ q });
+    SECTION_KEYS.forEach((key) => expect(clause).toContain(`j.${key} ${op} ?`));
   });
 
-  it('and binds one pattern per column it named', () => {
-    const { clause, params } = Job.buildFilter({ q: 'ewm' });
-    const placeholders = (clause.match(/LIKE \?/g) || []).length;
+  it.each([
+    ['warehouse', 'LIKE', '%warehouse%'],
+    ['ewm', 'REGEXP', wholeWordPattern('ewm')]
+  ])('and binds one pattern per column it named for "%s"', (q, op, bound) => {
+    const { clause, params } = Job.buildFilter({ q });
+    const placeholders = (clause.match(new RegExp(`${op} \\?`, 'g')) || []).length;
     // Title plus every section. A mismatch here silently shifts every later parameter.
     expect(placeholders).toBe(SECTION_KEYS.length + 1);
-    expect(params.filter((p) => p === '%ewm%')).toHaveLength(placeholders);
+    expect(params.filter((p) => p === bound)).toHaveLength(placeholders);
   });
 
   it('the matcher scores a role named only under Requirements', () => {

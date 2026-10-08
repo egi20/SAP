@@ -2,7 +2,7 @@
 
 const express = require('express');
 
-const countries = require('../config/all-countries.json');
+const { COUNTRIES: countries } = require('../config/countries');
 const RecruiterProfile = require('../models/RecruiterProfile');
 const ImageBlob = require('../models/ImageBlob');
 const { isAuthenticated, isRecruiter } = require('../middleware/auth');

@@ -1,0 +1,180 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-person-lines-fill',
+  heading: 'Leads',
+  sub: 'People who have not asked to be contacted. Read the rules before you write to one.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../admin/_tabs', { current: 'crm' }) %>
+  <%- include('../partials/flash') %>
+
+  <%#
+    Said on the screen, not only in a comment, because the person reading it is the person
+    who will decide what to do next. Every other table on this site holds something
+    somebody gave us; this one does not.
+  -%>
+  <div class="alert alert-info d-flex flex-wrap gap-3 align-items-center">
+    <div class="flex-grow-1 small mb-0">
+      Nothing here sends anything. Write a draft, send it from your own mail client, then
+      record that you did. A lead cannot be saved without saying where it came from, and an
+      address on the do-not-contact list cannot be added back.
+    </div>
+    <a class="btn btn-sm btn-outline-secondary" href="/crm/suppressions">
+      Do not contact (<%= suppressedCount %>)
+    </a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <% statuses.forEach(function (s) { %>
+      <div class="col-6 col-lg-2">
+        <a class="stat-tile d-block text-reset text-decoration-none" href="/crm?status=<%= s %>">
+          <div class="value"><%= statusCounts[s] || 0 %></div>
+          <div class="label"><%= s %></div>
+        </a>
+      </div>
+    <% }); %>
+  </div>
+
+  <form class="glass-card mb-3" method="get" action="/crm">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-3">
+          <label class="form-label" for="q">Search</label>
+          <input class="form-control" id="q" name="q" type="search" maxlength="120" value="<%= filters.q %>"
+                 placeholder="Company, name or address">
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="status">Stage</label>
+          <select class="form-select" id="status" name="status">
+            <option value="">Any</option>
+            <% statuses.forEach(function (s) { %>
+              <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="source">Source</label>
+          <select class="form-select" id="source" name="source">
+            <option value="">Any</option>
+            <% sources.forEach(function (s) { %>
+              <option value="<%= s.value %>" <%= filters.source === s.value ? 'selected' : '' %>><%= s.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-3">
+          <label class="form-label" for="product_line">Product line</label>
+          <select class="form-select" id="product_line" name="product_line">
+            <option value="">Any</option>
+            <% productLines.forEach(function (l) { %>
+              <option value="<%= l.value %>" <%= filters.product_line === l.value ? 'selected' : '' %>><%= l.label %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="unowned" name="unowned" value="1"
+                   <%= filters.unowned ? 'checked' : '' %>>
+            <label class="form-check-label small" for="unowned">Nobody's</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="stale" name="stale" value="1"
+                   <%= filters.stale ? 'checked' : '' %>>
+            <label class="form-check-label small" for="stale">Stale</label>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+        <a class="btn btn-outline-secondary btn-sm" href="/crm">Clear</a>
+        <a class="btn btn-outline-primary btn-sm" href="/crm/new"><i class="bi bi-plus-square"></i> Add a lead</a>
+        <a class="btn btn-outline-primary btn-sm" href="/crm/import"><i class="bi bi-filetype-csv"></i> Import</a>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/crm/export.csv?<%= new URLSearchParams(query).toString() %>">Export these</a>
+      </div>
+      <p class="form-text mb-0 mt-2">
+        <strong><%= total %></strong> match. Stale means nothing has happened for
+        <%= staleAfterDays %> days — <%= staleCount %> in total.
+      </p>
+    </div>
+  </form>
+
+  <% if (leads.length === 0) { %>
+    <div class="empty-state glass-card"><i class="bi bi-person-lines-fill"></i>No leads match.</div>
+  <% } else { %>
+    <div class="table-responsive glass-card mb-3">
+      <table class="table mb-0 align-middle">
+        <thead>
+          <tr><th>Company</th><th>Contact</th><th>Source</th><th>Stage</th><th>Owner</th><th>Last activity</th></tr>
+        </thead>
+        <tbody>
+          <% leads.forEach(function (l) { %>
+            <tr>
+              <td>
+                <a href="/crm/<%= l.id %>"><%= l.company %></a>
+                <% if (l.product_lines && l.product_lines.length) { %>
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    <% l.product_lines.forEach(function (v) { %><span class="badge-hub"><%= lineLabel(v) %></span><% }); %>
+                  </div>
+                <% } %>
+              </td>
+              <td class="small">
+                <% if (l.erased_at) { %>
+                  <%# Erased by an unsubscribe. The row survives so the company is not re-imported blind. -%>
+                  <span class="text-muted-2">erased on unsubscribe</span>
+                <% } else { %>
+                  <%= l.contact_name || '—' %>
+                  <% if (l.job_title) { %><div class="text-muted-2"><%= l.job_title %></div><% } %>
+                <% } %>
+              </td>
+              <td class="small"><%= l.source %></td>
+              <td><span class="badge-hub"><%= l.status %></span></td>
+              <td class="small"><%= l.owner_name || '—' %></td>
+              <td class="small">
+                <%= l.last_activity_at ? new Date(l.last_activity_at).toLocaleDateString('en-GB') : 'never' %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <%- include('../partials/pagination') %>
+
+    <%#
+      The bulk form carries the SAME filter values the list above was drawn with, plus the
+      count it showed. The model aborts on a mismatch, so an action taken against a list
+      that changed underneath it changes nothing at all.
+    -%>
+    <form class="glass-card mt-4" method="post" action="/crm/bulk">
+      <div class="card-body">
+        <h2 class="h6 mb-2">Everything matching this filter</h2>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="expected" value="<%= total %>">
+        <% ['q','status','source','country','product_line'].forEach(function (k) { %>
+          <input type="hidden" name="<%= k %>" value="<%= filters[k] || '' %>">
+        <% }); %>
+        <input type="hidden" name="unowned" value="<%= filters.unowned ? '1' : '' %>">
+        <input type="hidden" name="stale" value="<%= filters.stale ? '1' : '' %>">
+        <p class="small text-muted-2">
+          A lead somebody has actually contacted is never deleted here: its activity log is
+          the answer to a complaint about that contact. Unsubscribe those instead — that
+          erases the person and keeps the record.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-secondary btn-sm" type="submit" name="action" value="park">
+            Park all <%= total %>
+          </button>
+          <button class="btn btn-outline-danger btn-sm" type="submit" name="action" value="delete">
+            Delete all <%= total %>
+          </button>
+        </div>
+      </div>
+    </form>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

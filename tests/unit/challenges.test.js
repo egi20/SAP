@@ -259,3 +259,30 @@ describe('the leaderboard queries', () => {
     expect(code).not.toMatch(/ORDER BY[^`]*duration_ms/i);
   });
 });
+
+describe('the bank only grows forward', () => {
+  /*
+   * A day's set is a seeded shuffle of the bank, so editing the bank used to reshuffle
+   * every day already played — and Challenge.replay would re-grade a closed attempt
+   * against questions its player never saw. `since` and `retired` keep each day's set a
+   * function of the date alone.
+   */
+  const challenges = require('../../config/challenges');
+
+  it('a day before an addition is drawn from the bank as it was', () => {
+    const before = challenges.activeOn('2026-10-07').map((q) => q.id);
+    expect(before).not.toContain('basis-stms');
+    expect(before).toContain('rates-privacy-floor');
+  });
+
+  it('a retired question stays out from its retirement date', () => {
+    const after = challenges.activeOn('2026-10-08').map((q) => q.id);
+    expect(after).not.toContain('rates-privacy-floor');
+    expect(after).toContain('basis-stms');
+  });
+
+  it('every day from now on is about SAP rather than about this site', () => {
+    const live = challenges.activeOn('2027-01-01');
+    live.forEach((q) => expect(q.prompt).not.toMatch(/this Hub|this site/i));
+  });
+});

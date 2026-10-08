@@ -130,6 +130,61 @@
               <% }) %>
             </ul>
           <% } %>
+
+          <%#
+            The two takedowns that are not community content. They are listed HERE rather
+            than behind an `include_hidden` option on the job or profile filter builders,
+            because an option like that is how the rule ends up switched off on whichever
+            page forgets to pass it. This is the one screen that is allowed to see them.
+          -%>
+          <h3 class="h6 mt-3">Adverts taken off the board</h3>
+          <% if (!hidden.jobs.length) { %>
+            <p class="small text-muted-2">None.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% hidden.jobs.forEach(function (j) { %>
+                <li class="border-top py-2">
+                  <div class="small"><a href="/jobs/<%= j.slug %>"><%= j.title %></a> · <%= j.company_name %></div>
+                  <div class="small text-muted-2">
+                    taken down by <%= j.hidden_by_name || 'an administrator' %>
+                    <%= j.admin_hidden_reason ? '— ' + j.admin_hidden_reason : '' %>
+                  </div>
+                  <form class="mt-1" method="post" action="/admin/jobs/<%= j.id %>/hidden">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="redirectTo" value="/admin/moderation">
+                    <button class="btn btn-sm btn-outline-success" type="submit">Put it back</button>
+                    <span class="form-text ms-2">Whether it is live again is still the advertiser's own status.</span>
+                  </form>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+
+          <h3 class="h6 mt-3">Profiles out of the directory</h3>
+          <% if (!hidden.profiles.length) { %>
+            <p class="small text-muted-2">None.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% hidden.profiles.forEach(function (pr) { %>
+                <li class="border-top py-2">
+                  <div class="small">
+                    <a href="/consultants/<%= pr.user_id %>"><%= pr.member_name %></a>
+                    <%= pr.headline ? '· ' + pr.headline : '' %>
+                  </div>
+                  <div class="small text-muted-2">
+                    taken out by <%= pr.hidden_by_name || 'an administrator' %>
+                    <%= pr.admin_hidden_reason ? '— ' + pr.admin_hidden_reason : '' %>
+                  </div>
+                  <form class="mt-1" method="post" action="/admin/users/<%= pr.user_id %>/talent">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="redirectTo" value="/admin/moderation">
+                    <button class="btn btn-sm btn-outline-success" type="submit">Put it back</button>
+                    <span class="form-text ms-2">It reappears only if their own publish switch is on.</span>
+                  </form>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
         </div>
       </div>
     </div>

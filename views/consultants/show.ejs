@@ -28,7 +28,7 @@
                 <% if (profile.primary_role) { %><span class="badge-hub accent"><%= roleLabel(profile.primary_role) %></span><% } %>
                 <% if (profile.seniority) { %><span class="badge-hub"><%= profile.seniority %></span><% } %>
                 <% if (profile.years_experience) { %><span class="badge-hub"><%= profile.years_experience %> yrs</span><% } %>
-                <% if (profile.country) { %><span class="badge-hub"><%= [profile.city, profile.country].filter(Boolean).join(', ') %></span><% } %>
+                <% if (profile.country) { %><span class="badge-hub"><%= locationLabel(profile.city, profile.country) %></span><% } %>
                 <%
                   /*
                    * "LinkedIn confirmed", not "Verified".

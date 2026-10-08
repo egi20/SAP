@@ -76,8 +76,20 @@ function buildFilter(filters = {}) {
   const where = [];
   const params = [];
 
-  // Scoping. A caller that passes neither is asking for every application on the site,
-  // so say so rather than answering it.
+  /*
+   * Scoping, and the throw below is the point of it.
+   *
+   * A caller that passes neither is asking for every application on the site, which is
+   * almost always a forgotten argument rather than a question. `unscoped: true` is how the
+   * oversight screen asks for it ON PURPOSE — one named opt-in, used by one superadmin
+   * route, rather than a silent default.
+   *
+   * This is NOT the `include_hidden` escape hatch the job and profile builders refuse. That
+   * one would let a page forget a VISIBILITY rule and show rows a moderator took down;
+   * this one cannot reveal anything a scoped call would have hidden, because there is no
+   * hidden-ness here to forget — it only widens whose rows are counted, and the route that
+   * does it carries the narrowest guard in the application.
+   */
   if (filters.company_user_id) {
     where.push('j.company_user_id = ?');
     params.push(filters.company_user_id);
@@ -86,8 +98,8 @@ function buildFilter(filters = {}) {
     where.push('a.job_id = ?');
     params.push(filters.job_id);
   }
-  if (!filters.company_user_id && !filters.job_id) {
-    throw new Error('An application filter must be scoped to a company or a job.');
+  if (!filters.company_user_id && !filters.job_id && !filters.unscoped) {
+    throw new Error('An application filter must be scoped to a company or a job, or say `unscoped`.');
   }
 
   if (filters.status && STATUSES.includes(filters.status)) {
@@ -109,10 +121,18 @@ function buildFilter(filters = {}) {
   }
 
   if (filters.q) {
-    // Through likePattern, like every other LIKE in this codebase. A search for `%`
-    // is a search for a per-cent sign, not a full scan of the applications table.
-    where.push('u.name LIKE ?');
-    params.push(containsPattern(filters.q));
+    /*
+     * Through likePattern, like every other LIKE in this codebase. A search for `%` is a
+     * search for a per-cent sign, not a full scan of the applications table.
+     *
+     * The advert and the company are searched too, because the screen that reads every
+     * application is looking for "what happened to that role" at least as often as for a
+     * person. An employer's own pipeline gets the same widened search; there is one
+     * builder, so there is no version of this that answers two different questions.
+     */
+    where.push('(u.name LIKE ? OR j.title LIKE ? OR comp.company_name LIKE ?)');
+    const like = containsPattern(filters.q);
+    params.push(like, like, like);
   }
 
   /*
@@ -124,6 +144,22 @@ function buildFilter(filters = {}) {
   if (filters.reached && STATUSES.includes(filters.reached)) {
     where.push('EXISTS (SELECT 1 FROM application_events ae WHERE ae.application_id = a.id AND ae.to_status = ?)');
     params.push(filters.reached);
+  }
+
+  /*
+   * STALLED: submitted, never moved, and older than this many days.
+   *
+   * It is the one question an oversight screen can answer that a company's own pipeline
+   * cannot. A candidate spends an evening on an application; a marketplace where those sit
+   * untouched for a month is broken in a way no count of adverts shows. "Never moved" is
+   * read from the append-only event log rather than from `updated_at`, which any unrelated
+   * write would refresh.
+   */
+  if (Number.isInteger(filters.stalled_days) && filters.stalled_days > 0) {
+    where.push("a.status = 'submitted'");
+    where.push('a.created_at < (NOW() - INTERVAL ? DAY)');
+    params.push(filters.stalled_days);
+    where.push('NOT EXISTS (SELECT 1 FROM application_events ae2 WHERE ae2.application_id = a.id AND ae2.from_status IS NOT NULL)');
   }
 
   return { clause: where.join(' AND '), params };
@@ -296,15 +332,20 @@ class Application {
     const [rows] = await promisePool.query(
       `SELECT a.*, u.name AS consultant_name,
               j.title AS job_title, j.slug AS job_slug, j.status AS job_status,
+              j.company_user_id,
+              COALESCE(NULLIF(TRIM(comp.company_name), ''), 'Confidential') AS company_name,
               cp.headline, cp.primary_role, cp.seniority, cp.country, cp.profile_picture,
               cp.linkedin_verified,
               (SELECT COUNT(*) FROM consultant_certifications cc WHERE cc.user_id = a.consultant_user_id) AS certification_count,
               (SELECT MIN(ae.created_at) FROM application_events ae
-                WHERE ae.application_id = a.id AND ae.to_status = 'interviewing') AS first_interviewed_at
+                WHERE ae.application_id = a.id AND ae.to_status = 'interviewing') AS first_interviewed_at,
+              (SELECT MAX(ae.created_at) FROM application_events ae
+                WHERE ae.application_id = a.id AND ae.from_status IS NOT NULL) AS last_moved_at
          FROM applications a
          JOIN jobs j ON j.id = a.job_id
          JOIN users u ON u.id = a.consultant_user_id
          LEFT JOIN consultant_profiles cp ON cp.user_id = a.consultant_user_id
+         LEFT JOIN company_profiles comp ON comp.user_id = j.company_user_id
         WHERE ${clause}
         ORDER BY FIELD(a.status,'offered','interviewing','shortlisted','reviewing','submitted','hired','rejected','withdrawn'),
                  a.updated_at DESC
@@ -317,6 +358,7 @@ class Application {
          FROM applications a
          JOIN jobs j ON j.id = a.job_id
          JOIN users u ON u.id = a.consultant_user_id
+         LEFT JOIN company_profiles comp ON comp.user_id = j.company_user_id
         WHERE ${clause}`,
       params
     );
@@ -351,6 +393,7 @@ class Application {
          FROM applications a
          JOIN jobs j ON j.id = a.job_id
          JOIN users u ON u.id = a.consultant_user_id
+         LEFT JOIN company_profiles comp ON comp.user_id = j.company_user_id
         WHERE ${clause}
         GROUP BY a.status`,
       params

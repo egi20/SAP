@@ -69,6 +69,29 @@
         changed without changing them, the cap cuts off early or late and nothing else in
         the system would notice — which is why both are asserted at boot and printed here.
       </p>
+
+      <%#
+        The second model. There are two features spending from ONE budget, so both are
+        printed here: a drafting model changed without its prices has exactly the same
+        silent failure, and it would otherwise have no screen at all.
+      -%>
+      <hr>
+      <h3 class="h6">Outreach drafting, in the CRM</h3>
+      <dl class="row mb-0 small">
+        <dt class="col-sm-4">Model</dt>
+        <dd class="col-sm-8 font-monospace">
+          <%= drafting.model %>
+          <% if (drafting.sameAsAssistant) { %><span class="badge-hub">same as above</span><% } %>
+        </dd>
+        <dt class="col-sm-4">Effort</dt>
+        <dd class="col-sm-8"><%= drafting.effort %></dd>
+        <dt class="col-sm-4">Price used for the budget</dt>
+        <dd class="col-sm-8">$<%= drafting.priceInput %> in / $<%= drafting.priceOutput %> out, per million tokens</dd>
+      </dl>
+      <p class="small text-muted-2 mb-0 mt-2">
+        Drafting spends from the same month-to-date cap, so outreach cannot quietly become
+        the largest line on the invoice. The table below counts both, by feature.
+      </p>
     </div>
   </div>
 

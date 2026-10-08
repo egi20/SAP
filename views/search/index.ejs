@@ -54,7 +54,57 @@
       for “<%= results.query %>”.
     </p>
 
-    <% if (results.total === 0) { %>
+    <%
+      const catalogueHits = catalogue.modules.length + catalogue.roles.length + catalogue.lines.length;
+    %>
+    <% if (catalogueHits) { %>
+      <%#
+        What the query NAMES in the SAP catalogue, and where it lives on the site. Shown even
+        when every listing is empty, which is exactly when it matters: "0 results for EWM"
+        from a site whose filters all know EWM reads as a site that does not.
+      %>
+      <div class="glass-card glass-card-tinted mb-4">
+        <div class="card-body">
+          <h2 class="h6 mb-1"><i class="bi bi-diagram-3"></i> In the SAP catalogue</h2>
+          <% if (results.total === 0) { %>
+            <p class="small text-muted-2 mb-3">
+              Nothing listed mentions “<%= results.query %>” yet — these are the places it will
+              appear when something does.
+            </p>
+          <% } else { %>
+            <p class="small text-muted-2 mb-3">The modules and roles this names, and where to find them.</p>
+          <% } %>
+          <ul class="list-unstyled mb-0">
+            <% catalogue.lines.forEach(function (line) { %>
+              <li class="py-1">
+                <strong><%= line.label %></strong>
+                <span class="small text-muted-2">· product line ·</span>
+                <a class="small" href="/community/category/<%= line.value %>">community</a>
+              </li>
+            <% }); %>
+            <% catalogue.modules.forEach(function (m) { %>
+              <li class="py-1">
+                <strong><%= m.label %></strong>
+                <span class="small text-muted-2">· <%= m.lineLabel %> ·</span>
+                <a class="small" href="<%= m.jobsHref %>">jobs</a>,
+                <a class="small" href="<%= m.consultantsHref %>">consultants who have delivered it</a>
+              </li>
+            <% }); %>
+            <% catalogue.roles.forEach(function (r) { %>
+              <li class="py-1">
+                <strong><%= r.label %></strong>
+                <span class="small text-muted-2">· role ·</span>
+                <a class="small" href="<%= r.jobsHref %>">jobs</a>,
+                <a class="small" href="<%= r.consultantsHref %>">consultants</a><% if (r.ratesHref) { %>,
+                <a class="small" href="<%= r.ratesHref %>">day rates</a><% } %>
+              </li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (results.total === 0 && !catalogueHits) { %>
       <div class="glass-card mb-4">
         <div class="card-body">
           <h2 class="h6">Nothing matched</h2>

@@ -1,6 +1,7 @@
 'use strict';
 
 const { roleLabel } = require('./../config/roleTaxonomy');
+const { locationLabel } = require('./geo');
 const { moduleLabel } = require('./../config/sapProducts');
 const { phaseLabel } = require('./../config/activatePhases');
 const { toPlainText } = require('./sanitize');
@@ -97,7 +98,8 @@ function buildCv({ profile, skills = [], certifications = [], experiences = [], 
     headline: profile.headline || null,
     role: profile.primary_role ? roleLabel(profile.primary_role) : null,
     seniority: profile.seniority || null,
-    location: [profile.city, profile.country].filter(Boolean).join(', ') || null,
+    // A CV goes to an employer; "Tirana, AL" asks them to expand an abbreviation.
+    location: locationLabel(profile.city, profile.country),
     workMode: profile.work_mode || null,
     willingToTravel: Boolean(profile.willing_to_travel),
 

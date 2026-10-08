@@ -38,8 +38,11 @@
               <label class="form-label" for="<%= section.key %>">
                 <%= section.label %><% if (section.required) { %> <span aria-hidden="true">*</span><% } %>
               </label>
+              <%# The floor comes from the catalogue, so the box states the rule the server
+                  will apply rather than letting somebody find it by being refused. %>
               <textarea class="form-control" id="<%= section.key %>" name="<%= section.key %>"
-                        rows="<%= section.rows %>" <%= section.required ? 'required' : '' %>><%= values[section.key] || '' %></textarea>
+                        rows="<%= section.rows %>" <%= section.required ? 'required' : '' %>
+                        <%= section.minLength ? 'minlength="' + section.minLength + '"' : '' %>><%= values[section.key] || '' %></textarea>
               <p class="form-text">
                 <%= section.help %>
                 <% if (!section.required) { %> Leave it empty and the heading is not shown.<% } %>
@@ -91,6 +94,32 @@
               consultant are different people, and saying which you need saves everybody a call.
             </div>
           </div>
+
+          <div class="row g-3 mt-0">
+            <div class="col-md-6">
+              <label class="form-label" for="deployment">Deployment</label>
+              <select class="form-select" id="deployment" name="deployment">
+                <option value="">Not stated / several</option>
+                <% deployments.forEach(function (d) { %>
+                  <option value="<%= d.value %>" <%= (values.deployment || '') === d.value ? 'selected' : '' %>><%= d.label %></option>
+                <% }); %>
+              </select>
+              <div class="form-text">
+                The first thing an SAP consultant asks: Public Edition, Private Edition,
+                on-premise or ECC are different jobs.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="transition_approach">Transition approach</label>
+              <select class="form-select" id="transition_approach" name="transition_approach">
+                <option value="">Not applicable</option>
+                <% transitions.forEach(function (t) { %>
+                  <option value="<%= t.value %>" <%= (values.transition_approach || '') === t.value ? 'selected' : '' %>><%= t.label %></option>
+                <% }); %>
+              </select>
+              <div class="form-text">Leave unset for support or a role that is not part of a move to S/4HANA.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -119,7 +148,7 @@
               <label class="form-label" for="seniority">Seniority</label>
               <select class="form-select" id="seniority" name="seniority">
                 <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-                  <option value="<%= s %>" <%= (values.seniority || 'senior') === s ? 'selected' : '' %>><%= s %></option>
+                  <option value="<%= s %>" <%= (values.seniority || 'senior') === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
                 <% }); %>
               </select>
             </div>
@@ -127,7 +156,7 @@
               <label class="form-label" for="work_mode">Work mode</label>
               <select class="form-select" id="work_mode" name="work_mode">
                 <% ['remote','hybrid','onsite'].forEach(function (m) { %>
-                  <option value="<%= m %>" <%= (values.work_mode || 'remote') === m ? 'selected' : '' %>><%= m %></option>
+                  <option value="<%= m %>" <%= (values.work_mode || 'remote') === m ? 'selected' : '' %>><%= optionLabel(m) %></option>
                 <% }); %>
               </select>
             </div>
@@ -146,9 +175,7 @@
               <label class="form-label" for="country">Country</label>
               <select class="form-select" id="country" name="country">
                 <option value="">Any</option>
-                <% countries.forEach(function (c) { %>
-                  <option value="<%= c.code %>" <%= values.country === c.code ? 'selected' : '' %>><%= c.name %></option>
-                <% }); %>
+                <%- include('../partials/country-options', { countries: countries, selected: values.country }) %>
               </select>
             </div>
             <div class="col-6">

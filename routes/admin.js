@@ -9,6 +9,7 @@ const ErrorLog = require('../models/ErrorLog');
 const RateSubmission = require('../models/RateSubmission');
 const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
+const Application = require('../models/Application');
 const AppSetting = require('../models/AppSetting');
 const Referral = require('../models/Referral');
 const SuccessStory = require('../models/SuccessStory');
@@ -18,6 +19,7 @@ const TaxApplication = require('../models/TaxApplication');
 const ImageBlob = require('../models/ImageBlob');
 const ApiUsage = require('../models/ApiUsage');
 const assistantConfig = require('../config/assistant');
+const draftingConfig = require('../config/drafting');
 const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
 const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
@@ -32,6 +34,14 @@ const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
+
+/**
+ * How long a submitted application sits before the oversight screen calls it stalled.
+ *
+ * Two weeks: long enough that a company with a slow week is not accused of ignoring
+ * somebody, short enough that a candidate waiting that long has already given up.
+ */
+const STALLED_AFTER_DAYS = 14;
 
 const router = express.Router();
 
@@ -95,6 +105,8 @@ router.get(
     const { rows, total } = await User.list({
       search: req.query.q || '',
       role: User.ALL_ROLES.includes(req.query.role) ? req.query.role : '',
+      // Checked against a fixed pair in the model as well; this is the screen's half.
+      status: ['active', 'inactive'].includes(req.query.status) ? req.query.status : '',
       limit,
       offset
     });
@@ -198,12 +210,20 @@ router.get(
   asyncHandler(async (req, res) => {
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
     const status = Job.STATUSES.includes(req.query.status) ? req.query.status : 'open';
-    const { rows, total } = await Job.browse({ status }, { limit, offset, sort: 'newest' });
+    /*
+     * The status parameter has been honoured here since this screen was written and the
+     * page offered no control for it — a filter nothing can reach is a filter nobody uses.
+     * The search goes through the same builder, so the list and its count agree.
+     */
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : '';
+    const { rows, total } = await Job.browse({ status, q }, { limit, offset, sort: 'newest' });
 
     return res.render('admin/jobs', {
       title: 'Jobs',
       jobs: rows,
       status,
+      q,
+      query: req.query,
       statuses: Job.STATUSES,
       roleLabel,
       pagination: paginationMeta({ page, perPage, total }),
@@ -463,7 +483,192 @@ router.get(
       effort: assistantConfig.EFFORT,
       configured: assistantConfig.isConfigured(),
       priceInput: assistantConfig.PRICE_PER_MTOK_INPUT,
-      priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT
+      priceOutput: assistantConfig.PRICE_PER_MTOK_OUTPUT,
+      /*
+       * The CRM's drafting model and ITS prices, printed on the same page, because there
+       * are now two models spending from one budget. The failure this screen exists for —
+       * a model changed without the prices beside it, so the breaker charges the wrong
+       * rate silently — is one a second feature can have on its own.
+       */
+      drafting: {
+        model: draftingConfig.MODEL,
+        effort: draftingConfig.EFFORT,
+        priceInput: draftingConfig.PRICE_PER_MTOK_INPUT,
+        priceOutput: draftingConfig.PRICE_PER_MTOK_OUTPUT,
+        sameAsAssistant: draftingConfig.MODEL === assistantConfig.MODEL
+      }
+    });
+  })
+);
+
+/**
+ * POST /admin/users/:id/talent — take a consultant profile out of the public directory,
+ * or put it back.
+ *
+ * ADMIN, not superadmin, and that is deliberate: this is moderation, which is what an
+ * ordinary administrator is for. It is also why it is not the deactivate button — the
+ * account keeps working, and the only thing that goes is the public listing.
+ *
+ * `Moderation.setProfileHidden` is the single writer, so the decision lands in the same
+ * log as every other one and the directory, the search source and the match all drop the
+ * profile through `ConsultantProfile.buildFilter` without any of them knowing why.
+ */
+router.post(
+  '/users/:id/talent',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    // The same rule as the roles form and the deactivate button: not on your own account.
+    if (req.params.id === req.session.user.id) {
+      req.flash('error', 'That is your own profile.');
+      return res.redirect(returnTo(req, '/admin/users'));
+    }
+
+    const hidden = req.body.hidden === 'on';
+    try {
+      const result = await Moderation.setProfileHidden(req.params.id, hidden, {
+        actorUserId: req.session.user.id,
+        reason: req.body.reason
+      });
+      if (!result.changed) {
+        req.flash('info', 'Somebody had already done that.');
+      } else {
+        req.flash(
+          'success',
+          hidden
+            ? 'Taken out of the directory. The account still works; only the public listing is gone.'
+            : 'Our decision is cleared. Whether it appears again is their own publish switch.'
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'NOT_FOUND') throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect(returnTo(req, '/admin/users'));
+  })
+);
+
+/**
+ * POST /admin/jobs/:id/hidden — take an advert out of the board, or put it back.
+ *
+ * NOT "delete the job", and not a status change. The applications made to it, their audit
+ * events and the conversations anchored to it belong to other people; and an advertiser
+ * moves their own `status` freely, so a moderator writing `closed` there would be overruled
+ * by the next press of Reopen.
+ *
+ * There is also no admin path that CREATES or EDITS an advert, deliberately. An advert
+ * belongs to a company account: it carries that company's "About the company" box, its
+ * applications land in that account's pipeline, and the threads about it are anchored to
+ * that account. An advert written here would name a company that did not write it.
+ */
+router.post(
+  '/jobs/:id/hidden',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const hidden = req.body.hidden === 'on';
+    try {
+      const result = await Moderation.setJobHidden(req.params.id, hidden, {
+        actorUserId: req.session.user.id,
+        reason: req.body.reason
+      });
+      if (!result.changed) {
+        req.flash('info', 'Somebody had already done that.');
+      } else {
+        req.flash(
+          'success',
+          hidden
+            ? `"${result.job.title}" is off the board. The applications already made to it stay.`
+            : 'Our decision is cleared. Whether it is live again is the advertiser\'s own status.'
+        );
+      }
+    } catch (err) {
+      if (err.code !== 'NOT_FOUND') throw err;
+      req.flash('error', err.message);
+    }
+    return res.redirect(returnTo(req, '/admin/jobs'));
+  })
+);
+
+/**
+ * GET /admin/errors/export.csv — the same rows the screen showed.
+ *
+ * The stack trace is left out deliberately. It is the one field here that can carry a file
+ * path, a query fragment or a value from the request that produced it, and an export is a
+ * file that leaves the machine and gets attached to things.
+ */
+router.get(
+  '/errors/export.csv',
+  asyncHandler(async (req, res) => {
+    const rows = await ErrorLog.exportRows(errorFiltersFrom(req.query));
+
+    const header = ['created_at', 'status_code', 'method', 'path', 'message', 'user_id'];
+    // Every cell quoted and every quote doubled: a message containing a comma is the
+    // ordinary case here, not the odd one.
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [header.join(','), ...rows.map((r) => header.map((h) => cell(r[h])).join(','))].join('\r\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="errors.csv"');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.send(csv);
+  })
+);
+
+/* ------------------------------------------------------- applications oversight */
+
+/**
+ * GET /admin/applications — every application on the platform.
+ *
+ * SUPERADMIN, like `/admin/rates`, and for the same reason: this is the one screen that
+ * can enumerate what candidates wrote to employers. It shows the STATE of each application
+ * and never its content — the cover letter and the day rate live on
+ * `/applications/:id`, which carries the same guard.
+ *
+ * The question it exists to answer is not "who applied", which a company's own pipeline
+ * already answers better. It is whether the marketplace is working: a candidate spends an
+ * evening on an application, and a board where those sit untouched for a month is broken
+ * in a way no count of adverts shows. That is what `stalled` is.
+ *
+ * It goes through `Application.buildFilter` like the two pipelines do, with `unscoped`
+ * said out loud — the builder still throws for a caller that simply forgot a scope.
+ */
+router.get(
+  '/applications',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 50 });
+
+    const stalledDays = Number.parseInt(req.query.stalled, 10);
+    const filters = {
+      unscoped: true,
+      status: Application.STATUSES.includes(req.query.status) ? req.query.status : '',
+      q: typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : '',
+      reached: req.query.reached === 'interviewing' ? 'interviewing' : '',
+      include_withdrawn: req.query.withdrawn === '1',
+      stalled_days: Number.isFinite(stalledDays) && stalledDays > 0 ? stalledDays : null
+    };
+
+    const [{ rows, total }, counts, stalled] = await Promise.all([
+      Application.list(filters, { limit, offset }),
+      Application.countsFor({ ...filters, stalled_days: null }),
+      // The headline number, and it is deliberately NOT affected by the stage filter: it
+      // is the one figure somebody opens this screen for.
+      Application.list({ unscoped: true, stalled_days: STALLED_AFTER_DAYS }, { limit: 1 })
+    ]);
+
+    return res.render('admin/applications', {
+      title: 'Applications',
+      applications: rows,
+      total,
+      counts,
+      filters,
+      statuses: Application.STATUSES,
+      stalledAfterDays: STALLED_AFTER_DAYS,
+      stalledCount: stalled.total,
+      query: req.query,
+      pagination: paginationMeta({ page, perPage, total }),
+      pageUrl: (n) => pageUrl('/admin/applications', req.query, n)
     });
   })
 );
@@ -597,15 +802,41 @@ router.post(
 
 /* ------------------------------------------------------------------- errors */
 
+/**
+ * What the error screen reads out of the query string, in one place — the list, the top
+ * paths and the export all take the same object, so the summary cannot describe a
+ * different set of rows from the table under it.
+ */
+function errorFiltersFrom(query) {
+  return {
+    q: typeof query.q === 'string' ? query.q.trim().slice(0, 200) : '',
+    statusCode: query.status_code || '',
+    from: query.from || '',
+    to: query.to || ''
+  };
+}
+
 router.get(
   '/errors',
   asyncHandler(async (req, res) => {
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 50 });
-    const { rows, total } = await ErrorLog.list({ limit, offset });
+    const filters = errorFiltersFrom(req.query);
+
+    const [{ rows, total }, topPaths, statusCodes] = await Promise.all([
+      ErrorLog.list(filters, { limit, offset }),
+      // Of what is on the screen, not of everything ever recorded — which is the number
+      // somebody wants when they have just narrowed to one day.
+      ErrorLog.topPaths(filters, { limit: 10 }),
+      ErrorLog.statusCodes()
+    ]);
 
     return res.render('admin/errors', {
       title: 'Error log',
       errors: rows,
+      topPaths,
+      statusCodes,
+      filters,
+      query: req.query,
       pagination: paginationMeta({ page, perPage, total }),
       pageUrl: (n) => pageUrl('/admin/errors', req.query, n)
     });
@@ -920,9 +1151,12 @@ router.get(
     };
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
 
-    const [{ rows, total }, openCount] = await Promise.all([
+    const [{ rows, total }, openCount, dueForPurge] = await Promise.all([
       Enquiry.browse(filters, { limit, offset }),
-      Enquiry.openCount()
+      Enquiry.openCount(),
+      // Printed so "we keep it for 180 days" is a fact somebody can check rather than a
+      // sentence in a policy.
+      Enquiry.taxEnquiriesDueForPurge()
     ]);
 
     res.render('admin/enquiries', {
@@ -930,6 +1164,8 @@ router.get(
       enquiries: rows,
       filters,
       openCount,
+      dueForPurge,
+      retentionDays: Enquiry.RETENTION_DAYS,
       kinds: Enquiry.KINDS,
       statuses: Enquiry.STATUSES,
       pagination: paginationMeta({ page, perPage, total }),
@@ -961,6 +1197,46 @@ router.get(
  * a second place where the conversation partly lives, and the half that is missing is
  * always the half somebody needs later.
  */
+/**
+ * POST /admin/enquiries/:id/introduced — the moment the Hub's involvement ends.
+ *
+ * It records a date and sends nothing, like everything else on this screen: the
+ * introduction itself is an email a person writes from the mailbox they are already
+ * reading. A button here that sent it would make the Hub a second place the conversation
+ * partly lives, and the half that is missing is always the half somebody needs later.
+ */
+router.post(
+  '/enquiries/:id/introduced',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const moved = await Enquiry.markIntroduced(req.params.id);
+    req.flash(
+      moved ? 'success' : 'info',
+      moved
+        ? 'Recorded. Our part is done; the retention clock starts when you close it.'
+        : 'That was already recorded.'
+    );
+    return res.redirect(returnTo(req, `/admin/enquiries/${req.params.id}`));
+  })
+);
+
+/**
+ * POST /admin/enquiries/purge-tax — delete tax advisory enquiries past their retention.
+ *
+ * SUPERADMIN, and scoped to this kind and to closed rows. The retention promise is made on
+ * the tax form and nowhere else; a purge that dropped the kind from its WHERE would quietly
+ * extend a promise nobody made to messages nobody promised it about.
+ */
+router.post(
+  '/enquiries/purge-tax',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const removed = await Enquiry.purgeExpiredTaxEnquiries();
+    req.flash('success', `${removed} ${removed === 1 ? 'enquiry' : 'enquiries'} past retention deleted.`);
+    return res.redirect('/admin/enquiries?kind=tax_advisory');
+  })
+);
+
 router.post(
   '/enquiries/:id/status',
   requireIdParam('id'),

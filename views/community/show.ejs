@@ -99,7 +99,7 @@
             <% if (isAuthor || (currentUser && currentUser.isAdmin)) { %>
               <hr>
               <form method="post" action="/community/<%= post.slug %>/delete"
-                    onsubmit="return confirm('Delete this post? Replies go with it.')">
+                    data-confirm="Delete this post? Replies go with it.">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button class="btn btn-sm btn-outline-primary" type="submit">Delete post</button>
               </form>

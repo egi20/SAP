@@ -11,6 +11,7 @@
     { href: '/admin/users', key: 'users', label: 'Users', icon: 'bi-people', super: false },
     { href: '/admin/jobs', key: 'jobs', label: 'Jobs', icon: 'bi-briefcase', super: false },
     { href: '/admin/moderation', key: 'moderation', label: 'Moderation', icon: 'bi-shield-check', super: false },
+    { href: '/admin/applications', key: 'applications', label: 'Applications', icon: 'bi-send', super: true },
     { href: '/admin/enquiries', key: 'enquiries', label: 'Enquiries', icon: 'bi-envelope', super: false },
     { href: '/admin/stories', key: 'stories', label: 'Stories', icon: 'bi-journal-text', super: false },
     { href: '/admin/reviews', key: 'reviews', label: 'Reviews', icon: 'bi-star', super: false },
@@ -21,6 +22,14 @@
     { href: '/admin/referrals', key: 'referrals', label: 'Referrals', icon: 'bi-people-fill', super: true },
     { href: '/admin/tax-applications', key: 'tax-applications', label: 'Tax', icon: 'bi-calculator', super: true },
     { href: '/admin/rates', key: 'rates', label: 'Rates', icon: 'bi-cash-coin', super: true },
+    /*
+     * The CRM is mounted at its own root rather than under /admin, because it carries its
+     * own guard and is not an administration screen for this site's own members — it holds
+     * people who are not members at all. It appears here because this is the tab strip the
+     * people who can open it already use, and a surface reachable only by typing its URL
+     * is one nobody audits.
+     */
+    { href: '/crm', key: 'crm', label: 'Leads', icon: 'bi-person-lines-fill', super: true },
     { href: '/admin/settings', key: 'settings', label: 'Settings', icon: 'bi-sliders', super: true }
   ];
   const isSuper = Boolean(currentUser && currentUser.isSuperadmin);
@@ -32,10 +41,16 @@
         <a class="nav-link <%= t.key === current ? 'active' : '' %>" href="<%= t.href %>"
            <%= t.key === current ? 'aria-current="page"' : '' %>>
           <i class="bi <%= t.icon %>"></i> <%= t.label %><% if (t.super) { %>
-            <span class="badge rounded-pill text-bg-dark ms-1" title="Superadmin only">S</span>
+            <%# A `title` is a tooltip, and a tooltip does not exist on a touch screen — so
+                on a phone this was an unexplained "S". The meaning is now in the icon's
+                hidden text, which a screen reader reads and the legend below repeats. %>
+            <i class="bi bi-shield-lock ms-1" aria-hidden="true"></i><span class="visually-hidden">(superadmin only)</span>
           <% } %>
         </a>
       </li>
     <% }) %>
   </ul>
+  <% if (isSuper) { %>
+    <p class="form-text mb-0 mt-1"><i class="bi bi-shield-lock" aria-hidden="true"></i> marks a section only a superadmin can open.</p>
+  <% } %>
 </nav>

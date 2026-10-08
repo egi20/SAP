@@ -26,11 +26,7 @@
 
   <form method="post" action="/tax/apply" class="glass-card p-4 p-md-5" novalidate data-tax-apply>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <%# The honeypot, marked up exactly as on the enquiry forms. %>
-    <div class="hp-field" aria-hidden="true">
-      <label for="website">Website</label>
-      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
-    </div>
+    <%- include('../partials/honeypot') %>
 
     <% function textField(key, label, opts) { opts = opts || {}; %>
       <div class="<%= opts.col || 'col-md-6' %>">

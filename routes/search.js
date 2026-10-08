@@ -3,6 +3,7 @@
 const express = require('express');
 
 const { searchEverything, MIN_QUERY_LENGTH } = require('../services/search');
+const { matchCatalogue } = require('../services/searchCatalogue');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const { ipLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -53,6 +54,9 @@ router.get(
     return res.render('search/index', {
       title: results.usable ? `Search — ${results.query}` : 'Search',
       results,
+      // Directions, not results: which SAP modules and roles the query names, and where they
+      // live on the site. Read from config only, and never counted into the total.
+      catalogue: results.usable ? matchCatalogue(results.query) : { modules: [], roles: [], lines: [] },
       minLength: MIN_QUERY_LENGTH
     });
   })

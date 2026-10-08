@@ -183,7 +183,7 @@
               <label class="form-label" for="status">Move to</label>
               <select class="form-select form-select-sm mb-2" id="status" name="status">
                 <% allowedTransitions.forEach(function (s) { %>
-                  <option value="<%= s %>" class="text-capitalize"><%= s %></option>
+                  <option value="<%= s %>" class="text-capitalize"><%= optionLabel(s) %></option>
                 <% }); %>
               </select>
               <input class="form-control form-control-sm mb-2" name="note" maxlength="500" placeholder="Note (optional)">
@@ -195,7 +195,8 @@
 
           <% if (quote.status === 'draft') { %>
             <hr>
-            <form method="post" action="/quotes/<%= quote.reference %>/delete">
+            <form method="post" action="/quotes/<%= quote.reference %>/delete"
+                  data-confirm="Delete this draft quote? The estimate and its stored breakdown go with it.">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button class="btn btn-link btn-sm text-danger p-0" type="submit">Delete this draft</button>
             </form>
