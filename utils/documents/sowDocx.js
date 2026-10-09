@@ -1,5 +1,7 @@
 'use strict';
 
+const { weekRange } = require('../weekRange');
+
 const {
   Document,
   Packer,
@@ -348,7 +350,7 @@ function approachSection(estimate, brand) {
     heading('2.4 Timeline', HeadingLevel.HEADING_2, brand),
     table(
       [{ label: 'Phase' }, { label: 'Weeks' }, { label: 'Quality gate' }],
-      estimate.timeline.map((t) => [t.phase, `${t.startWeek}–${t.endWeek}`, t.milestone]),
+      estimate.timeline.map((t) => [t.phase, weekRange(t), t.milestone]),
       { widths: [28, 17, 55], brand }
     )
   ];

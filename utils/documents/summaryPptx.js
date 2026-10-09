@@ -1,5 +1,7 @@
 'use strict';
 
+const { weekRange } = require('../weekRange');
+
 const PptxGenJS = require('pptxgenjs');
 
 const { HEX, FONT, formatNumber, formatMoney, formatDate, paletteFor } = require('./brand');
@@ -252,7 +254,7 @@ function phaseSlide(pptx, estimate, brand) {
   addTable(
     slide,
     ['Phase', 'Weeks', 'Days', 'Quality gate'],
-    estimate.timeline.map((t) => [t.phase, `${t.startWeek}–${t.endWeek}`, formatNumber(t.days), t.milestone]),
+    estimate.timeline.map((t) => [t.phase, weekRange(t), formatNumber(t.days), t.milestone]),
     brand,
     { colW: [2.4, 1.4, 1.2, 7.1] }
   );

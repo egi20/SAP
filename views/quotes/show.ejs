@@ -125,7 +125,8 @@
                   <td><strong><%= t.phase %></strong></td>
                   <td class="text-muted-2 small"><%= t.milestone %></td>
                   <td class="text-end"><%= t.days %></td>
-                  <td class="text-end"><%= t.startWeek %>–<%= t.endWeek %></td>
+                  <%# A phase that starts and ends in the same week is week 4, not "4–4". %>
+                  <td class="text-end"><%= weekRange(t) %></td>
                 </tr>
               <% }); %>
             </tbody>

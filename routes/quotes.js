@@ -1,5 +1,7 @@
 'use strict';
 
+const { weekRange } = require('../utils/weekRange');
+
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 
@@ -255,6 +257,7 @@ router.get(
 
     return res.render('quotes/show', {
       title: `${quote.reference} — ${quote.project_name}`,
+      weekRange,
       quote,
       estimate: quote.estimate,
       modules,

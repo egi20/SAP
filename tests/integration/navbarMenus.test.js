@@ -126,3 +126,22 @@ maybe()('pages the menus added', () => {
     expect(res.text).toContain('href="/profile/cv"');
   });
 });
+
+maybe()('a role the account does not have', () => {
+  it('sends a page to the roles form that can add it, not to the home page', async () => {
+    // The account in this file is a consultant only, so "Post a role" is the refused one.
+    const agent = await signIn(OWN[0]);
+    const res = await agent.get('/jobs/new');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/profile/settings#roles');
+    const settings = await agent.get('/profile/settings');
+    expect(settings.text).toContain('id="roles"');
+    expect(settings.text).toContain('Hire SAP talent');
+  });
+
+  it('still answers a background fetch with 403, not a redirect', async () => {
+    const agent = await signIn(OWN[0]);
+    const res = await agent.get('/jobs/new').set('Sec-Fetch-Dest', 'empty');
+    expect(res.status).toBe(403);
+  });
+});

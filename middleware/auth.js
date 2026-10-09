@@ -57,18 +57,28 @@ function isGuest(req, res, next) {
  * Role guards check the ROLE FLAG, not just the primary `user_type`.
  * An admin who is also a consultant must not be refused a consultant feature.
  */
+/*
+ * The three roles anybody can add to their own account (User.PUBLIC_ROLES) are refused
+ * with a way IN, not a dead end. "Post a role" and "Build Profile" are linked from menus,
+ * the footer and half a dozen pages, and every one of them used to bounce an account
+ * without that role to the home page with "That area is for company accounts" — which
+ * says no without saying what would make it yes. The roles form in settings is the one
+ * control that can.
+ */
+const ROLES_PAGE = '/profile/settings#roles';
+
 function isConsultant(req, res, next) {
   const user = req.session && req.session.user;
   if (!user) return denyAuth(req, res, 'Please sign in to continue.');
   if (user.isConsultant) return next();
-  return denyRole(req, res, 'That area is for consultant accounts.');
+  return denyRole(req, res, 'That area is for consultant accounts. Tick “Find work as a consultant” below to add it.', ROLES_PAGE);
 }
 
 function isCompany(req, res, next) {
   const user = req.session && req.session.user;
   if (!user) return denyAuth(req, res, 'Please sign in to continue.');
   if (user.isCompany) return next();
-  return denyRole(req, res, 'That area is for company accounts.');
+  return denyRole(req, res, 'That area is for company accounts. Tick “Hire SAP talent” below to add it.', ROLES_PAGE);
 }
 
 /**
@@ -82,7 +92,7 @@ function isRecruiter(req, res, next) {
   const user = req.session && req.session.user;
   if (!user) return denyAuth(req, res, 'Please sign in to continue.');
   if (user.isRecruiter) return next();
-  return denyRole(req, res, 'That area is for recruiter accounts.');
+  return denyRole(req, res, 'That area is for recruiter accounts. Tick “Place candidates as an agency” below to add it.', ROLES_PAGE);
 }
 
 function isAdmin(req, res, next) {
