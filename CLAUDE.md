@@ -14,7 +14,26 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   and there was no table for 028 to alter; a follow-up would have had to branch on the
   engine, which is worse than the bug. The rule protects history that exists, and the only
   databases carrying the old 022 were development ones. If a checksum failure names 022,
-  that is why: drop the database and migrate from empty.
+  that is why. **Dropping the database is the simple way out, not the only one.** On
+  MySQL 8 the old 022 never applied at all, so there is nothing to repair and `npm run
+  migrate` just works. On MariaDB, where it did apply, the difference is one generated
+  column and its key on `job_transfers`, and this repairs it in place, keeping every row:
+
+  ```sql
+  ALTER TABLE job_transfers
+    DROP INDEX uq_job_transfer_pending,
+    DROP COLUMN pending_job_id,
+    ADD COLUMN pending_marker TINYINT UNSIGNED AS (IF(status = 'pending', 1, NULL)) STORED,
+    ADD UNIQUE KEY uq_job_transfer_pending (job_id, pending_marker);
+  UPDATE schema_migrations
+     SET checksum = '620bb18ecea2f8b1f89df834b2fe52338237f1ddbf72759a8a25c01e623c8de0'
+   WHERE filename = '022_job_transfers.sql';
+  ```
+
+  then `npm run migrate`. The checksum is the one `scripts/migrate.js` computes for the
+  current 022; writing it by hand is acceptable here only because the ALTER has just made
+  the table match that file. Verified against a MariaDB carrying the old schema and a row:
+  the remaining migrations applied and the row survived.
 - **All SQL is parameterised.** Filter clauses are assembled from fixed fragments plus a
   `params[]` array. No value is ever interpolated into a query string.
 - **Never add a second filter builder.** `Job.buildFilter` and
@@ -70,6 +89,11 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   anything the two disagree about is invisible until somebody else runs it. The two found
   so far are that rule and `CAST(? AS JSON)`, which MariaDB rejects and MySQL accepts —
   the same class of bug pointing in the opposite direction. Both are scanned for.
+- **Everything served from `node_modules` must be a declared dependency.** `server.js`
+  serves Bootstrap, Bootstrap Icons and Inter from there, and `@fontsource/inter` was
+  missing from `package.json` from the first commit: every clean install answered five 404s
+  per page and fell back to the system font, silently. `tests/unit/fonts.test.js` checks
+  the package is declared and that every file `public/css/inter.css` names exists.
 - **Run `npm run validate-boot` before pushing.** It loads every module, compiles every
   template and measures the palette, without needing a database.
 - **An npm script must run on Windows too.** No `VAR=value cmd` prefix (POSIX only — use

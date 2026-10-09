@@ -1,7 +1,7 @@
 {
   "name": "sap-hub",
   "version": "0.1.0",
-  "description": "SAP Hub \u2014 marketplace, job board and rate index for the SAP consulting ecosystem",
+  "description": "SAP Hub — marketplace, job board and rate index for the SAP consulting ecosystem",
   "main": "server.js",
   "license": "ISC",
   "engines": {
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
+    "@fontsource/inter": "^5.3.0",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.3",
