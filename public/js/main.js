@@ -287,6 +287,40 @@
     });
   }
 
+  // The greeting on the home feed, by the reader's own clock rather than the server's.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-local-greeting]'), function (el) {
+    var hour = new Date().getHours();
+    el.textContent = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  });
+
+  /**
+   * Controls that act on change, without an inline handler.
+   *
+   * The CSP sends `script-src-attr 'none'` (helmet's default), which silently blocks every
+   * `onchange="..."` in a template: the Sort select on /jobs did nothing at all, and the
+   * "Listed in the directory" switch on the consultant profile never saved. So the
+   * templates carry data attributes and this one listener does the work. Each of those
+   * forms also has a <noscript> button, so they still work with scripting off.
+   *
+   *   data-autosubmit           submit the control's form when it changes
+   *   data-reveal="id"          show element #id only while the value equals
+   *   data-reveal-when="value"  data-reveal-when, hide it otherwise
+   */
+  document.addEventListener('change', function (event) {
+    var el = event.target;
+    if (!(el instanceof HTMLElement)) return;
+    if (el.hasAttribute('data-autosubmit') && el.form) {
+      // requestSubmit fires the submit event, so the double-submit guard below still runs.
+      if (typeof el.form.requestSubmit === 'function') el.form.requestSubmit();
+      else el.form.submit();
+    }
+    var revealId = el.getAttribute('data-reveal');
+    if (revealId) {
+      var target = document.getElementById(revealId);
+      if (target) target.hidden = el.value !== el.getAttribute('data-reveal-when');
+    }
+  });
+
   /**
    * Guard against a double-submitted form producing two writes.
    * The button is disabled after submit, but the form still submits normally, so this

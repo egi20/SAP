@@ -165,12 +165,13 @@
             <input type="hidden" name="<%= e[0] %>" value="<%= e[1] %>">
           <% } }); %>
           <label class="form-label mb-0 small" for="c-sort">Sort</label>
-          <select class="form-select form-select-sm" id="c-sort" name="sort" onchange="this.form.submit()">
+          <select class="form-select form-select-sm" id="c-sort" name="sort" data-autosubmit>
             <option value="relevance" <%= sort === 'relevance' ? 'selected' : '' %>>Best match</option>
             <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest</option>
             <option value="rate_asc" <%= sort === 'rate_asc' ? 'selected' : '' %>>Lowest rate</option>
             <option value="rate_desc" <%= sort === 'rate_desc' ? 'selected' : '' %>>Highest rate</option>
           </select>
+          <noscript><button class="btn btn-sm btn-outline-primary" type="submit">Sort</button></noscript>
         </form>
       </div>
 

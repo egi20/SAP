@@ -74,7 +74,14 @@
             <li><a class="<%= itemClass('/consultant-hub') %>" <%- itemCurrent('/consultant-hub') %> href="/consultant-hub"><i class="bi bi-compass me-2"></i>Consultant Hub</a></li>
             <li><a class="<%= itemClass('/jobs') %>" <%- itemCurrent('/jobs') %> href="/jobs"><i class="bi bi-briefcase me-2"></i>Find Jobs</a></li>
             <li><a class="<%= itemClass('/dashboard/saved') %>" <%- itemCurrent('/dashboard/saved') %> href="/dashboard/saved"><i class="bi bi-bookmark-heart me-2"></i>Saved Jobs</a></li>
-            <li><a class="<%= itemClass('/profile/consultant') %>" <%- itemCurrent('/profile/consultant') %> href="/profile/consultant"><i class="bi bi-person-badge me-2"></i>Build Profile</a></li>
+            <%#
+              A signed-in account without the consultant role was sent to /profile/consultant,
+              refused by the guard and bounced home with "That area is for consultant accounts".
+              It goes to the one control that can change that instead. A visitor still gets the
+              profile URL, which asks them to sign in and brings them back.
+            %>
+            <% const buildProfileHref = currentUser && !currentUser.isConsultant ? '/profile/settings#roles' : '/profile/consultant'; %>
+            <li><a class="<%= itemClass('/profile/consultant') %>" <%- itemCurrent('/profile/consultant') %> href="<%= buildProfileHref %>"><i class="bi bi-person-badge me-2"></i>Build Profile</a></li>
             <li><a class="<%= itemClass('/cv-generator') %>" <%- itemCurrent('/cv-generator') %> href="/cv-generator"><i class="bi bi-file-earmark-richtext me-2"></i>CV Generator</a></li>
           </ul>
         </li>

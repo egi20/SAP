@@ -63,7 +63,15 @@
       company featuring an advert and a deposit against an accepted quote.
     </p>
     <div class="d-flex flex-wrap gap-2 justify-content-center">
-      <a class="btn btn-primary" href="/auth/register">Create a free account</a>
+      <%# "Create a free account" to somebody already signed in is the page not knowing who
+          is reading it. A member is sent to the next step that applies to them instead. %>
+      <% if (!currentUser) { %>
+        <a class="btn btn-primary" href="/auth/register">Create a free account</a>
+      <% } else if (currentUser.isConsultant) { %>
+        <a class="btn btn-primary" href="/profile/consultant">Build your profile</a>
+      <% } else { %>
+        <a class="btn btn-primary" href="/profile/settings#roles">Add the consultant role</a>
+      <% } %>
       <a class="btn btn-outline-secondary" href="/jobs">Browse roles first</a>
     </div>
   </div></div>

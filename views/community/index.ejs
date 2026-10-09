@@ -45,7 +45,7 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="sort">Sort</label>
-              <select class="form-select" id="sort" name="sort" onchange="this.form.submit()">
+              <select class="form-select" id="sort" name="sort" data-autosubmit>
                 <option value="recent" <%= sort === 'recent' ? 'selected' : '' %>>Recent activity</option>
                 <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest</option>
                 <option value="top" <%= sort === 'top' ? 'selected' : '' %>>Most voted</option>
@@ -56,7 +56,7 @@
           </div>
           <div class="form-check mt-2">
             <input class="form-check-input" type="checkbox" id="unanswered" name="unanswered" value="1"
-                   <%= filters.unanswered === '1' ? 'checked' : '' %> onchange="this.form.submit()">
+                   <%= filters.unanswered === '1' ? 'checked' : '' %> data-autosubmit>
             <label class="form-check-label small" for="unanswered">Unanswered questions only</label>
           </div>
         </form>

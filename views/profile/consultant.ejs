@@ -22,9 +22,10 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="is_public" name="is_public"
-                   <%= profile.is_public ? 'checked' : '' %> onchange="this.form.submit()">
+                   <%= profile.is_public ? 'checked' : '' %> data-autosubmit>
             <label class="form-check-label" for="is_public">Listed in the directory</label>
           </div>
+          <noscript><button class="btn btn-sm btn-outline-primary" type="submit">Save</button></noscript>
         </form>
       </div>
       <div class="meter <%= profile.completeness >= minCompleteness ? 'ready' : '' %>">
@@ -237,7 +238,7 @@
             %>
             <label class="form-label" for="cert-code">Add a certification</label>
             <select class="form-select mb-2" id="cert-code" name="code" required
-                    onchange="document.getElementById('cert-other').hidden = this.value !== '<%= otherCertificationCode %>'">
+                    data-reveal="cert-other" data-reveal-when="<%= otherCertificationCode %>">
               <option value="">Choose</option>
               <% certificationGroups.forEach(function (g) { %>
                 <optgroup label="<%= g.group %>">

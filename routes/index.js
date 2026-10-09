@@ -87,7 +87,6 @@ router.get(
       jobKind: JOB_KIND,
       postKind,
       toPlainText,
-      greeting: greetingFor(new Date()),
       pagination: paginationMeta({ page, perPage, total: feed.total }),
       pageUrl: (p) => pageUrl('/', req.query, p)
     });
@@ -129,19 +128,6 @@ async function countRecentMembers() {
   return row.count;
 }
 
-/**
- * Time-of-day greeting, from the SERVER's clock.
- *
- * Worth knowing rather than discovering: a user in another timezone will be greeted with
- * the server's idea of evening. Storing a per-user timezone would fix it; until then this
- * is a deliberate, small inaccuracy rather than a bug.
- */
-function greetingFor(now) {
-  const hour = now.getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-}
 
 /*
  * SHORT ALIASES.

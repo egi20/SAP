@@ -15,7 +15,13 @@
 
     <% if (currentUser) { %>
       <div class="mb-4">
-        <h1 class="mb-1"><%= greeting %>, <%= currentUser.name.split(' ')[0] %></h1>
+        <%#
+          The time of day is the READER's, so it is set in the browser by main.js. The server
+          only knows its own clock — UTC — which greeted somebody in Tirana with "Good
+          morning" at a quarter to two. Without scripting it stays a greeting that is true
+          at any hour.
+        %>
+        <h1 class="mb-1"><span data-local-greeting>Welcome back</span>, <%= currentUser.name.split(' ')[0] %></h1>
         <%# Says what the page IS, never how busy it was: on a quiet day "the community kept
             busy" is a claim the list underneath contradicts. %>
         <p class="text-muted-2 mb-0">The newest roles, questions and articles, newest first.</p>
