@@ -165,7 +165,7 @@ router.get(
 
 /**
  * Allow or block the Dedupe tool for one account. Ordinary admin: it grants a tool, not a
- * privilege. Stored and shown; see migration 029 for why /dedupe does not read it yet.
+ * privilege. Read by `hasDedupeAccess` on /dedupe on the account's next request.
  */
 router.post(
   '/users/:id/dedupe-access',

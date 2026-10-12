@@ -2,6 +2,7 @@
 
 const express = require('express');
 const AccountClosure = require('../models/AccountClosure');
+const { hasDedupeAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -323,6 +324,8 @@ router.post('/tax/apply', taxApplyLimiter, asyncHandler(async (req, res) => {
  * there is no table between them. A POST rather than a GET so a pasted contact list never
  * lands in a URL, a browser history or an access log.
  *
+ * Gated per account by `hasDedupeAccess` — the switch on /admin/users, as on the reference.
+ *
  * Rate-limited per address like the other public forms; it computes nothing expensive, but
  * a public endpoint that accepts a 200 KB body is one somebody will loop.
  */
@@ -332,11 +335,11 @@ const dedupeLimiter = ipLimiter({
   message: 'That is a lot of lists in an hour. Please give it a little while.'
 });
 
-router.get('/dedupe', (req, res) => {
+router.get('/dedupe', hasDedupeAccess, (req, res) => {
   res.render('legal/dedupe', { title: 'Find duplicates in a list', input: '', result: null, maxLines: MAX_LINES });
 });
 
-router.post('/dedupe', dedupeLimiter, (req, res) => {
+router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
   const input = typeof req.body.list === 'string' ? req.body.list : '';
   const result = input.trim() ? findDuplicates(input) : null;
   // No caching of a response that echoes somebody's contact list back to them.

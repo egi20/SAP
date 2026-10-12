@@ -304,6 +304,8 @@ class User {
       isAdmin: userRow.user_type === 'admin' || Boolean(userRow.is_superadmin),
       isSuperadmin: Boolean(userRow.is_superadmin),
       emailVerified: Boolean(userRow.email_verified),
+      // Set from /admin/users, read by `hasDedupeAccess`. Rebuilt every request with the rest.
+      dedupeAccess: Boolean(userRow.dedupe_access),
       needsOnboarding: !userRow.onboarded_at,
       name: displayName || userRow.name || String(userRow.email).split('@')[0],
       profilePicture: profilePicture || null

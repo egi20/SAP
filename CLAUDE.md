@@ -645,10 +645,16 @@ accounts leave every view of the list except `status=closed`. The bulk form post
 showed and a mismatch deletes nothing — the CRM's interlock. The Talent column and filter read
 `ConsultantProfile.LISTED_CONDITIONS`, the directory's own rule, never a restatement of it.
 
-**`users.dedupe_access` is stored and not enforced, on purpose** (migration 029). The
-reference gates its dedupe product on it; `/dedupe` here is the public, stateless paste tool
-in the Services menu, and gating it on a switch that is off for every account would turn that
-menu entry into a refusal for everybody. It is there for when an account-bound dedupe arrives.
+**`/dedupe` is gated per account by `users.dedupe_access`** (migration 029), the switch on
+`/admin/users`, as on the reference — by the owner's decision of 2026-10-12, a day after the
+column landed unenforced. `hasDedupeAccess` in `middleware/auth.js` is the guard: signed out
+goes to sign-in like every gate; signed in without the switch gets the page itself as a 403
+saying why and how to ask, never a redirect elsewhere, because the Services menu links there
+for everybody and a link that drops somebody on another page reads as broken. Administrators
+always pass. The flag is on the session user, rebuilt every request with the rest, so
+flipping it takes effect on the member's next click. Migration 029's comment still says
+"not enforced" — it is applied and immutable, and this paragraph is the correction. `/dedupe`
+left the sitemap with it: a crawler would only ever see the sign-in redirect.
 
 **`POST /admin/payments/:id/refunded` records a refund; it does not issue one.** The refund
 is made in Stripe by a person. A button here that moved money would make this a second

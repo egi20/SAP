@@ -109,6 +109,24 @@ function isSuperadmin(req, res, next) {
   return denyRole(req, res, 'You do not have access to that area.');
 }
 
+/**
+ * The Dedupe tool is per-account, switched from /admin/users (migration 029), as on the
+ * reference. Signed out → sign in, like every other gate. Signed in without the switch →
+ * the page itself answers 403 and says WHY and what to do, rather than a redirect to
+ * somewhere else with a flash: the Services menu links here for everybody, and a link that
+ * silently drops somebody on the home page reads as a broken link. An administrator always
+ * passes — they are the ones who flip the switch.
+ */
+function hasDedupeAccess(req, res, next) {
+  const user = req.session && req.session.user;
+  if (!user) return denyAuth(req, res, 'Please sign in to use Dedupe.');
+  if (user.dedupeAccess || user.isAdmin) return next();
+  if (!isNavigation(req)) {
+    return res.status(403).json({ success: false, error: 'Your account does not have Dedupe access.' });
+  }
+  return res.status(403).render('legal/dedupe-blocked', { title: 'Dedupe' });
+}
+
 function isEmailVerified(req, res, next) {
   const user = req.session && req.session.user;
   if (!user) return denyAuth(req, res, 'Please sign in to continue.');
@@ -167,5 +185,6 @@ module.exports = {
   isAdmin,
   isSuperadmin,
   isEmailVerified,
+  hasDedupeAccess,
   validateActiveAccount
 };

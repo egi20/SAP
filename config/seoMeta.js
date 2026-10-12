@@ -114,7 +114,7 @@ const PAGE_META = {
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
   '/rates/calculator', '/community', '/community/articles', '/success-stories',
-  '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/tax/apply', '/dedupe', '/about', '/blog', '/faq', '/contact', '/report-issue',
+  '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/tax/apply', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
 function canonicalUrl(path) {

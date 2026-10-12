@@ -104,8 +104,24 @@ maybe()('pages the menus added', () => {
     expect(res.text).toContain('href="/tax/apply"');
   });
 
-  it('/dedupe groups duplicates and does not let the response be cached', async () => {
-    const agent = request.agent(app);
+  it('/dedupe asks a visitor to sign in, and tells an account without access why', async () => {
+    const visitor = await request(app).get('/dedupe');
+    expect(visitor.status).toBe(302);
+    expect(visitor.headers.location).toMatch(/^\/auth\/login/);
+
+    await promisePool.query('UPDATE users SET dedupe_access = 0 WHERE id = ?', [userId]);
+    const agent = await signIn(OWN[0]);
+    const blocked = await agent.get('/dedupe');
+    expect(blocked.status).toBe(403);
+    expect(blocked.text).toContain('not switched on for your account');
+    expect(blocked.text).not.toContain('name="list"');
+    const post = await agent.post('/dedupe').type('form').send({ _csrf: csrfFrom(blocked.text), list: 'a\na' });
+    expect(post.status).toBe(403);
+  });
+
+  it('/dedupe groups duplicates for an account with access, and is not cached', async () => {
+    await promisePool.query('UPDATE users SET dedupe_access = 1 WHERE id = ?', [userId]);
+    const agent = await signIn(OWN[0]);
     const page = await agent.get('/dedupe');
     expect(page.status).toBe(200);
     const res = await agent.post('/dedupe').type('form').send({

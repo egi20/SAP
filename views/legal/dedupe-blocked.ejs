@@ -1,0 +1,27 @@
+<%- include('../partials/layout-start') %>
+<%- include('../partials/page-header', {
+  icon: 'bi-layers',
+  heading: 'Dedupe',
+  sub: 'Paste a list of people and see which lines are the same person. Nothing is stored.'
+}) %>
+<section class="glass-section pb-5">
+<div class="container">
+  <div class="row justify-content-center"><div class="col-lg-8">
+    <%#
+      Answered with a 403 and a reason rather than a redirect: the Services menu links here
+      for everybody, and being dropped somewhere else with no explanation reads as a broken
+      link. Access is per account and set by an administrator, as on the reference.
+    -%>
+    <div class="glass-card"><div class="card-body text-center py-5">
+      <span class="icon-tile icon-navy mb-3"><i class="bi bi-lock" aria-hidden="true"></i></span>
+      <h2 class="h5">Dedupe is not switched on for your account</h2>
+      <p class="text-muted-2 mb-4">
+        Access to Dedupe is given account by account. If you would like to use it, write to us
+        from the contact page and say which account it is for.
+      </p>
+      <a class="btn btn-primary" href="/contact">Ask for access</a>
+    </div></div>
+  </div></div>
+</div>
+</section>
+<%- include('../partials/layout-end') %>
