@@ -192,7 +192,7 @@ router.post(
     // Admins are exempt so an admin-created account is never locked out of the very
     // panel that could verify it.
     if (!user.email_verified && user.user_type !== 'admin') {
-      req.flash('error', 'Please confirm your email address first. Check your inbox for the link.');
+      req.flash('error', 'Please confirm your email address first. Check your inbox for the link, or ask for a new one from "Didn\'t get the confirmation email?" below.');
       return res.redirect('/auth/login');
     }
 
@@ -242,6 +242,45 @@ router.get(
     }
     await User.setEmailVerified(userId);
     req.flash('success', 'Email confirmed. You can sign in now.');
+    return res.redirect('/auth/login');
+  })
+);
+
+/*
+ * Sending the confirmation email again, WITHOUT being signed in.
+ *
+ * The only other way was `POST /resend-verification`, which sits behind isAuthenticated —
+ * and an unconfirmed account cannot sign in (see the login handler). So somebody whose
+ * first email never arrived, went to spam, or was sent before email was configured at
+ * all, had no route to a second one: a locked door with the key on the inside.
+ *
+ * It answers exactly like the password reset beside it — the same sentence whether or not
+ * the address has an account, and whether or not it is already confirmed — because an
+ * anonymous form must not say who is registered here. Same limiter, for the same reason.
+ */
+router.get('/verify-again', isGuest, (req, res) => {
+  res.render('auth/verify-again', { title: 'Send the confirmation email again', errors: [], values: {} });
+});
+
+router.post(
+  '/verify-again',
+  isGuest,
+  passwordLimiter,
+  [body('email').trim().isEmail()],
+  asyncHandler(async (req, res) => {
+    const user = await User.findByEmail(req.body.email);
+
+    if (user && !user.email_verified && user.is_active) {
+      const { token } = await Token.issue('email_verification', user.id);
+      email.send({
+        to: user.email,
+        subject: `Confirm your ${config.app.name} account`,
+        template: 'verify',
+        locals: { name: user.name, verifyUrl: `${config.app.baseUrl}/auth/verify?token=${encodeURIComponent(token)}` }
+      });
+    }
+
+    req.flash('info', 'If that address has an unconfirmed account, a new confirmation link is on its way.');
     return res.redirect('/auth/login');
   })
 );

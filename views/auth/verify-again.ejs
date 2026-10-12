@@ -1,0 +1,39 @@
+<%- include('../partials/layout-start') %>
+
+<section class="glass-section glass-section-tall py-5">
+  <div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <%- include('../partials/flash') %>
+      <div class="glass-card">
+        <div class="card-body p-4">
+          <h1 class="h4 mb-2">Send the confirmation email again</h1>
+          <p class="text-muted-2 small">If that address has an account that is not confirmed yet, we will email it a new link.</p>
+          <form method="post" action="/auth/verify-again">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-3">
+              <label class="form-label" for="email">Email</label>
+              <input class="form-control" id="email" name="email" type="email" required autocomplete="email" autofocus>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Send confirmation link</button>
+          </form>
+          <%#
+            Worth saying BEFORE they wait. The message that follows is deliberately the same
+            whether or not the address has an account — it has to be, or this form answers
+            "is this person registered here" — so somebody who typed the wrong address has
+            no signal at all, and spends ten minutes refreshing an inbox.
+          %>
+          <p class="form-text mt-3 mb-0">
+            The link arrives within a minute or two. If it has not, check the spam folder
+            before trying again — and check that the address is the one the account uses.
+            We send the same reply either way, so this page cannot tell you which it was.
+          </p>
+          <p class="text-center mt-3 mb-0 small"><a href="/auth/login">Back to sign in</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<%- include('../partials/layout-end') %>
