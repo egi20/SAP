@@ -255,6 +255,20 @@ class User {
     await promisePool.query('UPDATE users SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, userId]);
   }
 
+  /**
+   * Correct an account's address. Operator-only: called from `scripts/change-email.js`,
+   * never from a form, because a self-service address change needs the new address
+   * confirmed before it replaces the old one and that flow does not exist yet. Returns
+   * false when the new address already belongs to an account — the UNIQUE key would
+   * refuse it anyway, and a clear answer beats a duplicate-key error.
+   */
+  static async changeEmail(userId, newEmail) {
+    const email = normaliseEmail(newEmail);
+    if (await User.emailExists(email)) return false;
+    await promisePool.query('UPDATE users SET email = ? WHERE id = ?', [email, userId]);
+    return true;
+  }
+
   static async setSuperadmin(userId, isSuperadmin) {
     await promisePool.query('UPDATE users SET is_superadmin = ? WHERE id = ?', [isSuperadmin ? 1 : 0, userId]);
   }

@@ -17,6 +17,7 @@
     "create-admin": "node scripts/create-admin.js",
     "create-user": "node scripts/create-user.js",
     "revoke-superadmin": "node scripts/revoke-superadmin.js",
+    "change-email": "node scripts/change-email.js",
     "seed:dev": "node scripts/seed-dev.js",
     "wait-for-db": "node scripts/wait-for-db.js",
     "validate-boot": "node scripts/validate-boot.js",
