@@ -632,6 +632,24 @@ Re-submitting under a voided row is allowed by the unique key and the flash says
 telling somebody their figure "counts towards this month" when it is excluded from every
 published bucket is the one answer that path must not give.
 
+**"Delete user" on `/admin/users` is `AccountClosure` run by an administrator, never a
+DELETE.** The screen matches dynamicshub.net's, delete buttons included, but the row anchors
+the points and commission ledgers, invoices, conversations and pipelines, so a delete would
+cascade through all of them. `AccountClosure.close(id, { byAdmin })` erases the identity
+exactly as a member's own closure does, and the modal says what is kept. It is SUPERADMIN,
+because a closure changes the account's active state, and `AccountClosure.adminRefusal` holds
+the rules for the single and the bulk action alike: never your own account, only a superadmin
+deletes an administrator, never the last active superadmin — re-checked under a row lock
+inside the closure's transaction, or two superadmins deleting each other both succeed. Closed
+accounts leave every view of the list except `status=closed`. The bulk form posts the count it
+showed and a mismatch deletes nothing — the CRM's interlock. The Talent column and filter read
+`ConsultantProfile.LISTED_CONDITIONS`, the directory's own rule, never a restatement of it.
+
+**`users.dedupe_access` is stored and not enforced, on purpose** (migration 029). The
+reference gates its dedupe product on it; `/dedupe` here is the public, stateless paste tool
+in the Services menu, and gating it on a switch that is off for every account would turn that
+menu entry into a refusal for everybody. It is there for when an account-bound dedupe arrives.
+
 **`POST /admin/payments/:id/refunded` records a refund; it does not issue one.** The refund
 is made in Stripe by a person. A button here that moved money would make this a second
 system of record, and when two systems of record disagree about a refund the one that is

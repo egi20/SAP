@@ -6,6 +6,7 @@ const { isSignupSource } = require('../config/signupSources');
 const { promisePool, withTransaction } = require('../config/database');
 const config = require('../config/config');
 const { containsPattern } = require('../utils/likePattern');
+const ConsultantProfile = require('./ConsultantProfile');
 
 /**
  * Roles the public registration form is allowed to create.
@@ -309,8 +310,13 @@ class User {
     };
   }
 
-  static async list({ search = '', role = '', status = '', limit = 20, offset = 0 } = {}) {
-    const where = ['1 = 1'];
+  /*
+   * The admin user list and its count, from ONE filter builder — the bulk delete on that
+   * screen acts on ids the screen showed, and a count assembled separately is how a footer
+   * ends up describing rows the table is not showing.
+   */
+  static buildAdminFilter({ search = '', role = '', status = '', talent = '' } = {}) {
+    const where = [];
     const params = [];
 
     /*
@@ -323,23 +329,57 @@ class User {
      * injectable, but an admin searching for a literal `%` still asked for every row in
      * `users`, and one searching `a_b` matched `axb`. It is the same bug in the same
      * shape; it survived because nobody re-read a builder that was already working.
+     *
+     * A search that is all digits ALSO matches the account id exactly — the id is what an
+     * error log, a payment row and a support email quote, and "47" should find account 47
+     * rather than every address with a 47 in it and not that one.
      */
-    if (search) {
-      where.push('(u.email LIKE ? OR u.name LIKE ?)');
-      const pattern = containsPattern(search);
-      params.push(pattern, pattern);
+    const term = String(search || '').trim();
+    if (term) {
+      const pattern = containsPattern(term);
+      if (/^\d{1,10}$/.test(term)) {
+        where.push('(u.id = ? OR u.email LIKE ? OR u.name LIKE ?)');
+        params.push(Number(term), pattern, pattern);
+      } else {
+        where.push('(u.email LIKE ? OR u.name LIKE ?)');
+        params.push(pattern, pattern);
+      }
     }
     if (role && ALL_ROLES.includes(role)) {
       const column = ROLE_FLAG_COLUMN[role];
       where.push(column ? `(u.user_type = ? OR u.${column} = 1)` : 'u.user_type = ?');
       params.push(role);
     }
-    // Checked against a fixed pair rather than coerced: `?status=anything` must narrow to
-    // nothing surprising, and `Boolean('0')` is true.
-    if (status === 'active') where.push('u.is_active = 1');
-    if (status === 'inactive') where.push('u.is_active = 0');
+    /*
+     * Checked against a fixed list rather than coerced: `?status=anything` must narrow to
+     * nothing surprising, and `Boolean('0')` is true. A CLOSED account (see
+     * models/AccountClosure.js — what "Delete" on that screen does) is inactive too, but it
+     * is a tombstone rather than a person, so it is out of every other view and has its own.
+     */
+    if (status === 'closed') {
+      where.push('u.closed_at IS NOT NULL');
+    } else {
+      where.push('u.closed_at IS NULL');
+      if (status === 'active') where.push('u.is_active = 1');
+      if (status === 'inactive') where.push('u.is_active = 0');
+    }
+    /*
+     * The Talent column's rule is the directory's own, imported rather than restated, so
+     * "Listed" here is exactly "a reader of /consultants can find this person". Hidden is
+     * every consultant account that is not — a company is neither.
+     */
+    const listed = `(cp.user_id IS NOT NULL AND ${ConsultantProfile.LISTED_CONDITIONS.join(' AND ')})`;
+    if (talent === 'listed') where.push(listed);
+    if (talent === 'hidden') where.push(`((u.user_type = 'consultant' OR u.is_consultant = 1) AND NOT ${listed})`);
 
-    const clause = where.join(' AND ');
+    return { clause: where.length ? where.join(' AND ') : '1 = 1', params, listed };
+  }
+
+  static async list({ search = '', role = '', status = '', talent = '', limit = 20, offset = 0 } = {}) {
+    const { clause, params, listed } = User.buildAdminFilter({ search, role, status, talent });
+    const joins = `FROM users u
+         LEFT JOIN consultant_profiles cp ON cp.user_id = u.id
+         LEFT JOIN company_profiles comp ON comp.user_id = u.id`;
     /*
      * The country is the one the member STATED on a profile, not `users.signup_country`.
      * That column is derived from the address a request arrived from and the member has
@@ -352,25 +392,32 @@ class User {
      */
     const [rows] = await promisePool.query(
       `SELECT u.id, u.email, u.name, u.user_type, u.is_consultant, u.is_company, u.is_recruiter,
-              u.is_partner, u.is_superadmin, u.is_active, u.email_verified,
-              u.created_at, u.last_login_at,
+              u.is_partner, u.is_superadmin, u.is_active, u.email_verified, u.dedupe_access,
+              u.created_at, u.last_login_at, u.closed_at,
+              comp.company_name,
               COALESCE(cp.country, comp.country) AS stated_country,
               cp.user_id IS NOT NULL AS has_consultant_profile,
-              cp.is_public AS talent_listed,
+              cp.is_public AS talent_listed_by_member,
+              ${listed} AS talent_listed,
               cp.admin_hidden_at AS talent_hidden_at
-         FROM users u
-         LEFT JOIN consultant_profiles cp ON cp.user_id = u.id
-         LEFT JOIN company_profiles comp ON comp.user_id = u.id
+         ${joins}
         WHERE ${clause}
-        ORDER BY u.created_at DESC
+        ORDER BY u.created_at DESC, u.id DESC
         LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
-    const [[{ total }]] = await promisePool.query(
-      `SELECT COUNT(*) AS total FROM users u WHERE ${clause}`,
-      params
+    const [[{ total }]] = await promisePool.query(`SELECT COUNT(*) AS total ${joins} WHERE ${clause}`, params);
+    return { rows, total: Number(total) };
+  }
+
+  /** The switch on /admin/users. Recorded with who flipped it and when. */
+  static async setDedupeAccess(userId, allow, { actorUserId = null } = {}) {
+    const [result] = await promisePool.query(
+      `UPDATE users SET dedupe_access = ?, dedupe_access_changed_at = NOW(), dedupe_access_changed_by = ?
+        WHERE id = ? AND closed_at IS NULL`,
+      [allow ? 1 : 0, actorUserId, userId]
     );
-    return { rows, total };
+    return result.affectedRows === 1;
   }
 }
 

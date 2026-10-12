@@ -117,10 +117,12 @@ class AccountClosure {
    * figure matters for the second one: "you cannot close your account" with no number is
    * the message people assume is a bug.
    */
-  static async blockers(user) {
+  static async blockers(user, { byAdmin = null } = {}) {
     const problems = [];
 
-    if (user.is_superadmin || user.user_type === 'admin') {
+    // Closed BY another administrator is exactly the case the rule below asks for; the
+    // rules that still apply to that path are in `adminRefusal`.
+    if (!byAdmin && (user.is_superadmin || user.user_type === 'admin')) {
       /*
        * Same reasoning as the admin screens refusing to act on your own account: an
        * administrator who closes themselves may be removing the last account that could
@@ -144,6 +146,37 @@ class AccountClosure {
   }
 
   /**
+   * May THIS administrator close THAT account from /admin/users, and if not, why not.
+   *
+   * "Delete user" on that screen is this closure — an erasure, never a DELETE, for every
+   * reason at the top of this file — so it carries the closure's own rules plus three of
+   * its own, held here rather than in the route so the single and the bulk action cannot
+   * disagree:
+   *   - nobody deletes their own account from there (the admin screens never act on your
+   *     own account: an administrator who removes themselves may be removing the last one
+   *     who could undo it);
+   *   - only a superadmin deletes an administrator;
+   *   - the last active superadmin is never deleted — only a superadmin can change roles,
+   *     so a site with none could not get one back from the site itself.
+   *
+   * @param {object} actor  the session user
+   * @param {object} target a users row
+   * @returns {Promise<string|null>} the refusal, in a sentence, or null
+   */
+  static async adminRefusal(actor, target) {
+    if (!actor || !actor.isAdmin) return 'Only an administrator can do that.';
+    if (!target) return 'That account no longer exists.';
+    if (Number(actor.id) === Number(target.id)) return 'You cannot delete your own account from here.';
+    if ((target.is_superadmin || target.user_type === 'admin') && !actor.isSuperadmin) {
+      return `${target.email} is an administrator, and only a superadmin can delete one.`;
+    }
+    if (target.is_superadmin && (await User.countActiveSuperadmins({ excludeId: target.id })) === 0) {
+      return `${target.email} is the last active superadmin, so it cannot be deleted.`;
+    }
+    return null;
+  }
+
+  /**
    * Close it.
    *
    * The order matters. The things that affect OTHER PEOPLE happen first and through the
@@ -153,12 +186,21 @@ class AccountClosure {
    * identity erased. A closure that erased the identity first and then failed would leave
    * an anonymous account still advertising.
    */
-  static async close(userId, { reason = null } = {}) {
+  static async close(userId, { reason = null, byAdmin = null } = {}) {
     const user = await User.findById(userId);
     if (!user) throw refuse('NOT_FOUND', 'That account no longer exists.');
-    if (!user.is_active) throw refuse('ALREADY_CLOSED', 'That account is already closed.');
+    // An administrator may close a DEACTIVATED account; the member never reaches this
+    // while deactivated, because they cannot sign in.
+    if (user.closed_at || (!byAdmin && !user.is_active)) {
+      throw refuse('ALREADY_CLOSED', 'That account is already closed.');
+    }
 
-    const { ok, problems } = await AccountClosure.blockers(user);
+    if (byAdmin) {
+      const refusal = await AccountClosure.adminRefusal(byAdmin, user);
+      if (refusal) throw refuse('REFUSED', refusal);
+    }
+
+    const { ok, problems } = await AccountClosure.blockers(user, { byAdmin });
     if (!ok) throw refuse('BLOCKED', problems[0]);
 
     // 1. Nothing of theirs should still be asking the public for something.
@@ -195,6 +237,22 @@ class AccountClosure {
 
     // 5. Everything that is only about this person, and the identity itself.
     return withTransaction(async (conn) => {
+      /*
+       * The last-superadmin rule again, under a lock. Two superadmins deleting each other
+       * at the same moment would each pass the check above with the other still active;
+       * locking every active superadmin row and counting again makes the second one wait,
+       * see one fewer, and refuse.
+       */
+      if (user.is_superadmin) {
+        const [others] = await conn.query(
+          'SELECT id FROM users WHERE is_superadmin = 1 AND is_active = 1 AND id <> ? FOR UPDATE',
+          [userId]
+        );
+        if (others.length === 0) {
+          throw refuse('REFUSED', `${user.email} is the last active superadmin, so it cannot be deleted.`);
+        }
+      }
+
       const owned = [
         'consultant_photos',
         'company_logos',
@@ -226,6 +284,7 @@ class AccountClosure {
                 gender = NULL, date_of_birth = NULL,
                 signup_ip = NULL, signup_country = NULL, heard_about = NULL,
                 is_active = 0, email_verified = 0,
+                is_superadmin = 0, dedupe_access = 0,
                 closed_at = NOW(), closed_reason = ?
           WHERE id = ?`,
         [

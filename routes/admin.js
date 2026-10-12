@@ -11,6 +11,7 @@ const Payment = require('../models/Payment');
 const Moderation = require('../models/Moderation');
 const Application = require('../models/Application');
 const AppSetting = require('../models/AppSetting');
+const AccountClosure = require('../models/AccountClosure');
 const Referral = require('../models/Referral');
 const SuccessStory = require('../models/SuccessStory');
 const SiteReview = require('../models/SiteReview');
@@ -28,6 +29,7 @@ const { PRODUCT_LINES } = require('../config/sapProducts');
 const { singleImage } = require('../middleware/fileUpload');
 const { roleLabel } = require('../config/roleTaxonomy');
 const { returnTo } = require('../utils/returnTo');
+const { nameColumns, flagEmoji } = require('../utils/adminUserDisplay');
 const { promisePool } = require('../config/database');
 const { isAuthenticated, isAdmin, isSuperadmin } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
@@ -64,6 +66,10 @@ router.get(
     const [[counts]] = await promisePool.query(
       `SELECT
          (SELECT COUNT(*) FROM users)                                   AS users,
+         (SELECT COUNT(*) FROM users WHERE closed_at IS NULL)           AS live_users,
+         (SELECT COUNT(*) FROM users
+           WHERE closed_at IS NULL
+             AND (user_type = 'consultant' OR is_consultant = 1))       AS consultants,
          (SELECT COUNT(*) FROM users WHERE is_active = 1)               AS active_users,
          (SELECT COUNT(*) FROM users WHERE email_verified = 1)          AS verified_users,
          (SELECT COUNT(*) FROM consultant_profiles WHERE is_public = 1) AS public_consultants,
@@ -91,25 +97,48 @@ router.get(
       title: 'Admin',
       counts,
       geo,
-      rateContributors: await RateSubmission.totalContributors()
+      rateContributors: await RateSubmission.totalContributors(),
+      /*
+       * What is running, for the person reading a bug report. Three facts the process
+       * already knows; nothing from the environment beyond NODE_ENV, which is not a
+       * secret, is printed.
+       */
+      systemInfo: {
+        environment: process.env.NODE_ENV || 'development',
+        nodeVersion: process.version,
+        serverTime: new Date()
+      }
     });
   })
 );
 
 /* -------------------------------------------------------------------- users */
 
+/*
+ * The vocabularies the user screen's filters accept. Anything else in the query string is
+ * dropped rather than passed on, so the builder only ever sees a value it was written for.
+ */
+const USER_STATUSES = Object.freeze(['active', 'inactive', 'closed']);
+const TALENT_FILTERS = Object.freeze(['listed', 'hidden']);
+const USERS_PER_PAGE = 20;
+// One page is the most a bulk action can have been shown.
+const BULK_MAX = 100;
+
+function userFiltersFrom(query) {
+  return {
+    search: typeof query.q === 'string' ? query.q.trim().slice(0, 190) : '',
+    role: User.ALL_ROLES.includes(query.role) ? query.role : '',
+    status: USER_STATUSES.includes(query.status) ? query.status : '',
+    talent: TALENT_FILTERS.includes(query.talent) ? query.talent : ''
+  };
+}
+
 router.get(
   '/users',
   asyncHandler(async (req, res) => {
-    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
-    const { rows, total } = await User.list({
-      search: req.query.q || '',
-      role: User.ALL_ROLES.includes(req.query.role) ? req.query.role : '',
-      // Checked against a fixed pair in the model as well; this is the screen's half.
-      status: ['active', 'inactive'].includes(req.query.status) ? req.query.status : '',
-      limit,
-      offset
-    });
+    const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: USERS_PER_PAGE });
+    const filters = userFiltersFrom(req.query);
+    const { rows, total } = await User.list({ ...filters, limit, offset });
 
     return res.render('admin/users', {
       title: 'Users',
@@ -122,10 +151,111 @@ router.get(
        */
       users: rows.map((row) => ({ ...row, roles: User.rolesOf(row) })),
       roles: User.ALL_ROLES,
+      nameColumns,
+      flagEmoji,
+      filters,
       query: req.query,
+      // Every form on the page carries this back, so an action never loses the filter.
+      here: pageUrl('/admin/users', req.query, page),
       pagination: paginationMeta({ page, perPage, total }),
       pageUrl: (n) => pageUrl('/admin/users', req.query, n)
     });
+  })
+);
+
+/**
+ * Allow or block the Dedupe tool for one account. Ordinary admin: it grants a tool, not a
+ * privilege. Stored and shown; see migration 029 for why /dedupe does not read it yet.
+ */
+router.post(
+  '/users/:id/dedupe-access',
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const allow = req.body.allow === '1';
+    const changed = await User.setDedupeAccess(req.params.id, allow, { actorUserId: req.session.user.id });
+    if (changed) req.flash('success', allow ? 'Dedupe access allowed.' : 'Dedupe access blocked.');
+    else req.flash('error', 'That account no longer exists.');
+    return res.redirect(returnTo(req, '/admin/users'));
+  })
+);
+
+/**
+ * "Delete user" is an ACCOUNT CLOSURE done by an administrator, never a DELETE.
+ *
+ * The row is the anchor for an append-only points ledger, a commission ledger, invoices,
+ * the other half of conversations and an employer's pipeline; deleting it would cascade
+ * through every one of those. `AccountClosure` erases the identity — name, email,
+ * password, both profiles, photographs, saved jobs, notifications, tax applications —
+ * closes their adverts, withdraws their live applications through the state machine, and
+ * keeps the records that belong to somebody else. The modal says which.
+ *
+ * SUPERADMIN, because a closure deactivates the account and changing anybody's active
+ * state is already superadmin's (the Deactivate button beside it). The rules about WHOSE
+ * account live in `AccountClosure.adminRefusal`, shared with the bulk action below.
+ */
+async function closeByAdmin(req, id) {
+  try {
+    await AccountClosure.close(id, { reason: 'Deleted by an administrator', byAdmin: req.session.user });
+    return { ok: true };
+  } catch (err) {
+    if (!['NOT_FOUND', 'ALREADY_CLOSED', 'REFUSED', 'BLOCKED'].includes(err.code)) throw err;
+    return { ok: false, message: err.message };
+  }
+}
+
+router.post(
+  '/users/bulk-delete',
+  isSuperadmin,
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const back = returnTo(req, '/admin/users');
+    const submitted = [].concat(req.body.ids || []);
+    // Each id is checked the way `requireIdParam` checks one: `parseInt('44.map')` is 44.
+    const ids = [...new Set(submitted.map(String).filter((v) => /^[1-9]\d{0,9}$/.test(v)).map(Number))];
+    if (!ids.length || ids.length !== submitted.length || ids.length > BULK_MAX) {
+      req.flash('error', ids.length > BULK_MAX ? `At most ${BULK_MAX} accounts at a time.` : 'Select at least one account.');
+      return res.redirect(back);
+    }
+    /*
+     * The count interlock the CRM's bulk delete uses: the screen posts how many it said it
+     * would delete, and a mismatch means the form was not the one the person read.
+     */
+    if (Number(req.body.expected) !== ids.length) {
+      req.flash('error', 'The selection changed before it was sent. Nothing was deleted.');
+      return res.redirect(back);
+    }
+
+    let deleted = 0;
+    const refused = [];
+    for (const id of ids) {
+      // One at a time: each closure runs its own transaction and its own checks, and the
+      // last-superadmin rule has to see the previous one's result.
+      // eslint-disable-next-line no-await-in-loop
+      const result = await closeByAdmin(req, id);
+      if (result.ok) deleted += 1;
+      else refused.push(`#${id}: ${result.message}`);
+    }
+    if (deleted) req.flash('success', `Deleted ${deleted} user${deleted === 1 ? '' : 's'}. Their personal data is erased; shared records are kept, anonymised.`);
+    if (refused.length) req.flash('error', `Not deleted — ${refused.join(' ')}`);
+    return res.redirect(back);
+  })
+);
+
+router.post(
+  '/users/:id/delete',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const target = await User.findById(req.params.id);
+    const result = await closeByAdmin(req, req.params.id);
+    if (result.ok) {
+      req.flash('success', `Deleted ${target.email}. Their personal data is erased; shared records are kept, anonymised.`);
+    } else {
+      req.flash('error', result.message);
+    }
+    return res.redirect(returnTo(req, '/admin/users'));
   })
 );
 

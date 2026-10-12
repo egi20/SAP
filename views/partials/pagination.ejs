@@ -2,21 +2,37 @@
   <nav aria-label="Pagination" class="mt-4">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
       <p class="small text-muted-2 mb-0">
-        Showing <%= pagination.from %>–<%= pagination.to %> of <%= pagination.total %>
+        <%= typeof showingLabel !== 'undefined' && showingLabel ? showingLabel : 'Showing ' + pagination.from + '–' + pagination.to + ' of ' + pagination.total %>
       </p>
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item <%= pagination.hasPrev ? '' : 'disabled' %>">
           <a class="page-link" href="<%= pageUrl(pagination.page - 1) %>" rel="prev">Previous</a>
         </li>
         <%
-          const start = Math.max(1, pagination.page - 2);
+          /*
+           * A window of five around the current page, plus the first and the last with an
+           * ellipsis between — so "how many pages are there" is answered without paging to
+           * the end, and page 1 is one click from anywhere.
+           */
+          const start = Math.max(1, Math.min(pagination.page - 2, pagination.totalPages - 4));
           const end = Math.min(pagination.totalPages, start + 4);
-          for (let p = start; p <= end; p++) {
+          const items = [];
+          if (start > 1) { items.push(1); if (start > 2) items.push(null); }
+          for (let p = start; p <= end; p++) items.push(p);
+          if (end < pagination.totalPages) {
+            if (end < pagination.totalPages - 1) items.push(null);
+            items.push(pagination.totalPages);
+          }
         %>
-          <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
-            <a class="page-link" href="<%= pageUrl(p) %>"><%= p %></a>
-          </li>
-        <% } %>
+        <% items.forEach(function (p) { %>
+          <% if (p === null) { %>
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          <% } else { %>
+            <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+              <a class="page-link" href="<%= pageUrl(p) %>"<% if (p === pagination.page) { %> aria-current="page"<% } %>><%= p %></a>
+            </li>
+          <% } %>
+        <% }) %>
         <li class="page-item <%= pagination.hasNext ? '' : 'disabled' %>">
           <a class="page-link" href="<%= pageUrl(pagination.page + 1) %>" rel="next">Next</a>
         </li>

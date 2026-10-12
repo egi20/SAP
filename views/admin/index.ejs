@@ -12,6 +12,85 @@
   <%- include('../partials/flash') %>
 
   <%
+    const isSuper = Boolean(currentUser && currentUser.isSuperadmin);
+    // The reference's four headline figures. Closed accounts are tombstones, not users.
+    const headline = [
+      { label: 'Total Users', value: counts.live_users, icon: 'bi-people', href: '/admin/users' },
+      { label: 'Consultants', value: counts.consultants, icon: 'bi-person-badge', href: '/admin/users?role=consultant' },
+      { label: 'Total Jobs', value: counts.jobs, icon: 'bi-briefcase', href: '/admin/jobs' },
+      { label: 'Active Jobs', value: counts.open_jobs, icon: 'bi-briefcase-fill', href: '/admin/jobs?status=open' }
+    ];
+
+    /*
+     * Quick actions, grouped as the reference groups them. A card links to the screen that
+     * EXISTS here; one the reference has and this site does not is shown disabled and
+     * says "Coming soon" rather than linking to a 404 — and the superadmin-only screens are
+     * hidden from an ordinary admin exactly as the tab strip hides them, because a card
+     * that answers 403 teaches people to ignore the dashboard.
+     */
+    const quickGroups = [
+      { title: 'Users & Talent', items: [
+        { label: 'Manage Users', href: '/admin/users', icon: 'bi-people' },
+        { label: 'Referrers & Agents', href: '/admin/referrals', icon: 'bi-people-fill', super: true },
+        { label: 'Browse Talent', href: '/consultants', icon: 'bi-person-badge' },
+        { label: 'Contacts', icon: 'bi-person-rolodex' }
+      ] },
+      { title: 'Sales & Outreach', items: [
+        { label: 'Leads (CRM)', href: '/crm', icon: 'bi-person-lines-fill', super: true }
+      ] },
+      { title: 'Content & Community', items: [
+        { label: 'Success Stories', href: '/admin/stories', icon: 'bi-journal-text' },
+        { label: 'Manage Reviews', href: '/admin/reviews', icon: 'bi-star' },
+        { label: 'Newsletters', icon: 'bi-newspaper' },
+        { label: 'Contact Messages', href: '/admin/enquiries', icon: 'bi-envelope' },
+        { label: 'Moderation', href: '/admin/moderation', icon: 'bi-shield-check' }
+      ] },
+      { title: 'Jobs & Payments', items: [
+        { label: 'Manage Jobs', href: '/admin/jobs', icon: 'bi-briefcase' },
+        { label: 'Applications Oversight', href: '/admin/applications', icon: 'bi-send', super: true },
+        { label: 'Tax Applications', href: '/admin/tax-applications', icon: 'bi-calculator', super: true },
+        { label: 'Payments', href: '/admin/payments', icon: 'bi-credit-card' }
+      ] },
+      { title: 'Documents & SOW', items: [
+        { label: 'SOW Quotes', icon: 'bi-file-earmark-text' },
+        { label: 'SOW Configuration', icon: 'bi-gear' },
+        { label: 'Document Packages', icon: 'bi-folder2' }
+      ] },
+      { title: 'System & Monitoring', items: [
+        { label: 'Site Analytics', href: '/admin/analytics', icon: 'bi-graph-up' },
+        // The assistant screen IS the API cost screen: models, prices and month-to-date spend.
+        { label: 'Assistant & API Cost Tracking', href: '/admin/ai', icon: 'bi-chat-dots' },
+        { label: 'Budget Calculator', icon: 'bi-cash-stack' },
+        { label: 'AI Budgets', icon: 'bi-piggy-bank' },
+        { label: 'Cert Question Bank', icon: 'bi-patch-question' },
+        { label: 'Tasks', icon: 'bi-list-check' },
+        { label: 'Issue Reports', href: '/admin/enquiries?kind=issue', icon: 'bi-flag' },
+        { label: 'Error Logs', href: '/admin/errors', icon: 'bi-bug' },
+        { label: 'Automated Tests', icon: 'bi-check2-square' },
+        { label: 'Forum Image Health', icon: 'bi-image' },
+        { label: 'Rates', href: '/admin/rates', icon: 'bi-cash-coin', super: true },
+        { label: 'Settings', href: '/admin/settings', icon: 'bi-sliders', super: true }
+      ] }
+    ];
+  %>
+
+  <div class="row g-3 mb-4">
+    <% headline.forEach(function (h) { %>
+      <div class="col-6 col-lg-3">
+        <a class="glass-card h-100 text-decoration-none d-block" href="<%= h.href %>">
+          <div class="card-body d-flex align-items-center gap-3">
+            <span class="icon-tile icon-navy"><i class="bi <%= h.icon %>" aria-hidden="true"></i></span>
+            <div>
+              <p class="stat-value mb-0"><%= h.value %></p>
+              <p class="text-muted-2 small mb-0"><%= h.label %></p>
+            </div>
+          </div>
+        </a>
+      </div>
+    <% }) %>
+  </div>
+
+  <%
     /*
      * The queues come first and the vanity numbers second, deliberately. Everything in
      * this first row is something somebody has to DO; everything below it is context.
@@ -63,6 +142,36 @@
     <% }) %>
   </div>
 
+  <h2 class="h5 mt-5 mb-3">Quick Actions</h2>
+  <div class="row g-3">
+    <% quickGroups.forEach(function (g) {
+         const visible = g.items.filter(function (i) { return isSuper || !i.super; });
+         if (!visible.length) return; %>
+      <div class="col-md-6 col-xl-4">
+        <div class="glass-card h-100">
+          <div class="card-body">
+            <h3 class="small text-uppercase text-muted-2 fw-semibold mb-3"><%= g.title %></h3>
+            <div class="d-grid gap-2">
+              <% visible.forEach(function (i) { %>
+                <% if (i.href) { %>
+                  <a class="btn btn-outline-primary btn-sm text-start" href="<%= i.href %>">
+                    <i class="bi <%= i.icon %> me-1" aria-hidden="true"></i><%= i.label %>
+                    <% if (i.super) { %><i class="bi bi-shield-lock ms-1" aria-hidden="true"></i><span class="visually-hidden">(superadmin only)</span><% } %>
+                  </a>
+                <% } else { %>
+                  <span class="btn btn-outline-secondary btn-sm text-start disabled" aria-disabled="true">
+                    <i class="bi <%= i.icon %> me-1" aria-hidden="true"></i><%= i.label %>
+                    <span class="badge text-bg-light border ms-1">Coming soon</span>
+                  </span>
+                <% } %>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
   <div class="glass-card mt-4">
     <div class="card-body">
       <h2 class="h5">Where visitors came from, last 30 days</h2>
@@ -83,6 +192,16 @@
           </table>
         </div>
       <% } %>
+    </div>
+  </div>
+  <div class="glass-card mt-4">
+    <div class="card-body">
+      <h2 class="h5">System Info</h2>
+      <dl class="row mb-0 small">
+        <dt class="col-sm-3">Environment</dt><dd class="col-sm-9"><code><%= systemInfo.environment %></code></dd>
+        <dt class="col-sm-3">Node Version</dt><dd class="col-sm-9"><code><%= systemInfo.nodeVersion %></code></dd>
+        <dt class="col-sm-3">Server Time</dt><dd class="col-sm-9 mb-0"><%= systemInfo.serverTime.toISOString().slice(0, 19).replace('T', ' ') %> UTC</dd>
+      </dl>
     </div>
   </div>
 </div>

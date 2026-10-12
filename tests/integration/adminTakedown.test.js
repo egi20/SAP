@@ -238,7 +238,7 @@ maybe()('the admin screens themselves', () => {
   it('the user list filters by state and shows when somebody was last seen', async () => {
     const res = await admin.get('/admin/users?q=' + encodeURIComponent(MARK) + '&status=active');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('Last seen');
+    expect(res.text).toContain('Last Login');
     expect(res.text).toContain('Country');
   });
 

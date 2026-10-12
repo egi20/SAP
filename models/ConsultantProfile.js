@@ -61,6 +61,14 @@ function completenessOf(profile, { skillCount = 0, certificationCount = 0, proje
  *
  * @returns {{clause:string, params:Array}}
  */
+/*
+ * Who is on Browse Talent, as SQL over `cp` (consultant_profiles) and `u` (users). The
+ * directory's builder below starts from exactly this list, and the admin user screen's
+ * "Talent" column and filter read the same constant — so "Listed" there can never mean
+ * something the directory disagrees with.
+ */
+const LISTED_CONDITIONS = Object.freeze(['cp.is_public = 1', 'cp.admin_hidden_at IS NULL', 'u.is_active = 1']);
+
 function buildFilter(filters = {}) {
   /*
    * THREE conditions, not two. `is_public` is the member's own switch and
@@ -68,7 +76,7 @@ function buildFilter(filters = {}) {
    * come through here, so a profile taken down by an administrator leaves every one of
    * them without any of those pages knowing why.
    */
-  const where = ['cp.is_public = 1', 'cp.admin_hidden_at IS NULL', 'u.is_active = 1'];
+  const where = [...LISTED_CONDITIONS];
   const params = [];
 
   if (filters.role && isRole(filters.role)) {
@@ -190,6 +198,8 @@ class ConsultantProfile {
   static completenessOf = completenessOf;
 
   static buildFilter = buildFilter;
+
+  static LISTED_CONDITIONS = LISTED_CONDITIONS;
 
   static async findByUserId(userId) {
     const [rows] = await promisePool.query(
