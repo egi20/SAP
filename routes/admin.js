@@ -154,6 +154,45 @@ router.post(
   })
 );
 
+/**
+ * Take superadmin away from another account, leaving it an ordinary admin.
+ *
+ * The roles form above never touched the flag, so superadmin could be granted (by
+ * `create-admin`) and never taken back from the site: an owner who created colleagues
+ * with that script had four superadmins and only a shell command to fix it. REVOKING only
+ * — granting stays a shell action, because a button that grants the widest privilege on
+ * the site is the one an attacker with a stolen admin session wants most.
+ *
+ * Never on your own account (the same rule as the roles form), and never the last active
+ * superadmin: only a superadmin can change roles, so a site with none could not get one
+ * back from the site itself. `scripts/revoke-superadmin.js` holds the same two rules.
+ */
+router.post(
+  '/users/:id/revoke-superadmin',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    if (req.params.id === req.session.user.id) {
+      req.flash('error', 'You cannot remove your own superadmin role here.');
+      return res.redirect('/admin/users');
+    }
+    const user = await User.findById(req.params.id);
+    if (!user || !user.is_superadmin) {
+      req.flash('info', 'That account is not a superadmin.');
+      return res.redirect(returnTo(req, '/admin/users'));
+    }
+    const others = await User.countActiveSuperadmins({ excludeId: user.id });
+    if (others === 0) {
+      req.flash('error', 'That is the last active superadmin, so it cannot be removed.');
+      return res.redirect(returnTo(req, '/admin/users'));
+    }
+    await User.setSuperadmin(user.id, false);
+    req.flash('success', `${user.email} is no longer a superadmin. It takes effect on that account’s next request.`);
+    return res.redirect(returnTo(req, '/admin/users'));
+  })
+);
+
 router.post(
   '/users/:id/active',
   isSuperadmin,

@@ -51,10 +51,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         continue;
       }
       // eslint-disable-next-line no-await-in-loop
-      const [[{ remaining }]] = await promisePool.query(
-        'SELECT COUNT(*) AS remaining FROM users WHERE is_superadmin = 1 AND is_active = 1 AND id <> ?',
-        [user.id]
-      );
+      const remaining = await User.countActiveSuperadmins({ excludeId: user.id });
       if (Number(remaining) === 0) {
         console.log(`  REFUSED         ${email}  (the last active superadmin; nobody could grant it back)`);
         process.exitCode = 1;

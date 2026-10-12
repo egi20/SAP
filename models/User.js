@@ -269,6 +269,15 @@ class User {
     return true;
   }
 
+  /** Active superadmins, optionally not counting one account — "would any be left?" */
+  static async countActiveSuperadmins({ excludeId = null } = {}) {
+    const [[row]] = await promisePool.query(
+      'SELECT COUNT(*) AS n FROM users WHERE is_superadmin = 1 AND is_active = 1 AND id <> ?',
+      [excludeId ?? 0]
+    );
+    return Number(row.n);
+  }
+
   static async setSuperadmin(userId, isSuperadmin) {
     await promisePool.query('UPDATE users SET is_superadmin = ? WHERE id = ?', [isSuperadmin ? 1 : 0, userId]);
   }

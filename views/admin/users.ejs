@@ -189,6 +189,14 @@
                         </p>
                       </div>
                     </form>
+                    <% if (u.is_superadmin) { %>
+                      <form class="mt-2" method="post" action="/admin/users/<%= u.id %>/revoke-superadmin"
+                            data-confirm="Remove superadmin from <%= u.email %>? They stay an admin.">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Remove superadmin (keep admin)</button>
+                        <span class="small text-muted-2 ms-2">Granting superadmin is done from the server shell, never from here.</span>
+                      </form>
+                    <% } %>
                   </td>
                 </tr>
               <% } %>
