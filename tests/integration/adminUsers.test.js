@@ -55,7 +55,7 @@ async function row(id) {
 // The ids a page lists among this suite's accounts, read from the row checkboxes' labels
 // and the ID cells — whichever the viewer has.
 function listedEmails(html) {
-  return [...html.matchAll(/<td>\s*(adm-users-[^\s<]+)/g)].map((m) => m[1]);
+  return [...html.matchAll(/<td class="text-nowrap">\s*(adm-users-[^\s<]+)/g)].map((m) => m[1]);
 }
 
 beforeAll(async () => {

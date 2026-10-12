@@ -19,29 +19,33 @@
 %>
 
 <section class="glass-section pb-5">
-<div class="container">
+<%# Wider than the site's container: fourteen columns do not fit in 1140px without the actions falling off the edge. -%>
+<div class="container-fluid admin-wide">
   <p class="mb-2"><a class="link-secondary text-decoration-none" href="/admin"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Dashboard</a></p>
   <%- include('./_tabs', { current: 'users' }) %>
   <%- include('../partials/flash') %>
 
   <div class="glass-card mb-3">
     <div class="card-body">
-      <form class="row g-2 align-items-end" method="get" action="/admin/users">
-        <div class="col-md-4">
-          <label class="form-label" for="q">Search</label>
-          <input class="form-control" type="search" id="q" name="q" value="<%= filters.search %>"
-                 placeholder="Search by email or ID..." maxlength="190">
+      <form class="row g-2 align-items-center" method="get" action="/admin/users">
+        <div class="col-lg-4">
+          <label class="visually-hidden" for="q">Search by email or ID</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+            <input class="form-control" type="search" id="q" name="q" value="<%= filters.search %>"
+                   placeholder="Search by email or ID..." maxlength="190">
+          </div>
         </div>
-        <div class="col-6 col-md-2">
-          <label class="form-label" for="role">User type</label>
+        <div class="col-6 col-lg-2">
+          <label class="visually-hidden" for="role">User type</label>
           <select class="form-select" id="role" name="role">
             <% typeOptions.forEach(function (o) { %>
               <option value="<%= o[0] %>" <%= filters.role === o[0] ? 'selected' : '' %>><%= o[1] %></option>
             <% }) %>
           </select>
         </div>
-        <div class="col-6 col-md-2">
-          <label class="form-label" for="status">Status</label>
+        <div class="col-6 col-lg-2">
+          <label class="visually-hidden" for="status">Status</label>
           <select class="form-select" id="status" name="status">
             <option value="">All Status</option>
             <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
@@ -50,15 +54,15 @@
             <option value="closed" <%= filters.status === 'closed' ? 'selected' : '' %>>Deleted (closed)</option>
           </select>
         </div>
-        <div class="col-6 col-md-2">
-          <label class="form-label" for="talent">Talent</label>
+        <div class="col-6 col-lg-2">
+          <label class="visually-hidden" for="talent">Talent</label>
           <select class="form-select" id="talent" name="talent">
             <option value="">All Talent</option>
             <option value="listed" <%= filters.talent === 'listed' ? 'selected' : '' %>>Listed</option>
             <option value="hidden" <%= filters.talent === 'hidden' ? 'selected' : '' %>>Hidden</option>
           </select>
         </div>
-        <div class="col-6 col-md-2 d-grid">
+        <div class="col-6 col-lg-2 d-grid">
           <button class="btn btn-primary" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Filter</button>
         </div>
       </form>
@@ -76,15 +80,6 @@
       <input type="hidden" name="redirectTo" value="<%= here %>">
       <input type="hidden" name="expected" value="0" data-bulk-expected>
     </form>
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-2" data-bulk-toolbar>
-      <div class="form-check mb-0">
-        <input class="form-check-input" type="checkbox" id="selectAllUsers" data-select-all>
-        <label class="form-check-label" for="selectAllUsers">Select all</label>
-      </div>
-      <button class="btn btn-sm btn-outline-danger" type="button" disabled data-bulk-open
-              data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
-<i class="bi bi-trash" aria-hidden="true"></i><span>Delete Selected (<span data-bulk-count>0</span>)</span></button>
-    </div>
   <% } %>
 
   <% if (!users.length) { %>
@@ -93,6 +88,18 @@
     </div></div>
   <% } else { %>
     <div class="glass-card">
+      <% if (isSuper) { %>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 pt-3 pb-2" data-bulk-toolbar>
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="selectAllUsers" data-select-all>
+            <label class="form-check-label" for="selectAllUsers">Select all</label>
+          </div>
+          <button class="btn btn-sm btn-outline-danger" type="button" disabled data-bulk-open
+                  data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+            <i class="bi bi-trash" aria-hidden="true"></i><span>Delete Selected (<span data-bulk-count>0</span>)</span>
+          </button>
+        </div>
+      <% } %>
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0 admin-users-table">
           <thead>
@@ -138,7 +145,7 @@
                 <td class="text-muted-2"><%= u.id %></td>
                 <td><%= names.first %></td>
                 <td><%= names.last %></td>
-                <td>
+                <td class="text-nowrap">
                   <%= u.email %>
                   <% if (isSelf) { %> <span class="badge text-bg-secondary">you</span><% } %>
                 </td>
@@ -171,7 +178,7 @@
                 </td>
                 <td>
                   <% if (u.email_verified) { %>
-                    <i class="bi bi-check-circle-fill text-success" title="Verified" aria-hidden="true"></i><span class="visually-hidden">Verified</span>
+                    <i class="bi bi-check-circle text-success" title="Verified" aria-hidden="true"></i><span class="visually-hidden">Verified</span>
                   <% } else { %>
                     <i class="bi bi-dash-circle text-muted-2" title="Not verified" aria-hidden="true"></i><span class="visually-hidden">Not verified</span>
                   <% } %>
@@ -185,11 +192,11 @@
                   <% if (!isConsultantAccount) { %>
                     <span title="<%= u.user_type === 'company' ? 'Companies don’t appear in Browse Talent — talent listing is for consultants' : 'Only consultants appear in Browse Talent' %>">—</span>
                   <% } else if (Number(u.talent_listed)) { %>
-                    <span class="badge text-bg-success" title="Listed on Browse Talent (published profile, active account)">Listed</span>
+                    <span class="badge text-bg-success" title="Listed on Browse Talent (published profile, active account)"><i class="bi bi-people-fill" aria-hidden="true"></i> Listed</span>
                   <% } else if (u.talent_hidden_at) { %>
                     <span class="badge text-bg-danger" title="Taken out of Browse Talent by an administrator">Hidden by us</span>
                   <% } else { %>
-                    <span class="badge text-bg-light border" title="Not shown on Browse Talent (needs an active account and a published profile)">Hidden</span>
+                    <span class="badge rounded-pill text-bg-light border fw-normal" title="Not shown on Browse Talent (needs an active account and a published profile)">Hidden</span>
                   <% } %>
                 </td>
                 <td>
@@ -199,10 +206,10 @@
                       <input type="hidden" name="redirectTo" value="<%= here %>">
                       <% if (u.dedupe_access) { %>
                         <input type="hidden" name="allow" value="0">
-                        <button class="btn btn-sm btn-outline-success" type="submit" title="Allowed — click to block">Allowed</button>
+                        <button class="btn btn-sm rounded-pill btn-outline-success dedupe-pill" type="submit" title="Allowed — click to block"><i class="bi bi-layers" aria-hidden="true"></i> Allowed</button>
                       <% } else { %>
                         <input type="hidden" name="allow" value="1">
-                        <button class="btn btn-sm btn-outline-secondary" type="submit" title="Blocked — click to allow">Blocked</button>
+                        <button class="btn btn-sm rounded-pill btn-outline-secondary dedupe-pill" type="submit" title="Blocked — click to allow"><i class="bi bi-layers" aria-hidden="true"></i> Blocked</button>
                       <% } %>
                     </form>
                   <% } else { %>—<% } %>
@@ -215,13 +222,13 @@
                   <% } %>
                 </td>
                 <td class="small text-nowrap"><span title="<%= fmtFull(u.created_at) %>"><%= fmtDate(u.created_at) %></span></td>
-                <td class="text-end text-nowrap">
+                <td class="text-end text-nowrap admin-user-actions">
                   <% if (!isClosed) { %>
                     <% if (!u.email_verified) { %>
                       <form class="d-inline" method="post" action="/admin/users/<%= u.id %>/verify">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="redirectTo" value="<%= here %>">
-                        <button class="btn btn-sm btn-outline-secondary" type="submit">Mark verified</button>
+                        <button class="btn btn-sm btn-outline-secondary" type="submit" title="Mark verified" aria-label="Mark <%= u.email %> verified"><i class="bi bi-patch-check" aria-hidden="true"></i></button>
                       </form>
                     <% } %>
 
@@ -230,16 +237,17 @@
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="redirectTo" value="<%= here %>">
                         <% if (u.is_active) { %>
-                          <button class="btn btn-sm btn-outline-warning" type="submit" title="Deactivate" aria-label="Deactivate <%= u.email %>"><i class="bi bi-person-dash" aria-hidden="true"></i></button>
+                          <button class="btn btn-sm btn-outline-warning" type="submit" title="Deactivate" aria-label="Deactivate <%= u.email %>"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
                         <% } else { %>
                           <input type="hidden" name="is_active" value="on">
-                          <button class="btn btn-sm btn-outline-success" type="submit" title="Activate" aria-label="Activate <%= u.email %>"><i class="bi bi-person-check" aria-hidden="true"></i></button>
+                          <button class="btn btn-sm btn-outline-success" type="submit" title="Activate" aria-label="Activate <%= u.email %>"><i class="bi bi-play-fill" aria-hidden="true"></i></button>
                         <% } %>
                       </form>
 
                       <button class="btn btn-sm btn-outline-primary" type="button"
                               data-bs-toggle="collapse" data-bs-target="#roles-<%= u.id %>"
-                              aria-expanded="false" aria-controls="roles-<%= u.id %>">Roles</button>
+                              aria-expanded="false" aria-controls="roles-<%= u.id %>"
+                              title="Roles" aria-label="Roles of <%= u.email %>"><i class="bi bi-person-gear" aria-hidden="true"></i></button>
                     <% } %>
 
                     <%#
@@ -254,7 +262,8 @@
                     <% if (currentUser && currentUser.isAdmin && u.has_consultant_profile && !isSelf) { %>
                       <button class="btn btn-sm btn-outline-secondary" type="button"
                               data-bs-toggle="collapse" data-bs-target="#talent-<%= u.id %>"
-                              aria-expanded="false" aria-controls="talent-<%= u.id %>">Directory</button>
+                              aria-expanded="false" aria-controls="talent-<%= u.id %>"
+                              title="Directory listing" aria-label="Directory listing of <%= u.email %>"><i class="bi <%= u.talent_hidden_at ? 'bi-eye' : 'bi-eye-slash' %>" aria-hidden="true"></i></button>
                     <% } %>
 
                     <% if (isSuper && !isSelf) { %>
@@ -363,6 +372,14 @@
       </div>
     </div>
 
+    <%# A `title` does not exist on a touch screen, so the icons are named here too. -%>
+    <p class="small text-muted-2 mt-2 mb-0">
+      <i class="bi bi-patch-check" aria-hidden="true"></i> Mark verified ·
+      <i class="bi bi-pause-fill" aria-hidden="true"></i> Deactivate / <i class="bi bi-play-fill" aria-hidden="true"></i> Activate ·
+      <i class="bi bi-person-gear" aria-hidden="true"></i> Roles ·
+      <i class="bi bi-eye-slash" aria-hidden="true"></i> Directory listing ·
+      <i class="bi bi-trash" aria-hidden="true"></i> Delete user
+    </p>
     <% if (pagination.totalPages <= 1) { %>
       <p class="small text-muted-2 mt-3 mb-0">Showing <%= users.length %> of <%= pagination.total %> user(s)</p>
     <% } %>

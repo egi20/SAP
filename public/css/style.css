@@ -1912,3 +1912,19 @@ body.has-cookie-notice { padding-bottom: 7rem; }
   /* A link inside a sentence must not become a 44px block in the middle of it. */
   p a, li a.d-inline, .form-text a { display: inline; min-height: 0; }
 }
+
+/* ---------------------------------------------------------------- /admin/users
+ * Fourteen columns at the reference's density. Headings never wrap ("Last Login" broke
+ * onto two lines), dates and badges stay on one line, and the actions are icon buttons in
+ * one row, so the last column is not off the edge of the card at 1920px.
+ */
+.admin-wide { max-width: 1640px; padding-left: 1.5rem; padding-right: 1.5rem; }
+@media (max-width: 575.98px) { .admin-wide { padding-left: 1rem; padding-right: 1rem; } }
+.admin-users-table { font-size: 0.875rem; }
+.admin-users-table th { white-space: nowrap; font-weight: 600; }
+.admin-users-table td { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+.admin-users-table .badge { font-weight: 600; }
+.admin-users-table .dedupe-pill { font-size: 0.8rem; padding: 0.15rem 0.7rem; white-space: nowrap; }
+.admin-user-actions { white-space: nowrap; }
+.admin-user-actions form { display: inline-block; }
+.admin-user-actions .btn { padding: 0.3rem 0.55rem; margin-left: 0.15rem; }
