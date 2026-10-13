@@ -617,7 +617,17 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 /* Collapsed navbar: the menus render inline inside the collapse, still opaque. */
 @media (max-width: 991.98px) {
   .navbar-hub .dropdown-menu { box-shadow: none; }
-  .navbar-hub .user-menu-dropdown { width: 100%; max-width: none; max-height: none; }
+  .navbar-hub .user-menu-dropdown { width: auto; min-width: 0; max-width: none; max-height: none; }
+  /* The navbar is sticky-top, so an open collapse taller than the window sticks with its
+     bottom off-screen and page scrolling never reaches it: on a phone the user menu showed
+     its header and notifications, and Messages, Admin Panel and Sign Out were unreachable.
+     The collapse scrolls inside itself instead. */
+  .navbar-hub .navbar-collapse {
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 .notif-dot {
