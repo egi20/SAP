@@ -7,13 +7,16 @@
 /*
  * There was no favicon at all, so every tab showed the browser's blank page glyph.
  *
- * The SVG is the modern icon and scales to any density; the 180px PNG is the iOS
- * home-screen icon, which ignores SVG. Both are the hub mark and nothing of SAP's — this
- * site's footer says it is not affiliated with SAP SE, and SAP's own mark in the tab would
- * contradict that on every page at once.
+ * The icon is the SH tile the owner supplied (2026-10-13). It exists only as a raster, so
+ * the tab gets PNGs rather than an SVG: a 32px one for tabs, a 192px one for high-density
+ * screens, /favicon.ico for anything that asks for that path without reading this head,
+ * and the 180px full-bleed PNG iOS uses for the home screen (iOS rounds the corners
+ * itself and ignores SVG). Still nothing of SAP's: the footer says this site is not
+ * affiliated with SAP SE, and SAP's mark in the tab would contradict it on every page.
  */
 %>
-<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/images/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/images/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta name="theme-color" content="#00265b">
 <link rel="canonical" href="<%= seo.canonical %>">

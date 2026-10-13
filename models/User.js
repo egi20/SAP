@@ -270,6 +270,14 @@ class User {
     return true;
   }
 
+  /** Correct the display name on one account. Nothing else on the row moves. */
+  static async changeName(userId, newName) {
+    const name = String(newName || '').trim().replace(/\s+/g, ' ');
+    if (!name || name.length > 200) throw new Error('A name is 1 to 200 characters.');
+    await promisePool.query('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+    return name;
+  }
+
   /** Active superadmins, optionally not counting one account — "would any be left?" */
   static async countActiveSuperadmins({ excludeId = null } = {}) {
     const [[row]] = await promisePool.query(
