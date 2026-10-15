@@ -185,12 +185,15 @@ if (!config.isProduction && config.app.supportEmail === 'support@example.com') {
 // Read once. These come from the environment and cannot change while the process runs.
 const SOCIAL_LINKS = socialLinks();
 
+const { trustProxy } = require('./config/trustedProxies');
+
 const app = express();
 
 if (config.isProduction) {
-  // Required for `req.ip` to be the client rather than the load balancer, which is what
-  // every IP-keyed rate limiter depends on.
-  app.set('trust proxy', 1);
+  // Required for `req.ip` to be the client rather than a proxy, which is what every
+  // IP-keyed rate limiter and the visitor geography depend on. Two hops, not one: see
+  // config/trustedProxies.js.
+  app.set('trust proxy', trustProxy);
 }
 
 app.set('view engine', 'ejs');
