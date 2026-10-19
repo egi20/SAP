@@ -1,0 +1,127 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-bar-chart-line',
+  heading: provider.name,
+  sub: 'On trial beside the other provider. Same layout on both screens, so they can be read side by side.'
+}) %>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'analytics' }) %>
+  <%- include('../partials/flash') %>
+
+  <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Analytics screens">
+    <a class="btn btn-sm btn-outline-primary" href="/admin/analytics">Site counts</a>
+    <a class="btn btn-sm <%= providerKey === 'ga4' ? 'btn-primary' : 'btn-outline-primary' %>" href="/admin/analytics/ga4"<% if (providerKey === 'ga4') { %> aria-current="page"<% } %>>Google Analytics 4</a>
+    <a class="btn btn-sm <%= providerKey === 'cloudflare' ? 'btn-primary' : 'btn-outline-primary' %>" href="/admin/analytics/cloudflare"<% if (providerKey === 'cloudflare') { %> aria-current="page"<% } %>>Cloudflare Web Analytics</a>
+  </nav>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 mb-3">Status</h2>
+    <ul class="list-unstyled mb-0">
+      <li class="mb-1">
+        <i class="bi <%= tagEnabled ? 'bi-check-circle text-success' : 'bi-x-circle text-danger' %>"></i>
+        Tracking on the site:
+        <strong><%= tagEnabled ? 'on' : 'off' %></strong>
+        <% if (!tagEnabled) { %>
+          <span class="text-muted-2">— set <span class="font-monospace"><%= providerKey === 'ga4' ? 'GA4_MEASUREMENT_ID' : 'CF_WEB_ANALYTICS_TOKEN' %></span> on the web service.</span>
+        <% } else if (providerKey === 'ga4') { %>
+          <span class="text-muted-2">— only for visitors who press "Allow analytics".</span>
+        <% } else { %>
+          <span class="text-muted-2">— for every visitor; it sets no cookie.</span>
+        <% } %>
+      </li>
+      <li>
+        <i class="bi <%= reportingEnabled ? 'bi-check-circle text-success' : 'bi-x-circle text-danger' %>"></i>
+        Reports on this screen:
+        <strong><%= reportingEnabled ? 'on' : 'off' %></strong>
+        <% if (!reportingEnabled) { %>
+          <span class="text-muted-2">— set
+            <% if (providerKey === 'ga4') { %>
+              <span class="font-monospace">GA4_PROPERTY_ID</span> and <span class="font-monospace">GA4_SERVICE_ACCOUNT_JSON</span>.
+            <% } else { %>
+              <span class="font-monospace">CF_ACCOUNT_ID</span> and <span class="font-monospace">CF_API_TOKEN</span>.
+            <% } %>
+          </span>
+        <% } %>
+      </li>
+    </ul>
+    <p class="small text-muted-2 mt-3 mb-0">
+      The full reports are in the provider's own dashboard:
+      <a href="<%= provider.dashboardUrl %>" rel="noopener" target="_blank"><%= provider.name %></a>.
+    </p>
+  </div></div>
+
+  <% if (reportingEnabled) { %>
+    <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Date range">
+      <% ranges.forEach(function (r) { %>
+        <a class="btn btn-sm <%= r === days ? 'btn-primary' : 'btn-outline-secondary' %>" href="?days=<%= r %>"<% if (r === days) { %> aria-current="true"<% } %>>Last <%= r %> days</a>
+      <% }) %>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        The provider refused the request, so there are no figures to show:
+        <span class="font-monospace"><%= error %></span>
+      </div>
+    <% } else if (report) { %>
+      <div class="row g-3 mb-4">
+        <% report.totals.forEach(function (t) { %>
+          <div class="col-6 col-md-4">
+            <div class="glass-card h-100"><div class="card-body">
+              <p class="stat-value mb-0"><%= t.value.toLocaleString('en-GB') %></p>
+              <p class="mb-0"><%= t.label %></p>
+            </div></div>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="row g-3">
+        <% [
+          { key: 'pages', heading: 'Top pages' },
+          { key: 'countries', heading: 'Countries' },
+          { key: 'sources', heading: 'Where visitors came from' },
+          { key: 'devices', heading: 'Devices' }
+        ].forEach(function (block) { %>
+          <div class="col-lg-6">
+            <div class="glass-card h-100"><div class="card-body">
+              <h2 class="h6 mb-3"><%= block.heading %></h2>
+              <% if (!report[block.key].length) { %>
+                <p class="text-muted-2 mb-0">Nothing recorded in this range.</p>
+              <% } else { %>
+                <table class="table table-sm align-middle mb-0">
+                  <tbody>
+                    <% report[block.key].forEach(function (row) { %>
+                      <tr>
+                        <td class="text-break"><%= row.label %></td>
+                        <td class="text-end"><%= row.value.toLocaleString('en-GB') %></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              <% } %>
+            </div></div>
+          </div>
+        <% }) %>
+      </div>
+
+      <p class="small text-muted-2 mt-3 mb-0">
+        <% if (providerKey === 'ga4') { %>
+          GA4 counts only visitors who allowed analytics, so its totals sit below
+          Cloudflare's by however many declined. Lists are ranked by page views (pages),
+          users (countries, devices) and sessions (sources).
+        <% } else { %>
+          Cloudflare counts every visitor with scripting on, sets no cookie and has no
+          notion of a returning user, so "visits" is not the same figure as GA4's "users".
+          Page views are the one number both define the same way.
+        <% } %>
+        Figures are cached for ten minutes.
+      </p>
+    <% } %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

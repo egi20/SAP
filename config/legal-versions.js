@@ -13,6 +13,8 @@ module.exports = {
   // something it did not describe before, and the stamp on an account is a record of what
   // that person was shown — leaving it alone would quietly backdate the new text onto
   // everybody who registered before it existed.
-  PRIVACY_VERSION: '2026-10-05',
+  // 2026-10-19: the Cookies and Visitor analytics sections describe Google Analytics (behind
+  // a consent choice) and Cloudflare Web Analytics, each rendered only when configured.
+  PRIVACY_VERSION: '2026-10-19',
   TERMS_VERSION: '2026-09-01'
 };

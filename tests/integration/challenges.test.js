@@ -78,6 +78,20 @@ beforeAll(async () => {
   await promisePool.query('DELETE FROM users WHERE email IN (?)', [OWN_ACCOUNTS]);
 });
 
+/*
+ * The page renders text through `<%= %>`, so an apostrophe arrives as `&#39;`. Comparing
+ * against the raw string fails a positive check the day a question with one is in the set,
+ * and — worse — passes a NEGATIVE check vacuously: a leaked explanation containing an
+ * apostrophe would never match the raw text it is compared with.
+ */
+const asRendered = (text) =>
+  String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&#34;')
+    .replace(/'/g, '&#39;');
+
 maybe()('the answer key never reaches the browser', () => {
   let player;
 
@@ -93,13 +107,13 @@ maybe()('the answer key never reaches the browser', () => {
     const set = challenges.dailySetFor(date);
 
     // Every prompt is there.
-    for (const question of set) expect(res.text).toContain(question.prompt);
+    for (const question of set) expect(res.text).toContain(asRendered(question.prompt));
 
     /*
      * And no explanation is, because an explanation names the right option in prose. This
      * is the check that view-source cannot answer the quiz.
      */
-    for (const question of set) expect(res.text).not.toContain(question.explain);
+    for (const question of set) expect(res.text).not.toContain(asRendered(question.explain));
   });
 
   test('the rendered radio values are positions, not a key', async () => {
@@ -240,8 +254,8 @@ maybe()('a correct attempt pays, once, through the ledger', () => {
     const res = await player.get('/challenges');
     const set = challenges.dailySetFor(challenges.serverDate());
 
-    expect(res.text).toContain(set[0].prompt);
-    expect(res.text).toContain(set[0].explain);
+    expect(res.text).toContain(asRendered(set[0].prompt));
+    expect(res.text).toContain(asRendered(set[0].explain));
   });
 
   test('the rebuilt score agrees with the one that was stored', async () => {

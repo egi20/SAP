@@ -38,6 +38,7 @@ check('country list is non-empty', () => {
   if (!Array.isArray(countries) || countries.length < 100) throw new Error(`only ${countries.length} countries`);
 });
 check('country dropdown list is consistent', () => require('../config/countries').assertCountriesIntegrity());
+check('web analytics ids are well formed', () => require('../config/webAnalytics').assertWebAnalyticsIntegrity());
 
 /*
  * The palette is checked, not trusted.

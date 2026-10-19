@@ -35,6 +35,7 @@ const { assertDraftingIntegrity } = require('./config/drafting');
 const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
 const { assertRateBoundsIntegrity } = require('./config/rateBounds');
 const { assertCountriesIntegrity } = require('./config/countries');
+const webAnalytics = require('./config/webAnalytics');
 const { optionLabel } = require('./utils/optionLabel');
 const { deploymentShort } = require('./config/sapDeployments');
 const { pendingMigrations } = require('./scripts/migrate');
@@ -124,6 +125,13 @@ assertEngagementIntegrity();
  * list silently drops out of the top group, and a duplicate offers the same country twice.
  */
 assertCountriesIntegrity();
+/*
+ * And the analytics ids on trial. A malformed one is not an error anywhere else: the tag
+ * loads, reports to nobody, and the admin screen shows an empty month.
+ */
+webAnalytics.assertWebAnalyticsIntegrity();
+const WEB_ANALYTICS_CSP = webAnalytics.cspAdditions();
+const WEB_ANALYTICS_TAGS = webAnalytics.publicTags();
 
 /*
  * And the advert's sections. A key here that is not a real column contributes an empty
@@ -210,11 +218,14 @@ app.use(
         // new Function, and adding a library that needs it is a decision, not an oversight.
         // No CDN is allowed at all: every script, style and font is served from this
         // origin. Adding a host back here means adding a third party to every page.
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        // ...except the analytics tags, and only for a provider that is configured. See
+        // config/webAnalytics.js: with neither set, these lists are empty and this policy
+        // is exactly what it was.
+        scriptSrc: ["'self'", "'unsafe-inline'", ...WEB_ANALYTICS_CSP.script],
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", ...WEB_ANALYTICS_CSP.connect],
         formAction: ["'self'"],
         /*
          * The two video hosts a success story may embed, and they come from the ONE
@@ -382,6 +393,7 @@ app.use((req, res, next) => {
    */
   res.locals.appBaseUrl = config.app.baseUrl;
   res.locals.socialLinks = SOCIAL_LINKS;
+  res.locals.webAnalytics = WEB_ANALYTICS_TAGS;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;
   res.locals.query = req.query;

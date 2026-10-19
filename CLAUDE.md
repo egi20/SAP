@@ -1647,6 +1647,34 @@ listener is passive and throttled to one update a frame.
 the comment explaining why the string is forbidden. Strip comments before asserting — the
 tempting fix is to delete the sentence.
 
+## The web-analytics trial
+
+**From 2026-10-19 the owner is running Google Analytics 4 and Cloudflare Web Analytics side
+by side for a month**, each with its own screen (`/admin/analytics/ga4`,
+`/admin/analytics/cloudflare`), to keep whichever earns its place. `config/webAnalytics.js`
+owns both, asserts their ids at boot, and everything is OFF unless configured — no tag, no
+CSP host, no sentence in the privacy policy. Ending the trial for one provider is unsetting
+its variables.
+
+**They are not equivalent, and the difference is the consent rule.** Cloudflare sets no
+cookie and keeps no identifier, so its beacon loads for everybody and the policy discloses
+it. GA4 sets `_ga` cookies, so with it configured the cookie notice is no longer a notice:
+`public/js/analytics.js` replaces it with "Allow analytics" / "Decline" at equal weight,
+gtag is never requested before "Allow", and "Analytics choices" in the footer withdraws it.
+This is the change the cookie section below said a second cookie would force; it applies
+only while GA4 is configured, and the plain notice returns the moment it is not.
+
+**One data shape for both screens** (`services/webAnalytics.js`), so they can be read side
+by side. Each provider keeps its own terms — GA4 users and sessions, Cloudflare visits — and
+the screen says page views are the only figure both define the same way. GA4's totals sit
+below Cloudflare's by however many visitors declined; that gap is part of what the trial
+measures, not a bug.
+
+**`req.ip` is resolved past Cloudflare as well as Render's balancer**
+(`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
+Cloudflare edge, so per-IP rate limits, `visit_geo_daily` and `users.signup_country` were all
+wrong without an error anywhere. The production access log is what showed it.
+
 ## CSRF
 
 Every mutating form needs `<input type="hidden" name="_csrf" value="<%= csrfToken %>">`.

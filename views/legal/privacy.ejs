@@ -14,25 +14,51 @@
 
       <h2 class="h6" id="cookies">Cookies</h2>
       <%#
-        Written as a statement of what exists, which is one cookie. If an analytics or
-        preference cookie is ever added, this section and the banner in public/js/main.js
-        both have to change — and at that point the banner becomes a consent gate rather
-        than a notice, because then there would be something to refuse.
+        Written as a statement of what exists. Without GA4 that is one cookie and the banner
+        in public/js/main.js is a notice. With GA4 configured (config/webAnalytics.js) there
+        are cookies a visitor can refuse, so public/js/analytics.js asks first and this
+        section says so. Every sentence below is rendered only when it is true for this
+        deployment, because a policy describing a tag that is not on the page — or missing
+        one that is — is wrong in a document people rely on.
       %>
-      <p>This site sets <strong>one cookie</strong>, named <code>saphub.sid</code>. It holds a
+      <% const wa = (typeof webAnalytics !== 'undefined' && webAnalytics) || {}; %>
+      <p>This site sets <strong><%= wa.ga4Id ? 'one cookie of its own' : 'one cookie' %></strong>, named <code>saphub.sid</code>. It holds a
          random session identifier and nothing else — no name, no email, no browsing history.
          It is what keeps you signed in between pages, and it is deleted when you sign out.
          Ticking "keep me signed in" only changes how long it lasts.</p>
+      <% if (wa.ga4Id) { %>
+      <p><strong>Google Analytics, only if you allow it.</strong> When you first visit we ask
+         whether we may count your visit with Google Analytics. If you choose "Allow
+         analytics", Google sets the cookies <code>_ga</code> and <code>_ga_*</code>, which
+         keep a random identifier for up to two years so that repeat visits can be told apart,
+         and the pages you open, your approximate location, device and the site that referred
+         you are sent to Google, which processes them on our behalf. If you choose "Decline",
+         nothing is loaded from Google and no such cookie is set. You can change your answer at
+         any time with "Analytics choices" at the foot of every page; withdrawing removes the
+         cookies. Your answer is kept in your browser's local storage, not in a cookie.</p>
+      <p>There are no advertising cookies. The session cookie is strictly necessary for a
+         function you asked for, so we do not ask you to consent to it. The in-page
+         assistant keeps your conversation in your own browser's session storage, which is
+         not a cookie, is never sent to us, and is gone when you close the tab.</p>
+      <% } else { %>
       <p>There are no analytics cookies, no advertising cookies and no third-party cookies.
-         Nothing on this site is loaded from a tracker. Because the one cookie is strictly
+         <% if (!wa.cloudflareToken) { %>Nothing on this site is loaded from a tracker. <% } %>Because the one cookie is strictly
          necessary for a function you asked for, we do not ask you to consent to it — there
          would be nothing to decline that would leave the site working. The in-page
          assistant keeps your conversation in your own browser's session storage, which is
          not a cookie, is never sent to us, and is gone when you close the tab.</p>
+      <% } %>
 
-      <h2 class="h6">Visitor analytics</h2>
+      <h2 class="h6" id="analytics">Visitor analytics</h2>
       <p>We count page views per country per day. No path, identifier or address is kept alongside
          that count, so it cannot be traced back to a person.</p>
+      <% if (wa.cloudflareToken) { %>
+      <p>We also use <strong>Cloudflare Web Analytics</strong>, which runs for every visitor
+         because it sets no cookie and keeps no identifier: it cannot recognise you on a
+         second visit. For each page view it receives the address of the page, the site that
+         referred you, your browser and device type, the country your connection comes from
+         and how long the page took to load, and reports them to us only as totals.</p>
+      <% } %>
 
       <h2 class="h6">Your rate contributions</h2>
       <p>Contributions are never displayed individually. They are aggregated with other people's, and

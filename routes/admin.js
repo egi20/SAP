@@ -45,6 +45,9 @@ const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination
  */
 const STALLED_AFTER_DAYS = 14;
 
+const webAnalyticsConfig = require('../config/webAnalytics');
+const webAnalyticsService = require('../services/webAnalytics');
+
 const router = express.Router();
 
 /*
@@ -1296,6 +1299,61 @@ router.get(
     });
   })
 );
+
+/**
+ * GET /admin/analytics/ga4 and /admin/analytics/cloudflare — the two providers on trial.
+ *
+ * One template, one data shape (services/webAnalytics.js), so a month from now the two
+ * screens can be read side by side. A provider that is not configured renders the steps
+ * that are missing rather than a 404: the screen is where somebody goes to find out why
+ * there is no data. A failed API call renders its message — "no data" and "the token is
+ * wrong" must not look the same.
+ */
+const WEB_ANALYTICS_PROVIDERS = Object.freeze({
+  ga4: {
+    name: 'Google Analytics 4',
+    tagEnabled: webAnalyticsConfig.ga4TagEnabled,
+    reportingEnabled: webAnalyticsConfig.ga4ReportingEnabled,
+    report: webAnalyticsService.ga4Report,
+    dashboardUrl: 'https://analytics.google.com/'
+  },
+  cloudflare: {
+    name: 'Cloudflare Web Analytics',
+    tagEnabled: webAnalyticsConfig.cloudflareTagEnabled,
+    reportingEnabled: webAnalyticsConfig.cloudflareReportingEnabled,
+    report: webAnalyticsService.cloudflareReport,
+    dashboardUrl: 'https://dash.cloudflare.com/?to=/:account/web-analytics'
+  }
+});
+
+Object.entries(WEB_ANALYTICS_PROVIDERS).forEach(([key, provider]) => {
+  router.get(
+    `/analytics/${key}`,
+    asyncHandler(async (req, res) => {
+      const days = webAnalyticsService.RANGES.includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+      let report = null;
+      let error = null;
+      if (provider.reportingEnabled()) {
+        try {
+          report = await provider.report(days);
+        } catch (err) {
+          error = err.message;
+        }
+      }
+      return res.render('admin/web-analytics', {
+        title: provider.name,
+        providerKey: key,
+        provider: { name: provider.name, dashboardUrl: provider.dashboardUrl },
+        tagEnabled: provider.tagEnabled(),
+        reportingEnabled: provider.reportingEnabled(),
+        ranges: webAnalyticsService.RANGES,
+        days,
+        report,
+        error
+      });
+    })
+  );
+});
 
 /**
  * THE ENQUIRY QUEUE.

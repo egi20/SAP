@@ -11,6 +11,12 @@
   <%- include('./_tabs', { current: 'analytics' }) %>
   <%- include('../partials/flash') %>
 
+  <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Analytics screens">
+    <a class="btn btn-sm btn-primary" href="/admin/analytics" aria-current="page">Site counts</a>
+    <a class="btn btn-sm btn-outline-primary" href="/admin/analytics/ga4">Google Analytics 4</a>
+    <a class="btn btn-sm btn-outline-primary" href="/admin/analytics/cloudflare">Cloudflare Web Analytics</a>
+  </nav>
+
   <% if (!periods.length) { %>
     <div class="glass-card"><div class="card-body text-center py-5">
       <p class="text-muted-2 mb-0">Nothing to count yet.</p>

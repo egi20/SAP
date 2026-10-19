@@ -1,3 +1,4 @@
+<% const wa = (typeof webAnalytics !== 'undefined' && webAnalytics) || {}; %>
 <footer class="footer-hub">
   <div class="container">
     <%#
@@ -86,6 +87,13 @@
         <ul class="list-unstyled">
           <li><a href="/legal/privacy">Privacy policy</a></li>
           <li><a href="/legal/terms">Terms of service</a></li>
+          <% if (wa.ga4Id) { %>
+            <%#
+              A button, not a link: it changes a setting in this browser and goes nowhere.
+              public/js/analytics.js wires it; consent nobody can withdraw is not consent.
+            %>
+            <li><button type="button" class="btn btn-link p-0 footer-link-button" data-analytics-choices>Analytics choices</button></li>
+          <% } %>
         </ul>
       </div>
     </div>
@@ -104,4 +112,9 @@
 
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>
+<% if (wa.ga4Id) { %><script src="/js/analytics.js"></script><% } %>
+<% if (wa.cloudflareToken) { %>
+<%# Cloudflare Web Analytics: no cookie, no identifier, so it needs no consent. Disclosed in the privacy policy. %>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<%= wa.cloudflareToken %>"}'></script>
+<% } %>
 <% if (assistantReady) { %><script src="/js/assistant.js"></script><% } %>

@@ -489,6 +489,11 @@
 (function cookieNotice() {
   var KEY = 'saphub.cookieNotice';
 
+  // With GA4 configured there IS something to refuse, so public/js/analytics.js asks a real
+  // question in this notice's place. Showing both would stack two bars saying different
+  // things about the same cookies.
+  if (document.querySelector('meta[name="ga4-id"]')) return;
+
   var seen;
   try {
     seen = window.localStorage.getItem(KEY);

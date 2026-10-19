@@ -65,13 +65,13 @@ describe('the privacy policy', () => {
     expect(PRIVACY).toMatch(/no third-party cookies/i);
   });
 
-  it('was re-versioned when that section was added', () => {
+  it('was re-versioned when that section was added, and again for the analytics trial', () => {
     /*
      * The stamp on an account records what that person was shown. Leaving the version alone
      * would backdate the new text onto everybody who registered before it existed.
      */
     const versions = require('../../config/legal-versions');
-    expect(versions.PRIVACY_VERSION).toBe('2026-10-05');
+    expect(versions.PRIVACY_VERSION).toBe('2026-10-19');
   });
 });
 
