@@ -75,13 +75,14 @@
             <li><a class="<%= itemClass('/jobs') %>" <%- itemCurrent('/jobs') %> href="/jobs"><i class="bi bi-briefcase me-2"></i>Find Jobs</a></li>
             <li><a class="<%= itemClass('/dashboard/saved') %>" <%- itemCurrent('/dashboard/saved') %> href="/dashboard/saved"><i class="bi bi-bookmark-heart me-2"></i>Saved Jobs</a></li>
             <%#
-              A signed-in account without the consultant role was sent to /profile/consultant,
-              refused by the guard and bounced home with "That area is for consultant accounts".
-              It goes to the one control that can change that instead. A visitor still gets the
-              profile URL, which asks them to sign in and brings them back.
+              Always the profile URL. It once pointed an account without the consultant role
+              straight at /profile/settings#roles, which skipped the guard and so skipped its
+              sentence too: the member clicked "Build Profile" and landed on Account settings
+              with nothing saying why. The guard now sends them to the same roles form WITH
+              "That area is for consultant accounts" above it, and a visitor is asked to sign in
+              and brought back.
             %>
-            <% const buildProfileHref = currentUser && !currentUser.isConsultant ? '/profile/settings#roles' : '/profile/consultant'; %>
-            <li><a class="<%= itemClass('/profile/consultant') %>" <%- itemCurrent('/profile/consultant') %> href="<%= buildProfileHref %>"><i class="bi bi-person-badge me-2"></i>Build Profile</a></li>
+            <li><a class="<%= itemClass('/profile/consultant') %>" <%- itemCurrent('/profile/consultant') %> href="/profile/consultant"><i class="bi bi-person-badge me-2"></i>Build Profile</a></li>
             <li><a class="<%= itemClass('/cv-generator') %>" <%- itemCurrent('/cv-generator') %> href="/cv-generator"><i class="bi bi-file-earmark-richtext me-2"></i>CV Generator</a></li>
           </ul>
         </li>

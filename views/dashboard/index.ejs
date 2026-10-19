@@ -16,6 +16,28 @@
     </div>
   <% } %>
 
+  <% if (!consultant && !company) { %>
+    <%#
+      An account with neither marketplace role — an administrator, typically — rendered this
+      page as a header over nothing. A page with nothing under its heading reads as one that
+      failed to load, so it says what the dashboard is for and offers the switch that fills it.
+    %>
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5">Nothing on your dashboard yet</h2>
+      <p class="text-muted-2">
+        The dashboard shows a consultant's profile, matches and applications, and a company's
+        adverts. This account has neither role yet. Add one under
+        <a href="/profile/settings#roles">What you use the Hub for</a> and it fills in here.
+      </p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary btn-sm" href="/profile/settings#roles">Add a role</a>
+        <% if (currentUser.isAdmin) { %>
+          <a class="btn btn-outline-primary btn-sm" href="/admin">Open the admin panel</a>
+        <% } %>
+      </div>
+    </div></div>
+  <% } %>
+
   <% if (consultant) { %>
     <section class="mb-5">
       <h2 class="h5 mb-3">Consultant</h2>

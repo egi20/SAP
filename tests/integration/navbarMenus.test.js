@@ -155,6 +155,21 @@ maybe()('a role the account does not have', () => {
     expect(settings.text).toContain('Hire SAP talent');
   });
 
+  it('says on arrival why the roles form opened instead of the page', async () => {
+    /*
+     * "Build Profile" used to link an account without the role straight at the roles form,
+     * skipping the guard and its sentence, so the member landed on Account settings with
+     * nothing saying why. The menu now always names the page and the guard explains. This
+     * account is a consultant, so the refused page is the company one; the mechanism is
+     * the same guard.
+     */
+    const agent = await signIn(OWN[0]);
+    expect((await agent.get('/jobs/new')).status).toBe(302);
+    const settings = await agent.get('/profile/settings');
+    expect(settings.text).toContain('That area is for company accounts');
+    expect(settings.text).toContain('href="/profile/consultant"');
+  });
+
   it('still answers a background fetch with 403, not a redirect', async () => {
     const agent = await signIn(OWN[0]);
     const res = await agent.get('/jobs/new').set('Sec-Fetch-Dest', 'empty');
