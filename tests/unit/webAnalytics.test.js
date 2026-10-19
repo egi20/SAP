@@ -56,8 +56,10 @@ describe('configuration', () => {
     expect(wa.problems(wa.load({ GA4_SERVICE_ACCOUNT_JSON: 'not json' }))).toHaveLength(1);
   });
 
-  it('defaults the Cloudflare site tag to the beacon token', () => {
-    expect(wa.load({ CF_WEB_ANALYTICS_TOKEN: HEX }).cloudflare.siteTag).toBe(HEX);
+  it('never assumes the snippet token is the API site tag', () => {
+    // It is not, and assuming it produced a clean zero for a site Cloudflare was counting.
+    expect(wa.load({ CF_WEB_ANALYTICS_TOKEN: HEX }).cloudflare.explicitSiteTag).toBe('');
+    expect(wa.cloudflareReportingEnabled(wa.load({ CF_ACCOUNT_ID: HEX, CF_API_TOKEN: 't' }))).toBe(true);
   });
 
   it('never exposes a secret to the views', () => {
@@ -145,7 +147,7 @@ describe('Cloudflare report', () => {
 
   beforeEach(() => service.clearCache());
 
-  it('queries one account and one site over the range, and returns the shared shape', async () => {
+  it('filters on the site\'s own host by default, and returns the shared shape', async () => {
     const group = (label, count) => ({ count, dimensions: { label } });
     const fetchImpl = fakeFetch([
       ['https://api.cloudflare.com/client/v4/graphql', () => [200, {
@@ -159,18 +161,30 @@ describe('Cloudflare report', () => {
       }]]
     ]);
     const now = new Date('2026-10-19T12:00:00Z');
-    const report = await service.cloudflareReport(7, { fetchImpl, settings, now });
+    const report = await service.cloudflareReport(7, { fetchImpl, settings, now, host: 'saphub.net' });
 
     const body = JSON.parse(fetchImpl.calls[0].init.body);
     expect(fetchImpl.calls[0].init.headers.Authorization).toBe('Bearer cf-token');
     expect(body.variables).toEqual({
       accountTag: 'b'.repeat(32),
-      siteTag: HEX,
+      host: 'saphub.net',
       from: '2026-10-12T12:00:00.000Z',
       to: '2026-10-19T12:00:00.000Z'
     });
     expect(report.totals).toEqual([{ label: 'Page views', value: 300 }, { label: 'Visits', value: 90 }]);
     expect(report.sources[0]).toEqual({ label: '(direct)', value: 70 });
+    expect(body.query).toMatch(/requestHost: \$host/);
+    expect(body.query).not.toMatch(/siteTag/);
+    expect(report.filteredBy).toBe('host saphub.net');
+  });
+
+  it('uses the dashboard\'s site tag only when one is set explicitly', async () => {
+    const tagged = wa.load({ CF_ACCOUNT_ID: 'b'.repeat(32), CF_API_TOKEN: 'cf-token', CF_WEB_ANALYTICS_SITE_TAG: 'c'.repeat(32) });
+    const fetchImpl = fakeFetch([['https://api.cloudflare.com/', () => [200, { data: { viewer: { accounts: [{}] } } }]]]);
+    await service.cloudflareReport(30, { fetchImpl, settings: tagged });
+    const body = JSON.parse(fetchImpl.calls[0].init.body);
+    expect(body.variables.siteTag).toBe('c'.repeat(32));
+    expect(body.query).toMatch(/siteTag: \$siteTag/);
   });
 
   it('surfaces GraphQL errors, which arrive with a 200', async () => {

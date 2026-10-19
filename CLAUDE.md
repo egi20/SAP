@@ -1670,6 +1670,12 @@ the screen says page views are the only figure both define the same way. GA4's t
 below Cloudflare's by however many visitors declined; that gap is part of what the trial
 measures, not a bug.
 
+**The Cloudflare report filters on the HOST, not on the snippet's token.** The GraphQL
+API keys a site on its site tag, which is a different value from the token in the beacon;
+the first version assumed they were the same and the screen showed a clean zero for a site
+Cloudflare was counting. The host comes from `APP_BASE_URL`, which this application knows
+for certain. `CF_WEB_ANALYTICS_SITE_TAG` overrides it only when set explicitly.
+
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
 Cloudflare edge, so per-IP rate limits, `visit_geo_daily` and `users.signup_country` were all

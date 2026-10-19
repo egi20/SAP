@@ -44,10 +44,10 @@ function load(env = process.env) {
   };
   const cloudflare = {
     beaconToken: (env.CF_WEB_ANALYTICS_TOKEN || '').trim(),
-    // The GraphQL API filters on the site tag. For a site added by snippet it is the same
-    // value as the beacon token, so it defaults to that; set it only if the dashboard says
-    // otherwise.
-    siteTag: (env.CF_WEB_ANALYTICS_SITE_TAG || env.CF_WEB_ANALYTICS_TOKEN || '').trim(),
+    // Optional. The GraphQL API's site tag is NOT the snippet's token, so nothing defaults
+    // it: without it the report filters on the host the site is served from, which this
+    // application knows. Set it only to use the dashboard's own key.
+    explicitSiteTag: (env.CF_WEB_ANALYTICS_SITE_TAG || '').trim(),
     accountId: (env.CF_ACCOUNT_ID || '').trim(),
     apiToken: (env.CF_API_TOKEN || '').trim()
   };
@@ -76,7 +76,7 @@ function problems(s = settings) {
   if (cloudflare.beaconToken && !CF_HEX_RE.test(cloudflare.beaconToken)) {
     out.push('CF_WEB_ANALYTICS_TOKEN must be the 32-character token from the snippet, without quotes');
   }
-  if (cloudflare.siteTag && !CF_HEX_RE.test(cloudflare.siteTag)) {
+  if (cloudflare.explicitSiteTag && !CF_HEX_RE.test(cloudflare.explicitSiteTag)) {
     out.push('CF_WEB_ANALYTICS_SITE_TAG must be 32 hexadecimal characters');
   }
   if (cloudflare.accountId && !CF_HEX_RE.test(cloudflare.accountId)) {
@@ -100,7 +100,7 @@ const ga4ReportingEnabled = (s = settings) =>
   GA4_PROPERTY_RE.test(s.ga4.propertyId) && Boolean(s.ga4.serviceAccountRaw);
 const cloudflareTagEnabled = (s = settings) => CF_HEX_RE.test(s.cloudflare.beaconToken);
 const cloudflareReportingEnabled = (s = settings) =>
-  CF_HEX_RE.test(s.cloudflare.siteTag) && CF_HEX_RE.test(s.cloudflare.accountId) && Boolean(s.cloudflare.apiToken);
+  CF_HEX_RE.test(s.cloudflare.accountId) && Boolean(s.cloudflare.apiToken);
 
 const GA4_HOSTS = Object.freeze({
   script: ['https://www.googletagmanager.com'],

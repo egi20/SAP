@@ -2,6 +2,9 @@
 
 const crypto = require('crypto');
 const webAnalytics = require('../config/webAnalytics');
+const config = require('../config/config');
+
+const defaultHost = () => new URL(config.app.baseUrl).hostname;
 
 /**
  * The two providers' reports, in ONE shape, so the trial compares like with like.
@@ -148,28 +151,37 @@ async function ga4Report(days, { fetchImpl = fetch, settings = webAnalytics.sett
 
 /* ----------------------------------------------------------- Cloudflare */
 
-const CLOUDFLARE_QUERY = `
-query WebAnalytics($accountTag: string!, $siteTag: string!, $from: Time!, $to: Time!) {
+/*
+ * Which page loads are ours. The GraphQL API keys a site on its SITE TAG, which is not the
+ * token in the snippet — the first version assumed it was, and the screen answered a clean
+ * zero for a site Cloudflare was counting. So by default the filter is the HOST the site is
+ * served from (APP_BASE_URL), which this application knows for certain; an explicitly set
+ * CF_WEB_ANALYTICS_SITE_TAG takes over when somebody wants the dashboard's own key.
+ *
+ * Two fixed literals, never assembled from input: the values travel as variables.
+ */
+const CLOUDFLARE_FILTERS = Object.freeze({
+  siteTag: { declare: '$siteTag: string!', filter: '{ siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }' },
+  host: { declare: '$host: string!', filter: '{ requestHost: $host, datetime_geq: $from, datetime_leq: $to }' }
+});
+
+function cloudflareQuery(kind) {
+  const { declare, filter } = CLOUDFLARE_FILTERS[kind];
+  const group = (alias, extra, fields) =>
+    `${alias}: rumPageloadEventsAdaptiveGroups(filter: ${filter}, ${extra}) { ${fields} }`;
+  return `
+query WebAnalytics($accountTag: string!, ${declare}, $from: Time!, $to: Time!) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
-      totals: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }, limit: 1
-      ) { count sum { visits } }
-      pages: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }, limit: 10, orderBy: [count_DESC]
-      ) { count dimensions { label: requestPath } }
-      countries: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }, limit: 10, orderBy: [count_DESC]
-      ) { count dimensions { label: countryName } }
-      sources: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }, limit: 10, orderBy: [count_DESC]
-      ) { count dimensions { label: refererHost } }
-      devices: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $siteTag, datetime_geq: $from, datetime_leq: $to }, limit: 10, orderBy: [count_DESC]
-      ) { count dimensions { label: deviceType } }
+      ${group('totals', 'limit: 1', 'count sum { visits }')}
+      ${group('pages', 'limit: 10, orderBy: [count_DESC]', 'count dimensions { label: requestPath }')}
+      ${group('countries', 'limit: 10, orderBy: [count_DESC]', 'count dimensions { label: countryName }')}
+      ${group('sources', 'limit: 10, orderBy: [count_DESC]', 'count dimensions { label: refererHost }')}
+      ${group('devices', 'limit: 10, orderBy: [count_DESC]', 'count dimensions { label: deviceType }')}
     }
   }
 }`;
+}
 
 /** Pure: a GraphQL response into the shared shape. */
 function normaliseCloudflare(body, days) {
@@ -191,17 +203,18 @@ function normaliseCloudflare(body, days) {
   };
 }
 
-async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalytics.settings, now = new Date() } = {}) {
+async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalytics.settings, now = new Date(), host = defaultHost() } = {}) {
   return cached(`cloudflare:${days}`, async () => {
     const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const bySiteTag = Boolean(settings.cloudflare.explicitSiteTag);
     const res = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
       method: 'POST',
       headers: { Authorization: `Bearer ${settings.cloudflare.apiToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: CLOUDFLARE_QUERY,
+        query: cloudflareQuery(bySiteTag ? 'siteTag' : 'host'),
         variables: {
           accountTag: settings.cloudflare.accountId,
-          siteTag: settings.cloudflare.siteTag,
+          ...(bySiteTag ? { siteTag: settings.cloudflare.explicitSiteTag } : { host }),
           from: from.toISOString(),
           to: now.toISOString()
         }
@@ -212,7 +225,9 @@ async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalyti
       const message = body.errors && body.errors.length ? body.errors.map((e) => e.message).join('; ') : res.status;
       throw new Error(`Cloudflare GraphQL API: ${message}`);
     }
-    return normaliseCloudflare(body, days);
+    const report = normaliseCloudflare(body, days);
+    report.filteredBy = bySiteTag ? `site tag ${settings.cloudflare.explicitSiteTag}` : `host ${host}`;
+    return report;
   });
 }
 
@@ -223,5 +238,6 @@ module.exports = {
   normaliseGa4,
   normaliseCloudflare,
   ga4Requests,
+  cloudflareQuery,
   clearCache
 };

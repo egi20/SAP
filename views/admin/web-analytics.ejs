@@ -67,6 +67,17 @@
         <span class="font-monospace"><%= error %></span>
       </div>
     <% } else if (report) { %>
+      <% if (report.totals[0].value === 0) { %>
+        <div class="alert alert-warning">
+          <i class="bi bi-info-circle"></i>
+          The request worked and the provider has no page views for this range<% if (report.filteredBy) { %> (filtered by <span class="font-monospace"><%= report.filteredBy %></span>)<% } %>.
+          Compare with the provider's own dashboard: if it shows visits, this screen is
+          asking for the wrong site; if it shows none either, the tag is not reaching the
+          provider — a browser with a tracker blocker (Opera, Brave, uBlock Origin) never
+          sends it, so test in an ordinary Chrome window without extensions.
+          <% if (providerKey === 'ga4') { %>GA4 also counts nobody until they press "Allow analytics", and its reports lag by up to a day.<% } %>
+        </div>
+      <% } %>
       <div class="row g-3 mb-4">
         <% report.totals.forEach(function (t) { %>
           <div class="col-6 col-md-4">
