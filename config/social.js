@@ -19,9 +19,9 @@ const config = require('./config');
  */
 const PLATFORMS = Object.freeze([
   { key: 'linkedin', label: 'LinkedIn', icon: 'bi-linkedin', env: 'SOCIAL_LINKEDIN', hosts: ['www.linkedin.com', 'linkedin.com'] },
-  { key: 'x', label: 'X', icon: 'bi-twitter-x', env: 'SOCIAL_X', hosts: ['x.com', 'www.x.com', 'twitter.com'] },
   { key: 'instagram', label: 'Instagram', icon: 'bi-instagram', env: 'SOCIAL_INSTAGRAM', hosts: ['www.instagram.com', 'instagram.com'] },
   { key: 'tiktok', label: 'TikTok', icon: 'bi-tiktok', env: 'SOCIAL_TIKTOK', hosts: ['www.tiktok.com', 'tiktok.com'] },
+  { key: 'x', label: 'X', icon: 'bi-twitter-x', env: 'SOCIAL_X', hosts: ['x.com', 'www.x.com', 'twitter.com'] },
   { key: 'youtube', label: 'YouTube', icon: 'bi-youtube', env: 'SOCIAL_YOUTUBE', hosts: ['www.youtube.com', 'youtube.com'] }
 ]);
 

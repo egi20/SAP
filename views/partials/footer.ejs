@@ -11,7 +11,11 @@
     %>
     <div class="row g-4 mb-4">
       <div class="col-xl-3">
-        <div class="navbar-brand text-white mb-2 d-block">SAP<span class="brand-accent">Hub</span></div>
+        <%# The SH tile and the two-colour wordmark, laid out as dynamicshub.net's footer lays out its own. -%>
+        <a class="footer-brand mb-3" href="/" aria-label="<%= appName %> home">
+          <img src="/images/favicon-192.png" width="48" height="48" alt="">
+          <span class="footer-wordmark"><span class="brand-accent">SAP</span> Hub</span>
+        </a>
         <p class="footer-blurb mb-3">
           Jobs, talent and contributed day-rate benchmarks for the SAP ecosystem.
         </p>
