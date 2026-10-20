@@ -33,6 +33,7 @@ check('product catalogue is consistent', () => require('../config/sapProducts').
 check('certification catalogue is consistent', () => require('../config/certifications').assertCertificationIntegrity());
 check('settings definitions are consistent', () => require('../config/settings').assertSettingsIntegrity());
 check('tax programme is consistent', () => require('../config/taxProgram').assertTaxProgramIntegrity());
+check('legal entity is declared', () => require('../config/legalEntity').assertLegalEntityIntegrity());
 check('country list is non-empty', () => {
   const countries = require('../config/all-countries.json');
   if (!Array.isArray(countries) || countries.length < 100) throw new Error(`only ${countries.length} countries`);

@@ -1632,6 +1632,16 @@ complete confidence they were taken to the right place.
 wording, and the notice's nature — at that point it becomes a consent gate, because then
 there would be something to refuse.
 
+**The Terms of Service state only what the code keeps** (rewritten 2026-10-20). The operator
+(DynamicsHub), the law (Albania, courts of Tirana), the minimum age (16) and the notice period
+for changes live in `config/legalEntity.js`, asserted at boot; the registration number and the
+address are `LEGAL_REGISTRATION_NUMBER` and `LEGAL_ADDRESS`, printed only when set. Closure is
+described from `AccountClosure.KEPT`, the rate floor from `config.rates`. The page promises that
+an author is told what was taken down and why — the Digital Services Act's statement of
+reasons — so `Moderation` emits a `moderation` notification after every hide or restore of a
+post, reply, profile or advert, read from the event row it just wrote, and a test holds it.
+Change a behaviour the terms describe and the terms change with it, with a version bump.
+
 **A material change to a policy bumps its version in `config/legal-versions.js`.** The
 stamp on an account records what that person was shown; leaving it alone backdates the new
 text onto everybody who registered before it existed.

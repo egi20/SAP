@@ -248,6 +248,17 @@ maybe()('hiding content moves everything that hangs off it', () => {
     expect(entry.actor_name).toBe('Super Admin');
   });
 
+  test('the author is told what was taken down and why (Terms §8, DSA)', async () => {
+    const [rows] = await promisePool.query(
+      "SELECT title, body, link FROM notifications WHERE user_id = ? AND type = 'moderation' ORDER BY id DESC",
+      [authorId]
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].title).toBe('Your post was removed from public view');
+    expect(rows[0].body).toContain('Testing the queue');
+    expect(rows[0].link).toBe('/contact');
+  });
+
   /*
    * The case the reference gets wrong.
    *

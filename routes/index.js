@@ -3,6 +3,7 @@
 const express = require('express');
 const AccountClosure = require('../models/AccountClosure');
 const { hasDedupeAccess } = require('../middleware/auth');
+const { LEGAL_ENTITY } = require('../config/legalEntity');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -400,7 +401,13 @@ router.get('/legal/privacy', (req, res) => {
 });
 
 router.get('/legal/terms', (req, res) => {
-  res.render('legal/terms', { title: 'Terms of service', version: legalVersions.TERMS_VERSION });
+  res.render('legal/terms', {
+    title: 'Terms of service',
+    version: legalVersions.TERMS_VERSION,
+    entity: LEGAL_ENTITY,
+    closureKept: AccountClosure.KEPT,
+    rateMinSample: config.rates.minSampleSize
+  });
 });
 
 /**

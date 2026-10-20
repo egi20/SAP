@@ -3,35 +3,131 @@
 <section class="glass-section pb-5">
 <div class="container">
   <div class="row justify-content-center"><div class="col-lg-8">
-    <div class="glass-card"><div class="card-body">
+    <div class="glass-card"><div class="card-body legal-doc">
       <p class="text-muted-2">Version <%= version %></p>
 
-      <h2 class="h6">The service</h2>
-      <p>SAP Hub connects consultants and companies in the SAP ecosystem. We are a
-         marketplace: we are not party to any engagement agreed through it, and we do not employ,
-         vet or guarantee anyone listed here.</p>
+      <%#
+        Every fact here that can change — the operator, the law, the age, the notice period,
+        the support address — is read from config/legalEntity.js or the app config, never
+        typed into this page. A promise this page makes is one the code keeps: closure is
+        AccountClosure, the reporting route is /report-issue, the notice to an author is
+        Moderation's. Change the behaviour and this text with it, and bump TERMS_VERSION.
+      -%>
 
-      <h2 class="h6">Your account</h2>
+      <h2 class="h6">1. Who we are</h2>
+      <p>SAP Hub (the "service") is operated by <strong><%= entity.name %></strong><% if (entity.registrationNumber) { %>,
+         registration number <%= entity.registrationNumber %><% } %><% if (entity.address) { %>,
+         <%= entity.address %><% } %>. You can reach us at
+         <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a> or through the
+         <a href="/contact">contact page</a>. These terms are an agreement between you and
+         <%= entity.name %>.</p>
+
+      <h2 class="h6">2. Who may use the service</h2>
+      <p>You must be at least <%= entity.minimumAge %> years old to create an account. If you use the
+         service on behalf of a company, you confirm that you are allowed to act for it, and these
+         terms bind that company as well as you.</p>
+
+      <h2 class="h6">3. The service</h2>
+      <p>SAP Hub connects consultants and companies in the SAP ecosystem. We are a marketplace: we
+         are not party to any engagement agreed through it, and we do not employ, vet or guarantee
+         anyone listed here. Estimates, benchmarks and the rate index are information, not advice.</p>
+
+      <h2 class="h6">4. Your account</h2>
       <p>One account per person. Keep your password to yourself. You are responsible for what is
-         posted from your account.</p>
+         posted from your account and for keeping the details on it accurate.</p>
 
-      <h2 class="h6">What you post</h2>
-      <p>Job posts and profiles must be truthful and must describe a real role or a real person.
-         Discriminatory postings, fake listings and scraped content are removed and the account is
-         closed.</p>
+      <h2 class="h6">5. What you post, and the licence you give us</h2>
+      <p>Job adverts and profiles must be truthful and must describe a real role or a real person.
+         Discriminatory adverts, fake listings and content copied from elsewhere without permission
+         are not allowed.</p>
+      <p>You keep ownership of what you post. By posting it you give <%= entity.name %> a
+         non-exclusive, royalty-free, worldwide licence to host, store, display and distribute it
+         on the service, for as long as it is on the service and as needed to operate it. For your
+         profile this follows your own settings: a profile is shown only when you publish it, and
+         your name and photograph are shown only to signed-in members.</p>
 
-      <h2 class="h6">Rate contributions</h2>
-      <p>Contribute your own figures only. The index is a community estimate, not advice and not a
-         guarantee of what anyone will pay.</p>
+      <h2 class="h6">6. Rate contributions</h2>
+      <p>Contribute your own figures only. By contributing you allow us to use the figure,
+         anonymously, in the rate index. It is never shown with your name, and a figure is
+         published only as part of a group of at least <%= rateMinSample %> people. The index is a
+         community estimate, not advice and not a guarantee of what anyone will pay.</p>
 
-      <h2 class="h6">Trademarks</h2>
+      <h2 class="h6">7. What you may not do</h2>
+      <ul>
+        <li>scrape, crawl or harvest the service, or copy its listings, profiles or rate data in
+            bulk, by automated means or otherwise, except through features we provide for that;</li>
+        <li>use the service, or anything taken from it, to send unsolicited messages;</li>
+        <li>impersonate anybody, or hold more than one account;</li>
+        <li>try to get around a limit, a block or a security measure;</li>
+        <li>post anything unlawful, or anything that infringes somebody else's rights.</li>
+      </ul>
+
+      <h2 class="h6">8. Reporting content</h2>
+      <p>If you think something on the service is unlawful or breaks these terms, report it through
+         the <a href="/report-issue">Report Issue</a> page (choose "Abuse") or write to
+         <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>, which is also our single point
+         of contact for authorities and users under the EU Digital Services Act. Tell us where it is
+         and why you think it should come down. A person reviews every report.</p>
+      <p>When we remove a post, a reply, a profile or a job advert from public view, we tell its
+         author what was removed and why, and they can ask us to look again by writing to us. We
+         hide content rather than delete it, so a decision we reverse is restored as it was.</p>
+
+      <h2 class="h6">9. Suspension and closing an account</h2>
+      <p><strong>You</strong> can close your account at any time from
+         <a href="/profile/settings/close">Account settings → Close account</a>. Closing it erases your
+         name, email address, password, profiles and photograph. Some records stay, because they
+         belong to other people or to our books:</p>
+      <ul>
+        <% closureKept.forEach(function (k) { %>
+          <li><strong><%= k.what %>.</strong> <%= k.why %></li>
+        <% }) %>
+      </ul>
+      <p><strong>We</strong> may remove content, or suspend or close an account, if it breaks these
+         terms or the law, or to protect other users. We tell the account holder which, and why,
+         unless the law prevents us or the account was plainly created to abuse the service. A
+         suspended account can ask us to look again. What happens to personal data is described in
+         the <a href="/legal/privacy">Privacy policy</a>.</p>
+
+      <h2 class="h6">10. Payments</h2>
+      <p>Paid features — today a featured placement for a job advert and a deposit against an
+         accepted estimate — show their price before you pay. Payments are processed by Stripe; we
+         never see or store your card details. An invoice is issued for each payment and can be found
+         under Payments in your account.</p>
+      <p>A featured placement starts when it is paid and is not refundable once it has started,
+         except where the law says otherwise. A deposit is credited against the engagement it was
+         paid for. If you were charged in error or twice, write to us and we will refund it.
+         <% if (!paymentsReady) { %>Card payments are not switched on yet; nothing on the service can
+         charge you until they are.<% } %></p>
+
+      <h2 class="h6">11. Privacy</h2>
+      <p>How we collect and use personal data — including profiles and the salary and rate figures
+         you give us — is described in the <a href="/legal/privacy">Privacy policy</a>, which forms
+         part of these terms.</p>
+
+      <h2 class="h6">12. Trademarks</h2>
       <p>SAP, S/4HANA, SuccessFactors, Ariba, Concur, Fieldglass and related names are
          trademarks of SAP SE. This service is independent and not affiliated with,
          endorsed by, or sponsored by SAP SE.</p>
 
-      <h2 class="h6">Liability</h2>
-      <p>The service is provided as-is. We are not liable for engagements, hiring decisions or losses
-         arising from information found here.</p>
+      <h2 class="h6">13. Liability</h2>
+      <p>The service is provided as it is. To the extent permitted by law, <%= entity.name %> is not
+         liable for engagements agreed through the service, for hiring decisions, or for losses
+         arising from information found here. Nothing in these terms limits liability for death or
+         personal injury caused by negligence, for fraud, for gross negligence or wilful misconduct,
+         or any other liability that cannot be limited by law, and nothing affects rights you have
+         as a consumer that cannot be waived.</p>
+
+      <h2 class="h6">14. Changes to these terms</h2>
+      <p>The version at the top of this page is the date of the current text. When we change these
+         terms materially we will tell you by email or by a notice on the service at least
+         <%= entity.noticeDays %> days before the change takes effect. If you continue to use the
+         service after that date, the new terms apply; if you do not agree, you can close your
+         account before then.</p>
+
+      <h2 class="h6">15. Governing law and disputes</h2>
+      <p>These terms are governed by <%= entity.governingLaw %>. Disputes are decided by
+         <%= entity.courts %>, unless the law of the country you live in gives you, as a consumer,
+         the right to bring or defend a claim in your own courts.</p>
     </div></div>
   </div></div>
 </div>

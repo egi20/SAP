@@ -27,6 +27,7 @@ const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
 const { assertTaxProgramIntegrity } = require('./config/taxProgram');
+const { LEGAL_ENTITY, assertLegalEntityIntegrity } = require('./config/legalEntity');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
 const { assertBenchmarkIntegrity } = require('./config/rateBenchmark');
 const { assertEngagementIntegrity } = require('./config/engagementModels');
@@ -148,6 +149,7 @@ assertJobSectionsIntegrity();
  * this block exists for.
  */
 assertTaxProgramIntegrity();
+assertLegalEntityIntegrity();
 
 /*
  * And the CRM's own vocabulary. Two of the things this one checks are about somebody's
@@ -383,6 +385,7 @@ app.use((req, res, next) => {
    */
   res.locals.assistantReady = assistantConfig.isConfigured();
   res.locals.paymentsReady = stripeForLocals.isConfigured();
+  res.locals.legalEntity = LEGAL_ENTITY;
   res.locals.assistantMaxChars = assistantConfig.MAX_MESSAGE_CHARS;
   // Same rule as the assistant widget: a button that leads to "not switched on here" is
   // worse than no button.

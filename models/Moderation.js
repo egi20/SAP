@@ -3,6 +3,7 @@
 const { promisePool, withTransaction } = require('../config/database');
 const Points = require('./Points');
 const { POINT_AWARDS } = require('../config/community');
+const Notification = require('./Notification');
 
 /**
  * Taking content down, and being able to say why later.
@@ -463,5 +464,56 @@ class Moderation {
     return { posts, replies, rates, jobs, profiles };
   }
 }
+
+/*
+ * Telling the author. The Terms of Service promise it, and the EU's Digital Services Act
+ * asks for it: somebody whose content is taken down is told WHAT and WHY, and how to
+ * contest it. Read from the event row just written — the reason is the one the moderator
+ * typed, never a second copy. After the transaction, never inside it: a notification for a
+ * decision that rolled back would tell somebody something that did not happen, and a failed
+ * notification must not undo a decision (`emit` never throws).
+ *
+ * Rate submissions are not here. A voided figure was never shown to anybody as theirs, so
+ * there is no publication to take down, only arithmetic.
+ */
+const NOTICE_SUBJECTS = Object.freeze({
+  post: 'post',
+  reply: 'reply',
+  consultant_profile: 'consultant profile',
+  job: 'job advert'
+});
+
+async function noticeFor(eventId) {
+  try {
+    const [[event]] = await promisePool.query(
+      'SELECT subject_type, subject_id, action, subject_user_id, reason FROM moderation_events WHERE id = ?',
+      [eventId]
+    );
+    if (!event || !event.subject_user_id || !NOTICE_SUBJECTS[event.subject_type]) return;
+    const what = NOTICE_SUBJECTS[event.subject_type];
+    const hidden = event.action === 'hide';
+    await Notification.emit({
+      userId: event.subject_user_id,
+      type: 'moderation',
+      title: hidden ? `Your ${what} was removed from public view` : `Your ${what} is no longer taken down`,
+      body: hidden
+        ? `Reason: ${event.reason || 'not given'}. If you think this is wrong, write to us from the contact page and a person will look again.`
+        : 'Our decision has been reversed.',
+      link: hidden ? '/contact' : null,
+      dedupeKey: `moderation:${eventId}`
+    });
+  } catch (err) {
+    console.error(`Moderation notice failed for event ${eventId}: ${err.message}`);
+  }
+}
+
+['setPostHidden', 'setReplyHidden', 'setProfileHidden', 'setJobHidden'].forEach((name) => {
+  const decide = Moderation[name];
+  Moderation[name] = async function decideAndTell(...args) {
+    const result = await decide.apply(Moderation, args);
+    if (result && result.changed && result.eventId) await noticeFor(result.eventId);
+    return result;
+  };
+});
 
 module.exports = Moderation;

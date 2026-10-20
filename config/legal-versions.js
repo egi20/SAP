@@ -16,5 +16,8 @@ module.exports = {
   // 2026-10-19: the Cookies and Visitor analytics sections describe Google Analytics (behind
   // a consent choice) and Cloudflare Web Analytics, each rendered only when configured.
   PRIVACY_VERSION: '2026-10-19',
-  TERMS_VERSION: '2026-09-01'
+  // 2026-10-20: rewritten — who operates the service and under which law, minimum age,
+  // licence over content, scraping, closure and suspension, notice of changes, reporting
+  // content under the DSA, payments, and liability limited only as far as the law allows.
+  TERMS_VERSION: '2026-10-20'
 };
