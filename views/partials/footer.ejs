@@ -6,11 +6,11 @@
       so it is organised the same way the navigation is — by who you are and what you came
       for — rather than as one list of everything. Six columns, and every link in them
       points at a route that exists: a test walks this file and the navigation and opens
-      each one. The reference's footer names a blog and an issue reporter; neither is built
-      here yet, so neither is listed.
+      each one. The reference's Budget Planner is the one item not here, because SAP Hub
+      has no such page and a link to one that does not exist is worse than none.
     %>
     <div class="row g-4 mb-4">
-      <div class="col-lg-4">
+      <div class="col-xl-3">
         <div class="navbar-brand text-white mb-2 d-block">SAP<span class="brand-accent">Hub</span></div>
         <p class="footer-blurb mb-3">
           Jobs, talent and contributed day-rate benchmarks for the SAP ecosystem.
@@ -27,66 +27,81 @@
         </ul>
       </div>
 
-      <div class="col-6 col-md-4 col-lg-2">
+      <%#
+        The columns and their first items follow dynamicshub.net's footer, in its order and
+        its Title Case, and the same labels as the navigation menus above — two names for one
+        page, a menu saying "Find Jobs" and a footer saying "Find work", read as two pages.
+        What SAP Hub has and the reference does not comes after the reference's own items.
+      -%>
+      <div class="col-6 col-md-4 col-xl">
         <h3>Consultant Hub</h3>
         <ul class="list-unstyled">
-          <li><a href="/consultant-hub">For consultants</a></li>
-          <li><a href="/jobs">Find work</a></li>
-          <li><a href="/auth/register">Create a profile</a></li>
-          <li><a href="/rates">Rate index</a></li>
-          <li><a href="/cv-generator">Build your CV</a></li>
-          <li><a href="/success-stories">Success stories</a></li>
+          <li><a href="/consultant-hub">Consultant Hub</a></li>
+          <li><a href="/jobs">Find Jobs</a></li>
+          <%# Same target as the menu's Build Profile: a visitor signs in and is brought back. -%>
+          <li><a href="/profile/consultant">Build Profile</a></li>
+          <li><a href="/cv-generator">CV Generator</a></li>
+          <li><a href="/success-stories">Success Stories</a></li>
         </ul>
       </div>
 
-      <div class="col-6 col-md-4 col-lg-2">
+      <div class="col-6 col-md-4 col-xl">
         <h3>Companies Hub</h3>
         <ul class="list-unstyled">
-          <li><a href="/company-hub">For companies</a></li>
-          <li><a href="/consultants">Find consultants</a></li>
-          <li><a href="/jobs/new">Post a role</a></li>
-          <li><a href="/companies/staff-augmentation">Staff augmentation</a></li>
-          <li><a href="/companies/project-based">Project-based</a></li>
-          <li><a href="/companies/managed-services">Managed services</a></li>
+          <li><a href="/company-hub">Company Hub</a></li>
+          <li><a href="/consultants">Browse Talent</a></li>
+          <li><a href="/quotes/new">Get SOW Quote</a></li>
+          <li><a href="/companies/staff-augmentation">Staff Augmentation</a></li>
+          <li><a href="/companies/project-based">Project-Based</a></li>
+          <li><a href="/companies/managed-services">Managed Services</a></li>
+          <li><a href="/jobs/new">Post a Role</a></li>
           <li><a href="/recruiters">Agencies</a></li>
         </ul>
       </div>
 
-      <div class="col-6 col-md-4 col-lg-2">
+      <div class="col-6 col-md-4 col-xl">
         <h3>Services</h3>
         <ul class="list-unstyled">
-          <li><a href="/rates">Rate &amp; salary index</a></li>
-          <li><a href="/rates/calculator">Benchmark your rate</a></li>
-          <li><a href="/quotes/new">Scope estimator</a></li>
-          <li><a href="/payments">Pricing</a></li>
+          <li><a href="/tax">Tax Optimization</a></li>
+          <li><a href="/rates">Rate &amp; Salary Index</a></li>
+          <li><a href="/quotes/new">SOW Generator</a></li>
+          <li><a href="/cv-generator">Document Generator</a></li>
+          <li><a href="/dedupe">Dedupe</a></li>
+          <li><a href="/rates/calculator">Benchmark Your Rate</a></li>
+          <li><a href="/challenges">Daily Challenge</a></li>
+          <%# Only once card payments are switched on: a link whose page says "not switched on yet" is a promise the site cannot keep. -%>
+          <% if (typeof paymentsReady !== 'undefined' && paymentsReady) { %>
+            <li><a href="/payments">Pricing</a></li>
+          <% } %>
         </ul>
       </div>
 
-      <div class="col-6 col-md-4 col-lg-2">
+      <div class="col-6 col-md-4 col-xl">
         <h3>Community</h3>
         <ul class="list-unstyled">
-          <li><a href="/community">Questions &amp; posts</a></li>
+          <li><a href="/">Home Feed</a></li>
+          <li><a href="/community">Forum</a></li>
           <li><a href="/community/articles">Articles</a></li>
-          <li><a href="/community?kind=question&amp;unanswered=1">Unanswered questions</a></li>
-          <li><a href="/challenges">Daily challenge</a></li>
+          <li><a href="/community/new?kind=question">Ask a Question</a></li>
+          <li><a href="/community/new?kind=article">Share an Article</a></li>
+          <li><a href="/community?kind=question&amp;unanswered=1">Unanswered Questions</a></li>
           <li><a href="/search">Search the Hub</a></li>
         </ul>
       </div>
 
-      <div class="col-6 col-md-4 col-lg-2">
+      <div class="col-6 col-md-4 col-xl">
         <h3>Company</h3>
         <ul class="list-unstyled">
-          <li><a href="/about">About us</a></li>
+          <li><a href="/about">About Us</a></li>
           <li><a href="/blog">Blog</a></li>
           <li><a href="/faq">FAQ</a></li>
           <li><a href="/contact">Contact</a></li>
-          <li><a href="/tax">Talk to a tax specialist</a></li>
-          <li><a href="/report-issue">Report a problem</a></li>
+          <li><a href="/report-issue">Report Issue</a></li>
         </ul>
         <h3 class="mt-3">Legal</h3>
         <ul class="list-unstyled">
-          <li><a href="/legal/privacy">Privacy policy</a></li>
-          <li><a href="/legal/terms">Terms of service</a></li>
+          <li><a href="/legal/privacy">Privacy Policy</a></li>
+          <li><a href="/legal/terms">Terms of Service</a></li>
           <% if (wa.ga4Id) { %>
             <%#
               A button, not a link: it changes a setting in this browser and goes nowhere.

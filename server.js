@@ -13,6 +13,7 @@ const config = require('./config/config');
 const { pool, promisePool } = require('./config/database');
 const { assertTaxonomyIntegrity, roleLabel } = require('./config/roleTaxonomy');
 const { countryName, locationLabel } = require('./utils/geo');
+const stripeForLocals = require('./utils/stripe');
 const { assertCatalogueIntegrity, moduleLabel, lineLabel } = require('./config/sapProducts');
 const { assertCertificationIntegrity } = require('./config/certifications');
 const { assertSettingsIntegrity } = require('./config/settings');
@@ -381,6 +382,7 @@ app.use((req, res, next) => {
    * opens a panel which answers 503 advertises something the deployment does not have.
    */
   res.locals.assistantReady = assistantConfig.isConfigured();
+  res.locals.paymentsReady = stripeForLocals.isConfigured();
   res.locals.assistantMaxChars = assistantConfig.MAX_MESSAGE_CHARS;
   // Same rule as the assistant widget: a button that leads to "not switched on here" is
   // worse than no button.
