@@ -54,13 +54,15 @@ describe('navbar menus', () => {
     expect(block.indexOf('dropdown-divider')).toBeLessThan(block.indexOf('Staff Augmentation'));
   });
 
-  it('Services: five items, in order', () => {
+  // SAP Games joined on 2026-10-21, when the games beyond the daily challenge arrived.
+  it('Services: six items, in order', () => {
     expect(menuLabels('Services').map(([, label]) => label)).toEqual([
       'Tax Optimization',
       'Rate &amp; Salary Index',
       'SOW Generator',
       'Document Generator',
-      'Dedupe'
+      'Dedupe',
+      'SAP Games'
     ]);
   });
 

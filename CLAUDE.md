@@ -1522,11 +1522,23 @@ written into three of four write paths is a gate that is off.
 the boot assertion checks it. A topic nothing else on the site knows is a dead end for
 somebody told to go and read about it.
 
-**One game, not nine.** The other eight in DynamicsHub — match, flashcard, typing, word
-search, bug hunter, scenario, code quiz, streak check-in — are the same
-client-authoritative shape wearing different UI; porting them would be porting the bug
-eight more times. The streak is kept and DERIVED from attempt dates, rather than posted by
-a check-in endpoint the browser can call as often as it likes.
+**The other games arrived on 2026-10-21, WITHOUT the reference's shape** (owner's request;
+until then this paragraph said "one game, not nine" and why). `config/games.js`,
+`models/Game.js`, `routes/games.js`, migration 033, `/games`. Five are SCORED — code match,
+project scenarios, ABAP output, bug hunter, word search — and each is the challenge's design
+again: a set derived from the server's UTC date, `publicFormOf` the only thing a page sees
+before grading, `grade()` on the server, `UNIQUE (user_id, game, game_date)`, points settled
+once per attempt (`game_completed`, at most 2 a game: a perfect set 2, half right 1). Two are
+PRACTICE — flashcards and typing — and store, rank and pay nothing: a typing speed is timed
+by the browser's clock and can only ever be what the browser says, which is the one part of
+the reference that cannot be made honest, so it is not on a board. Streak check-in is still
+not a game; the streak stays derived. Routes resolve the game from the catalogue, never a
+per-game literal. **The content is SAP's own vocabulary and must be TRUE in S/4HANA** — a
+wrong transaction code is a wrong fact taught to somebody preparing for a project — so when
+S/4HANA changed the answer (BP for customers and suppliers, MATDOC for material documents)
+the bank says so. Banks grow forward only (`since`/`retired`), for the reason `activeOn`
+gives. The word-search boot assertion builds sixty days of grids and fails if a word does
+not fit.
 
 ## Auth and roles
 

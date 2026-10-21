@@ -1,0 +1,191 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: game.icon,
+  heading: game.title,
+  sub: game.blurb
+}) %>
+
+<%#
+  One template for every game, branching on the key. Before an attempt is closed it is
+  handed `set` — the PUBLIC form, with no answer, no correct meaning, no word and no
+  explanation in it. After grading it is handed `results` and no `set`. The answer key is
+  only ever rendered from `results`.
+%>
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+  <p class="small mb-3"><a href="/games"><i class="bi bi-arrow-left"></i> All SAP games</a></p>
+
+  <div class="row g-4">
+    <div class="<%= game.scored ? 'col-lg-8' : 'col-lg-10' %>">
+
+    <% if (results) { %>
+      <div class="glass-card mb-4"><div class="card-body p-4 text-center">
+        <div class="display-5 fw-semibold mb-1"><%= results.score %> / <%= results.total %></div>
+        <p class="text-muted-2 mb-0">
+          <% if (results.points > 0) { %><%= results.points %> point<%= results.points === 1 ? '' : 's' %> added to your standing.
+          <% } else { %>No points this time — the answers below are the useful half.<% } %>
+          A new set arrives tomorrow.
+        </p>
+      </div></div>
+
+      <% results.results.forEach(function (r, i) { %>
+        <div class="glass-card mb-3"><div class="card-body p-4">
+          <div class="d-flex gap-2 align-items-start mb-2">
+            <i class="bi <%= r.correct ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' %> flex-shrink-0 mt-1"></i>
+            <div class="flex-grow-1">
+            <% if (game.key === 'match') { %>
+              <h2 class="h6 mb-1"><span class="font-monospace"><%= r.term %></span> <span class="small text-muted-2">(<%= r.kind %>)</span></h2>
+              <p class="small mb-0"><strong>Answer:</strong> <%= r.answer %></p>
+              <% if (!r.correct) { %><p class="small text-muted-2 mb-0">You chose: <%= r.chosen || 'nothing' %></p><% } %>
+
+            <% } else if (game.key === 'wordsearch') { %>
+              <h2 class="h6 mb-1"><%= r.clue %></h2>
+              <p class="small mb-0"><strong>Answer:</strong> <span class="font-monospace"><%= r.answer %></span></p>
+              <% if (!r.correct) { %><p class="small text-muted-2 mb-0">You wrote: <%= r.chosen || 'nothing' %></p><% } %>
+
+            <% } else if (game.key === 'bughunter') { %>
+              <h2 class="h6 mb-2">Snippet <%= i + 1 %></h2>
+              <pre class="game-code mb-2"><% r.code.forEach(function (line, n) { %><span class="<%= n === r.answer ? 'bug-line' : '' %>"><%= String(n + 1).padStart(2, ' ') %>  <%= line %></span>
+<% }); %></pre>
+              <p class="small mb-1"><strong>The bug is on line <%= r.answer + 1 %>.</strong>
+                <% if (!r.correct) { %>You picked <%= r.chosen === null ? 'nothing' : 'line ' + (r.chosen + 1) %>.<% } %></p>
+              <p class="small text-muted-2 mb-0"><%= r.explain %></p>
+
+            <% } else { %>
+              <h2 class="h6 mb-2"><%= i + 1 %>. <%= r.prompt %></h2>
+              <% if (r.code) { %><pre class="game-code mb-2"><%= r.code.join('\n') %></pre><% } %>
+              <ul class="list-unstyled small mb-2">
+                <% r.options.forEach(function (option, index) { %>
+                  <li class="<%= index === r.answer ? 'fw-semibold' : '' %>"><%= option %>
+                    <% if (index === r.answer) { %><span class="badge-hub ms-1">correct</span><% } %>
+                    <% if (index === r.chosen && index !== r.answer) { %><span class="badge-hub muted ms-1">you chose this</span><% } %>
+                  </li>
+                <% }); %>
+                <% if (r.chosen === null) { %><li class="text-muted-2">You did not answer this one.</li><% } %>
+              </ul>
+              <p class="small text-muted-2 mb-0"><%= r.explain %></p>
+            <% } %>
+            </div>
+          </div>
+        </div></div>
+      <% }); %>
+
+    <% } else if (game.key === 'flashcards') { %>
+      <p class="small text-muted-2">Read the code, say what it is, then open the card. Nothing is recorded.</p>
+      <div class="row g-3">
+        <% set.items.forEach(function (c) { %>
+          <div class="col-sm-6 col-md-4"><details class="glass-card flashcard h-100"><summary class="card-body">
+            <span class="font-monospace fs-5"><%= c.term %></span>
+            <span class="small text-muted-2 d-block"><%= c.kind %> · tap to reveal</span>
+          </summary><div class="card-body pt-0"><p class="mb-0"><%= c.meaning %></p></div></details></div>
+        <% }); %>
+      </div>
+
+    <% } else if (game.key === 'typing') { const passage = set.items[0]; %>
+      <div class="glass-card" data-typing><div class="card-body p-4">
+        <p class="typing-target mb-3" data-typing-target><%= passage.text %></p>
+        <label for="typingInput" class="form-label small">Type the passage above</label>
+        <textarea id="typingInput" class="form-control mb-3" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" data-typing-input></textarea>
+        <p class="small mb-0" data-typing-status aria-live="polite">The timer starts with your first key.</p>
+        <noscript><p class="small text-muted-2 mt-2 mb-0">The speed is measured in your browser, so it needs scripting.</p></noscript>
+      </div></div>
+      <p class="small text-muted-2 mt-3 mb-0">Your speed is shown here and nowhere else — it is not sent, stored or ranked.</p>
+
+    <% } else { %>
+      <form method="post" action="/games/<%= game.key %>" data-game-form="<%= game.key %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <% if (game.key === 'match') { %>
+          <div class="glass-card"><div class="card-body p-4">
+            <p class="small text-muted-2">Pick what each one is. Every meaning is used exactly once.</p>
+            <% set.items.forEach(function (item) { %>
+              <div class="row g-2 align-items-center mb-3">
+                <div class="col-sm-4"><label class="form-label mb-0" for="m-<%= item.id %>"><span class="font-monospace fw-semibold"><%= item.term %></span> <span class="small text-muted-2"><%= item.kind %></span></label></div>
+                <div class="col-sm-8">
+                  <select class="form-select" id="m-<%= item.id %>" name="answers[<%= item.id %>]" required>
+                    <option value="">Choose…</option>
+                    <% set.meanings.forEach(function (m, index) { %><option value="<%= index %>"><%= m %></option><% }); %>
+                  </select>
+                </div>
+              </div>
+            <% }); %>
+          </div></div>
+
+        <% } else if (game.key === 'wordsearch') { %>
+          <div class="glass-card mb-3"><div class="card-body p-3">
+            <div class="word-grid" style="--grid: <%= gridSize %>" data-word-grid>
+              <% set.grid.forEach(function (row, r) { row.split('').forEach(function (letter, c) { %><button type="button" class="word-cell" data-r="<%= r %>" data-c="<%= c %>"><%= letter %></button><% }); }); %>
+            </div>
+            <p class="small text-muted-2 mt-2 mb-0">Words run left to right, down, or diagonally. Tap the first and the last letter of a word to copy it into the selected clue — or just type it.</p>
+          </div></div>
+          <div class="glass-card"><div class="card-body p-4">
+            <% set.items.forEach(function (item) { %>
+              <div class="mb-3">
+                <label class="form-label small mb-1" for="w-<%= item.id %>"><%= item.clue %> <span class="text-muted-2">(<%= item.letters %> letters)</span></label>
+                <input class="form-control font-monospace text-uppercase" id="w-<%= item.id %>" name="answers[<%= item.id %>]" maxlength="<%= item.letters + 4 %>" autocomplete="off" data-word-input>
+              </div>
+            <% }); %>
+          </div></div>
+
+        <% } else if (game.key === 'bughunter') { %>
+          <% set.items.forEach(function (item, i) { %>
+            <div class="glass-card mb-3"><div class="card-body p-4">
+              <fieldset>
+                <legend class="h6 mb-2">Snippet <%= i + 1 %> — which line is wrong?</legend>
+                <% item.code.forEach(function (line, n) { %>
+                  <div class="form-check code-option">
+                    <input class="form-check-input" type="radio" required name="answers[<%= item.id %>]" value="<%= n %>" id="b<%= i %>l<%= n %>">
+                    <label class="form-check-label font-monospace small" for="b<%= i %>l<%= n %>"><span class="text-muted-2"><%= n + 1 %></span>&nbsp; <%= line %></label>
+                  </div>
+                <% }); %>
+              </fieldset>
+            </div></div>
+          <% }); %>
+
+        <% } else { %>
+          <% set.items.forEach(function (item, i) { %>
+            <div class="glass-card mb-3"><div class="card-body p-4">
+              <fieldset>
+                <legend class="h6 mb-2"><%= i + 1 %>. <%= item.prompt %></legend>
+                <% if (item.code) { %><pre class="game-code mb-3"><%= item.code.join('\n') %></pre><% } %>
+                <% item.options.forEach(function (option, index) { %>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" required name="answers[<%= item.id %>]" value="<%= index %>" id="q<%= i %>o<%= index %>">
+                    <label class="form-check-label" for="q<%= i %>o<%= index %>"><%= option %></label>
+                  </div>
+                <% }); %>
+              </fieldset>
+            </div></div>
+          <% }); %>
+        <% } %>
+
+        <button class="btn btn-primary btn-lg w-100 mt-3" type="submit">Submit my answers</button>
+        <p class="small text-muted-2 text-center mt-3 mb-0">One attempt a day. This page does not know the answers — they are marked on the server.</p>
+      </form>
+    <% } %>
+    </div>
+
+    <% if (game.scored) { %>
+    <div class="col-lg-4">
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6 mb-3">Today's board</h2>
+        <% if (!board.length) { %>
+          <p class="small text-muted-2 mb-0">Nobody has played this one yet today.</p>
+        <% } else { %>
+          <ol class="list-unstyled small mb-0">
+            <% board.forEach(function (row, i) { %>
+              <li class="d-flex justify-content-between"><span class="text-truncate me-2"><%= i + 1 %>. <%= row.name %></span><span class="text-nowrap"><%= row.score %>/<%= row.total %></span></li>
+            <% }); %>
+          </ol>
+        <% } %>
+      </div></div>
+    </div>
+    <% } %>
+  </div>
+</div>
+</section>
+
+<script src="/js/games.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
+<%- include('../partials/layout-end') %>

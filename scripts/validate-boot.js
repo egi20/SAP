@@ -41,6 +41,7 @@ check('country list is non-empty', () => {
 });
 check('country dropdown list is consistent', () => require('../config/countries').assertCountriesIntegrity());
 check('dashboard tiles are well formed', () => require('../config/dashboard').assertDashboardIntegrity());
+check('SAP games are consistent', () => require('../config/games').assertGamesIntegrity());
 check('web analytics ids are well formed', () => require('../config/webAnalytics').assertWebAnalyticsIntegrity());
 
 /*

@@ -2001,3 +2001,29 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .shot-preview .shot-caption { display: block; font-size: 0.75rem; overflow-wrap: anywhere; margin-top: 0.25rem; }
 .shot-preview.is-too-big .shot-caption { color: var(--bs-danger); }
 .faq-suggest { border-left: 3px solid var(--border-color); padding-left: 0.75rem; }
+
+/* ---------------------------------------------------------------- SAP games */
+.game-tile { color: inherit; transition: transform .15s ease; }
+.game-tile:hover, .game-tile:focus-visible { transform: translateY(-2px); color: inherit; }
+.game-tile .bi { color: var(--primary-blue); }
+.game-code {
+  background: var(--bg-light); border: 1px solid var(--border-color); border-radius: .5rem;
+  padding: .75rem 1rem; font-size: .82rem; white-space: pre; overflow-x: auto; color: var(--text-dark);
+}
+.game-code .bug-line { background: var(--bs-danger-bg-subtle); display: inline-block; min-width: 100%; }
+.code-option .form-check-label { white-space: pre-wrap; overflow-wrap: anywhere; }
+.word-grid {
+  display: grid; grid-template-columns: repeat(var(--grid, 12), 1fr); gap: 2px;
+  max-width: 34rem; margin: 0 auto; user-select: none;
+}
+.word-cell {
+  aspect-ratio: 1; border: 1px solid var(--border-color); border-radius: .3rem; background: var(--bg-white);
+  font-family: var(--bs-font-monospace); font-weight: 600; font-size: clamp(.7rem, 2.6vw, 1rem); padding: 0; color: var(--text-dark);
+}
+.word-cell:hover { border-color: var(--primary-blue); }
+.word-cell.is-start { background: var(--primary-blue); color: var(--bg-white); }
+.word-cell.is-picked { background: var(--bs-success-bg-subtle); }
+.flashcard summary { list-style: none; cursor: pointer; }
+.flashcard summary::-webkit-details-marker { display: none; }
+.flashcard[open] summary { border-bottom: 1px solid var(--border-color); }
+.typing-target { font-size: 1.05rem; line-height: 1.7; }

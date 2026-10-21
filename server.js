@@ -26,6 +26,7 @@ const linkedinConfig = require('./config/linkedin');
 const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
+const { assertGamesIntegrity } = require('./config/games');
 const { assertTaxProgramIntegrity } = require('./config/taxProgram');
 const { LEGAL_ENTITY, assertLegalEntityIntegrity } = require('./config/legalEntity');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
@@ -105,6 +106,11 @@ assertLinkedInIntegrity();
  * somebody plays rather than at the moment somebody could fix it.
  */
 assertChallengeIntegrity();
+/*
+ * And the SAP games: an answer outside its options, a bug on a line the snippet does not
+ * have, or a word that no longer fits its grid is a game nobody can win.
+ */
+assertGamesIntegrity();
 /*
  * And the Hub's own social accounts: a link whose host carries a typo looks right in a
  * diff and is wrong on every page of the site until somebody outside reports it.
@@ -466,6 +472,7 @@ app.use('/search', require('./routes/search'));
 app.use('/recruiters', require('./routes/recruiters'));
 app.use('/success-stories', require('./routes/stories'));
 app.use('/challenges', require('./routes/challenges'));
+app.use('/games', require('./routes/games'));
 
 app.use(notFound);
 app.use(errorHandler);

@@ -164,7 +164,9 @@ const POINT_AWARDS = {
   reply_upvoted: { points: 1, label: 'Reply upvoted' },
   profile_completed: { points: 20, label: 'Profile completed' },
   rate_contributed: { points: 10, label: 'Contributed a rate' },
-  challenge_completed: { points: 1, label: 'Daily challenge' }
+  challenge_completed: { points: 1, label: 'Daily challenge' },
+  // At most two a game: config/games.js pointsFor. Settled per attempt, like the challenge.
+  game_completed: { points: 2, label: 'SAP game' }
 };
 
 /**
