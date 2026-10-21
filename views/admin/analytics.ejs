@@ -67,6 +67,97 @@
     }) %>
   </div></div>
 
+  <%#
+    Tax optimisation — who opens it. Counted by this application, signed-in people by name
+    (superadmin only), everybody signed out as one count. An empty panel says WHICH kind of
+    nothing it is showing, because a failing recorder and a quiet week look identical.
+  %>
+  <% const ti = taxInterest; const fmtWhen = function (d) { return d ? new Date(d).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '—'; }; %>
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 mb-1"><i class="bi bi-piggy-bank"></i> Tax optimisation — who opens it <span class="badge-hub">Server-side</span></h2>
+    <p class="small text-muted-2 mb-3">
+      Three steps of <a href="/tax">/tax</a>, in this range. <strong>People</strong> are signed-in
+      members, each counted once however often they came back; signed-out visits are counted but
+      never identified. Crawlers are left out.
+    </p>
+
+    <% if (ti.funnel) { const anon = ti.funnel[0].anonymousViews; %>
+      <div class="row g-3 mb-3">
+        <% ti.funnel.forEach(function (f) { %>
+          <div class="col-6 col-md-3"><div class="border rounded-3 p-3 h-100">
+            <p class="stat-value mb-0"><%= n(f.people) %></p>
+            <p class="small mb-0"><%= f.label %></p>
+            <p class="small text-muted-2 mb-0"><%= n(f.views) %> views · <%= n(f.anonymousViews) %> signed out</p>
+          </div></div>
+        <% }); %>
+        <div class="col-6 col-md-3"><div class="border rounded-3 p-3 h-100">
+          <% if (ti.applied) { %>
+            <p class="stat-value mb-0"><%= n(ti.applied.applications) %></p>
+            <p class="small mb-0">Applications sent</p>
+            <p class="small text-muted-2 mb-0"><%= n(ti.applied.people) %> from signed-in members</p>
+          <% } else { %>
+            <p class="stat-value mb-0">—</p><p class="small mb-0">Applications sent</p>
+          <% } %>
+        </div></div>
+      </div>
+      <p class="small text-muted-2 mb-3" id="taxAnonNote">
+        <i class="bi bi-incognito"></i> <%= n(anon) %> views of the page came from people who were not signed in —
+        the names below are only the part of the audience that had an account open.
+      </p>
+    <% } %>
+
+    <% if (!ti.ok) { %>
+      <p class="small text-danger mb-2"><i class="bi bi-exclamation-triangle"></i>
+        Part of this panel could not be read, so a missing figure is a gap, not a zero:
+        <span class="font-monospace"><%= ti.errors.join(' · ') %></span></p>
+    <% } %>
+
+    <% if (ti.health) { const h = ti.health; %>
+      <p class="small text-muted-2 mb-2" id="taxRecorderNote"><i class="bi bi-info-circle"></i>
+        <% if (h.readError) { %>
+          The recorder's table could not be read (<span class="font-monospace"><%= h.readError %></span>) — run <code>npm run migrate</code>.
+        <% } else if (h.lastWrite.ok === false) { %>
+          The last attempt to record a visit failed: <span class="font-monospace"><%= h.lastWrite.error %></span>.
+        <% } else if (!h.rows) { %>
+          Nothing has been recorded yet, in any range. Recording started with this release; open <a href="/tax">/tax</a> in a browser to see the first row.
+        <% } else { %>
+          Nothing in this range, but the recorder is working: <%= n(h.rows) %> rows in all, the latest <%= fmtWhen(h.lastAt) %>. Widen the range.
+        <% } %>
+      </p>
+    <% } %>
+
+    <% if (ti.people) { %>
+      <h3 class="h6 mt-3 mb-2">Who opened it <span class="small text-muted-2">(signed-in, most recent first)</span></h3>
+      <% if (!ti.people.length) { %>
+        <p class="small text-muted-2 mb-0">No signed-in member opened it in this range.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th scope="col">Person</th><th scope="col">How far they got</th><th scope="col" class="text-end">Views</th><th scope="col">Last opened</th></tr></thead>
+            <tbody>
+              <% ti.people.forEach(function (p) { %>
+                <tr>
+                  <td>
+                    <a href="/admin/users?q=<%= encodeURIComponent(p.email) %>" target="_blank" rel="noopener"><%= p.name %></a>
+                    <span class="small text-muted-2 d-block"><%= p.email %><%= p.active ? '' : ' · inactive' %></span>
+                  </td>
+                  <td>
+                    <%= taxSteps[p.furthest] %>
+                    <% if (p.applied) { %><a href="/admin/tax-applications" class="badge-hub ms-1">Applied</a><% } %>
+                  </td>
+                  <td class="text-end"><%= n(p.views) %></td>
+                  <td class="small"><%= fmtWhen(p.lastAt) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    <% } else { %>
+      <p class="small text-muted-2 mb-0"><i class="bi bi-shield-lock"></i> The names behind these counts are visible to superadmins only, like the tax application queue.</p>
+    <% } %>
+  </div></div>
+
   <h2 class="h6 mb-2">Growth by month</h2>
 
   <% if (!periods.length) { %>

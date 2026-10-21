@@ -19,7 +19,9 @@ module.exports = {
   // screenshots are deleted a stated time after a report is closed.
   // 2026-10-21.2: the same section now covers the optional browser details, the
   // confirmation email and published ideas with their votes.
-  PRIVACY_VERSION: '2026-10-21.2',
+  // 2026-10-21.3: Visitor analytics now says the tax pages note, per signed-in account,
+  // which of three steps was reached — a record about a named person it did not cover.
+  PRIVACY_VERSION: '2026-10-21.3',
   // 2026-10-20: rewritten — who operates the service and under which law, minimum age,
   // licence over content, scraping, closure and suspension, notice of changes, reporting
   // content under the DSA, payments, and liability limited only as far as the law allows.

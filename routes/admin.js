@@ -49,6 +49,7 @@ const webAnalyticsConfig = require('../config/webAnalytics');
 const webAnalyticsService = require('../services/webAnalytics');
 const analyticsDashboard = require('../services/analyticsDashboard');
 const SiteStats = require('../models/SiteStats');
+const TaxInterest = require('../models/TaxInterest');
 const { rangeFrom, rangeQuery, PRESETS: RANGE_PRESETS } = require('../utils/analyticsRange');
 
 const router = express.Router();
@@ -1298,10 +1299,17 @@ router.get(
      * country) and who played the daily challenge. Aggregates only, never a person.
      */
     const range = rangeFrom(req.query);
-    const [visitors, signups, challenges] = await Promise.all([
+    /*
+     * Tax interest names people beside the most sensitive page on the site, so the NAMES
+     * are superadmin, like the tax application queue they lead to. Every administrator
+     * sees the funnel, which is counts only. The people query is not run for anybody else.
+     */
+    const canSeeTaxPeople = Boolean(req.session.user && req.session.user.isSuperadmin);
+    const [visitors, signups, challenges, taxInterest] = await Promise.all([
       SiteStats.visitorsByCountry(range),
       SiteStats.signupsByCountry(range),
-      SiteStats.challengePlayers(range)
+      SiteStats.challengePlayers(range),
+      TaxInterest.summary(range, { withPeople: canSeeTaxPeople })
     ]);
 
     return res.render('admin/analytics', {
@@ -1312,6 +1320,8 @@ router.get(
       visitors,
       signups,
       challenges,
+      taxInterest,
+      taxSteps: TaxInterest.STEP_LABELS,
       periods,
       series: collected.map((s) => ({
         label: s.label,

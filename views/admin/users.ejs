@@ -439,7 +439,7 @@
         </div>
       </div>
     </div>
-    <script src="/js/admin-users.js" defer></script>
+    <script src="/js/admin-users.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
   <% } %>
 
 <%- include('../partials/layout-end') %>

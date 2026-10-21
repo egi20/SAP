@@ -3,6 +3,11 @@
   because the CSP allows no CDN and a chart that needs a script is a blank box without one.
   Locals: points [{ day: 'YYYY-MM-DD', value }], valueLabel.
   Every column carries a <title>, so hovering (or a screen reader) gives the exact figure.
+
+  Colour and type size are set ON THE ELEMENTS, not left to style.css: an SVG with no fill
+  rule paints its shapes black and its text at the root size, which is what a browser holding
+  an older cached stylesheet showed. Columns are capped in width, so a week does not draw
+  seven slabs across the whole card.
 %>
 <% if (!points.length) { %>
   <p class="text-muted-2 small mb-0">Nothing recorded in this range.</p>
@@ -11,16 +16,18 @@
     const W = 720, H = 180, PAD = 24;
     const peak = points.reduce(function (m, p) { return Math.max(m, p.value); }, 0) || 1;
     const step = (W - PAD) / points.length;
-    const barW = Math.max(1, step * 0.75);
+    const barW = Math.min(36, Math.max(1, step * 0.75));
+    const tick = 'font-size:11px;fill:var(--text-light, currentColor)';
+    const col = 'fill:var(--primary-blue, currentColor)';
   %>
   <svg class="analytics-series" viewBox="0 0 <%= W %> <%= H + 20 %>" role="img" aria-label="<%= valueLabel %> per day">
-    <line x1="<%= PAD %>" y1="<%= H %>" x2="<%= W %>" y2="<%= H %>" class="axis"></line>
-    <text x="0" y="12" class="tick"><%= peak.toLocaleString('en-GB') %></text>
-    <text x="0" y="<%= H %>" class="tick">0</text>
+    <line x1="<%= PAD %>" y1="<%= H %>" x2="<%= W %>" y2="<%= H %>" class="axis" style="stroke:var(--border-color, currentColor);stroke-opacity:.5"></line>
+    <text x="0" y="12" class="tick" style="<%= tick %>"><%= peak.toLocaleString('en-GB') %></text>
+    <text x="0" y="<%= H %>" class="tick" style="<%= tick %>">0</text>
     <% points.forEach(function (p, i) { const h = Math.round((H - 16) * p.value / peak); %>
-      <rect x="<%= (PAD + i * step).toFixed(1) %>" y="<%= H - h %>" width="<%= barW.toFixed(1) %>" height="<%= h %>" class="col"><title><%= p.day %>: <%= p.value.toLocaleString('en-GB') %> <%= valueLabel.toLowerCase() %></title></rect>
+      <rect x="<%= (PAD + i * step + (step - barW) / 2).toFixed(1) %>" y="<%= H - h %>" width="<%= barW.toFixed(1) %>" height="<%= h %>" class="col" style="<%= col %>"><title><%= p.day %>: <%= p.value.toLocaleString('en-GB') %> <%= valueLabel.toLowerCase() %></title></rect>
     <% }); %>
-    <text x="<%= PAD %>" y="<%= H + 16 %>" class="tick"><%= points[0].day %></text>
-    <text x="<%= W %>" y="<%= H + 16 %>" class="tick" text-anchor="end"><%= points[points.length - 1].day %></text>
+    <text x="<%= PAD %>" y="<%= H + 16 %>" class="tick" style="<%= tick %>"><%= points[0].day %></text>
+    <text x="<%= W %>" y="<%= H + 16 %>" class="tick" style="<%= tick %>" text-anchor="end"><%= points[points.length - 1].day %></text>
   </svg>
 <% } %>

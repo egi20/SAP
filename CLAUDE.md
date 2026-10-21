@@ -1767,6 +1767,24 @@ decision: "signed-in vs anonymous" sends the member's id to Google, and "who ope
 pages" records named people's visits to the most sensitive page on the site — both are new
 personal data the privacy policy does not mention.
 
+**"Tax optimisation — who opens it" is on Site counts** (migration 032, `models/TaxInterest.js`,
+2026-10-21), dynamicshub.net's panel. Three named steps of ONE funnel — `/tax`, a calculator
+result (a `POST /tax/calculated` beacon from `public/js/tax.js` that carries NO figures) and
+`/tax/apply` — browsers only. A signed-in member is named; everybody signed out is one row per
+day and step under `user_key = 0`, because a UNIQUE key never collides on a NULL `user_id`. The
+funnel is for every administrator; the NAMES are superadmin, like the tax application queue,
+and the people query is not even run otherwise. Its reads fail independently and an empty
+panel says which kind of nothing it is (unread table, failing writes, nothing ever, or nothing
+in this range). Integer joins only between it and `users` — the reference's text comparison
+across collations took its list down in production. Closing an account deletes the rows, and
+the privacy policy says so (`2026-10-21.3`). Not a page-view tracker: a page joins it only by
+deciding it is worth naming people against.
+
+**Our own CSS and JS carry `?v=<commit>`** (`assetVersion`, from `RENDER_GIT_COMMIT`). They are
+cached for seven days in production, so a release that changed them was invisible for a week —
+the first server-drawn chart rendered with last week's stylesheet as black slabs and
+full-size text. The chart partial now also sets its colours on the elements themselves.
+
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
 Cloudflare edge, so per-IP rate limits, `visit_geo_daily` and `users.signup_country` were all

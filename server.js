@@ -207,6 +207,14 @@ const SOCIAL_LINKS = socialLinks();
 
 const { trustProxy } = require('./config/trustedProxies');
 
+/*
+ * Our own stylesheet and scripts are served with a seven-day cache in production, so a
+ * deploy that changes them is invisible to anybody who visited in the last week — a new
+ * chart rendered with last week's CSS draws black bars and unstyled text. Each link carries
+ * the deployed commit (Render sets RENDER_GIT_COMMIT), so a new release is a new URL.
+ */
+const ASSET_VERSION = (process.env.RENDER_GIT_COMMIT || String(Date.now())).slice(0, 12);
+
 const app = express();
 
 if (config.isProduction) {
@@ -410,6 +418,7 @@ app.use((req, res, next) => {
    * hostname, into whatever somebody pastes it into.
    */
   res.locals.appBaseUrl = config.app.baseUrl;
+  res.locals.assetVersion = ASSET_VERSION;
   res.locals.socialLinks = SOCIAL_LINKS;
   res.locals.webAnalytics = WEB_ANALYTICS_TAGS;
   res.locals.currentUser = req.session.user || null;

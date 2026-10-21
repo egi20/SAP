@@ -59,7 +59,7 @@ const REMOVED = Object.freeze([
   'Your consultant profile — headline, rate, availability, skills, certifications, work history and delivery history.',
   'Your company profile and logo.',
   'Your photograph, your LinkedIn confirmation, your saved roles and your notifications.',
-  'Any tax optimisation application you sent while signed in.'
+  'Any tax optimisation application you sent while signed in, and the record of when you opened that page.'
 ]);
 
 const KEPT = Object.freeze([
@@ -262,6 +262,8 @@ class AccountClosure {
         'notifications',
         // Salary, tax rate and phone number beside a name: only about this person.
         'tax_applications',
+        // When they opened the tax page: the same subject, so the same rule.
+        'tax_interest_views',
         'email_verifications',
         'password_reset_tokens'
       ];

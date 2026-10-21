@@ -41,6 +41,7 @@
   if (form) {
     var fixedFee = Number(form.getAttribute('data-fixed-fee'));
     var costRate = Number(form.getAttribute('data-cost-rate'));
+    var noted = false;
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
@@ -70,6 +71,18 @@
       var box = doc.getElementById('taxResult');
       box.classList.remove('d-none');
       box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Once per page: somebody adjusting the numbers is still one person who used it.
+      // Nothing typed is sent. Failure is ignored — this is a count, not a feature.
+      if (!noted && root.fetch) {
+        noted = true;
+        var meta = doc.querySelector('meta[name="csrf-token"]');
+        root.fetch('/tax/calculated', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': meta ? meta.getAttribute('content') : '' }
+        }).catch(function () { /* not counted */ });
+      }
 
       // Carried to /tax/apply so nobody types the same two numbers twice. sessionStorage
       // can throw in a private window; the form simply starts empty then.

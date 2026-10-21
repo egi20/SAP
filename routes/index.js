@@ -32,6 +32,8 @@ const { ipLimiter } = require('../middleware/rateLimit');
 const { body, validationResult } = require('express-validator');
 const { findDuplicates, MAX_LINES } = require('../utils/dedupe');
 const TaxApplication = require('../models/TaxApplication');
+const TaxInterest = require('../models/TaxInterest');
+const { looksLikeAPerson } = require('../middleware/visitGeo');
 const {
   TAX_PROGRAM, TAX_SUCCESS_STORIES, COUNTRIES: TAX_COUNTRIES, APPLY_COUNTRIES: TAX_APPLY_COUNTRIES,
   APPLY_OPTIONS: TAX_APPLY_OPTIONS, FAQ: TAX_FAQ
@@ -255,7 +257,19 @@ router.get('/cv-generator', (req, res) => {
  * result carries an "indicative" line, because the formula does not include the income tax
  * somebody may owe where they are tax resident.
  */
+/**
+ * Note a step of the tax funnel for the admin panel (models/TaxInterest.js). Browsers only —
+ * a crawler reading /tax is not somebody considering the programme — and fire-and-forget:
+ * the record is never worth a slower or failed page.
+ */
+function noteTaxInterest(req, step) {
+  if (!looksLikeAPerson(req.get('user-agent'))) return;
+  const user = req.session && req.session.user;
+  TaxInterest.record(step, user ? user.id : null);
+}
+
 router.get('/tax', (req, res) => {
+  noteTaxInterest(req, 'landing');
   res.render('legal/tax', {
     title: 'Tax optimisation for SAP contractors',
     TAX_PROGRAM,
@@ -290,7 +304,21 @@ function renderTaxApply(res, values, errors, status = 200) {
   });
 }
 
+/**
+ * POST /tax/calculated — the calculator runs in the browser, so `public/js/tax.js` says when
+ * it produced a result. It carries no figures: the salary somebody typed stays on their
+ * screen. Rate-limited, because an anonymous counter is otherwise a number anybody can
+ * inflate.
+ */
+const taxCalcLimiter = ipLimiter({ windowMs: 15 * 60 * 1000, max: 30, message: 'Too many requests.' });
+
+router.post('/tax/calculated', taxCalcLimiter, (req, res) => {
+  noteTaxInterest(req, 'calculator');
+  res.status(204).end();
+});
+
 router.get('/tax/apply', (req, res) => {
+  noteTaxInterest(req, 'apply');
   // Prefilled from the account when there is one, as on the reference.
   const user = req.session.user;
   renderTaxApply(res, user ? { fullName: user.name, email: user.email } : {}, {});
