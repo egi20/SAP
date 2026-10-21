@@ -1,0 +1,71 @@
+<%#
+  Traffic over time as a line chart drawn on the server, in the shape dynamicshub.net shows:
+  one line per metric, a filled area under the first, gridlines, a y-axis and dated ticks.
+  No chart library — the CSP allows no CDN.
+
+  Locals:
+    range  { from, to }             the inclusive UTC days the page asked for
+    series [{ label, color, byDay }] byDay maps 'YYYY-MM-DD' to a number
+
+  EVERY DAY OF THE RANGE IS DRAWN, at zero where the provider returned no row. GA4 and
+  Cloudflare both omit days with nothing recorded, and a chart built from their rows alone
+  draws one day as the whole width — the "black square" a new property showed.
+
+  Colours are SVG presentation attributes, not classes: a chart must not depend on which
+  copy of style.css the browser happens to hold, and an SVG with no fill paints black.
+%>
+<%
+  const DAY = 86400000;
+  const days = [];
+  for (let t = Date.parse(range.from + 'T00:00:00Z'), end = Date.parse(range.to + 'T00:00:00Z'); t <= end && days.length < 400; t += DAY) {
+    days.push(new Date(t).toISOString().slice(0, 10));
+  }
+  const lines = series.map(function (s) { return { label: s.label, color: s.color, values: days.map(function (d) { return Number(s.byDay[d] || 0); }) }; });
+  const total = lines.reduce(function (sum, l) { return sum + l.values.reduce(function (a, b) { return a + b; }, 0); }, 0);
+
+  const W = 760, H = 260, L = 44, R = 12, T = 12, B = 30;
+  const plotW = W - L - R, plotH = H - T - B;
+  const rawPeak = Math.max.apply(null, lines.map(function (l) { return Math.max.apply(null, l.values.concat([0])); }));
+  // A round top for the axis: 1, 2 or 5 times a power of ten, at or above the peak.
+  const niceTop = (function (v) { if (v <= 4) return 4; const p = Math.pow(10, Math.floor(Math.log10(v))); const f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; })(rawPeak);
+  const x = function (i) { return L + (days.length === 1 ? plotW / 2 : (plotW * i) / (days.length - 1)); };
+  const y = function (v) { return T + plotH - (plotH * v) / niceTop; };
+  const fmt = function (v) { return Number(v).toLocaleString('en-GB'); };
+  const short = function (d) { const dt = new Date(d + 'T00:00:00Z'); return dt.getUTCDate() + ' ' + dt.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' }); };
+  const tickEvery = Math.max(1, Math.ceil(days.length / 8));
+%>
+<% if (!days.length) { %>
+  <p class="text-muted-2 small mb-0">Nothing to draw for this range.</p>
+<% } else { %>
+  <div class="d-flex flex-wrap gap-3 small mb-2">
+    <% lines.forEach(function (l) { const sum = l.values.reduce(function (a, b) { return a + b; }, 0); %>
+      <span><svg width="14" height="4" aria-hidden="true"><rect width="14" height="4" rx="2" fill="<%= l.color %>"></rect></svg> <%= l.label %> <strong><%= fmt(sum) %></strong></span>
+    <% }); %>
+  </div>
+  <svg viewBox="0 0 <%= W %> <%= H %>" width="100%" role="img" aria-label="Traffic per day, <%= range.from %> to <%= range.to %>" style="display:block;max-width:100%;height:auto">
+    <% [0, 0.25, 0.5, 0.75, 1].forEach(function (f) { const v = niceTop * f; %>
+      <line x1="<%= L %>" x2="<%= W - R %>" y1="<%= y(v).toFixed(1) %>" y2="<%= y(v).toFixed(1) %>" stroke="#e2e8f0" stroke-width="1"></line>
+      <text x="<%= L - 6 %>" y="<%= (y(v) + 4).toFixed(1) %>" text-anchor="end" font-size="11" fill="#5a6673"><%= fmt(Math.round(v)) %></text>
+    <% }); %>
+    <% days.forEach(function (d, i) { if (i % tickEvery === 0 || i === days.length - 1) { %>
+      <text x="<%= x(i).toFixed(1) %>" y="<%= H - 8 %>" text-anchor="<%= days.length > 1 && i === 0 ? 'start' : days.length > 1 && i === days.length - 1 ? 'end' : 'middle' %>" font-size="11" fill="#5a6673"><%= short(d) %></text>
+    <% } }); %>
+
+    <% lines.forEach(function (l, li) {
+         const pts = l.values.map(function (v, i) { return x(i).toFixed(1) + ',' + y(v).toFixed(1); });
+    %>
+      <% if (li === 0 && days.length > 1) { %>
+        <polygon points="<%= x(0).toFixed(1) %>,<%= y(0) %> <%= pts.join(' ') %> <%= x(days.length - 1).toFixed(1) %>,<%= y(0) %>" fill="<%= l.color %>" fill-opacity="0.12" stroke="none"></polygon>
+      <% } %>
+      <% if (days.length > 1) { %>
+        <polyline points="<%= pts.join(' ') %>" fill="none" stroke="<%= l.color %>" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+      <% } %>
+      <% if (days.length <= 62) { l.values.forEach(function (v, i) { %>
+        <circle cx="<%= x(i).toFixed(1) %>" cy="<%= y(v).toFixed(1) %>" r="<%= days.length === 1 ? 5 : 3 %>" fill="#ffffff" stroke="<%= l.color %>" stroke-width="2"><title><%= days[i] %> — <%= l.label %>: <%= fmt(v) %></title></circle>
+      <% }); } %>
+    <% }); %>
+  </svg>
+  <% if (total === 0) { %>
+    <p class="small text-muted-2 mt-2 mb-0">Every day in this range is zero. A new GA4 property takes 24–48 hours to report; realtime above is immediate.</p>
+  <% } %>
+<% } %>

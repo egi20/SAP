@@ -86,7 +86,11 @@
         <h2 class="h6 mb-3"><i class="bi bi-graph-up"></i> Traffic over time</h2>
         <% if (section('series').error) { %><%- include('./analytics-partials/card-error', { error: section('series').error }) %>
         <% } else { %>
-          <%- include('./analytics-partials/series', { valueLabel: 'Page views', points: section('series').rows.map(function (r) { return { day: r.label, value: r.views }; }) }) %>
+          <% const byDay = function (metric) { const out = {}; section('series').rows.forEach(function (r) { out[String(r.label).slice(0, 10)] = r[metric]; }); return out; }; %>
+          <%- include('./analytics-partials/line-chart', { range: range, series: [
+            { label: 'Page views', color: '#0064d9', byDay: byDay('views') },
+            { label: 'Visits', color: '#0f9d8a', byDay: byDay('visits') }
+          ] }) %>
         <% } %>
       </div></div>
 

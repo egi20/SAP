@@ -1795,7 +1795,10 @@ deciding it is worth naming people against.
 **Our own CSS and JS carry `?v=<commit>`** (`assetVersion`, from `RENDER_GIT_COMMIT`). They are
 cached for seven days in production, so a release that changed them was invisible for a week —
 the first server-drawn chart rendered with last week's stylesheet as black slabs and
-full-size text. The chart partial now also sets its colours on the elements themselves.
+full-size text. Traffic over time is `analytics-partials/line-chart.ejs`: a line per metric like the
+reference, every day of the range drawn (zero where the provider sent no row — a one-row
+series drew a single black slab across the card), colours as SVG attributes so no
+stylesheet can blank it.
 
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
