@@ -1,80 +1,191 @@
 <%- include('../partials/layout-start') %>
+<%
+  const isIdea = mode === 'idea';
+  /*
+   * Labels only. The VALUES come from Enquiry.PROBLEM_TYPES / IDEA_TYPES / SEVERITIES /
+   * PRIORITIES, which mirror the ENUMs in migrations 018 and 030 — so an option shown here
+   * cannot be rejected behind it.
+   */
+  const typeLabels = {
+    bug: 'Something is broken', question: 'I cannot work out how to do something',
+    account: 'My account', billing: 'A payment or an invoice',
+    abuse: 'Someone\'s behaviour or content', other: 'Something else',
+    idea_feature: 'A new feature', idea_improvement: 'An improvement to something that exists',
+    idea_integration: 'An integration with another tool', idea_other: 'Something else'
+  };
+  const severityLabels = isIdea
+    ? { low: 'Nice to have', normal: 'Important', high: 'Essential — I need it to use the site' }
+    : { low: 'Minor — I can work around it', normal: 'Normal — it is getting in the way',
+        high: 'High — I cannot do what I came to do', critical: 'Critical — the site is down or data is being lost' };
+  const defaultSeverity = isIdea ? 'low' : 'normal';
+  const guide = isIdea
+    ? [
+        ['low', 'text-bg-secondary', 'Nice to have', 'It would make the site better; nothing is blocked without it.'],
+        ['normal', 'text-bg-info', 'Important', 'You would use it regularly, or it would save real time.'],
+        ['high', 'text-bg-warning', 'Essential', 'Without it the site does not do what you need it for.']
+      ]
+    : [
+        ['low', 'text-bg-secondary', 'Minor', 'A cosmetic problem, or one with an easy workaround.'],
+        ['normal', 'text-bg-info', 'Normal', 'Something does not work as it should, but you can carry on.'],
+        ['high', 'text-bg-warning', 'High', 'You cannot finish what you came to do.'],
+        ['critical', 'text-bg-danger', 'Critical', 'The site is down for you, or data is being lost or exposed.']
+      ];
+%>
 <%- include('../partials/page-header', {
-  icon: 'bi-bug',
-  heading: 'Report a problem',
-  sub: 'Something broken, confusing, or not behaving the way the page said it would.'
+  icon: isIdea ? 'bi-lightbulb' : 'bi-bug',
+  heading: isIdea ? 'Share an idea' : 'Report a problem',
+  sub: isIdea
+    ? 'Something the site should do, or do better. Every idea is read by a person.'
+    : 'Something broken, confusing, or not behaving the way the page said it would.'
 }) %>
 <section class="glass-section pb-5">
 <div class="container">
-  <div class="row justify-content-center"><div class="col-lg-8">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <%#
+        Two modes, as on dynamicshub.net. They are links, not a script-driven toggle: the
+        server renders the form for the mode it was asked for, so both work without
+        JavaScript and a link to "Share an idea" can be sent to somebody.
+      -%>
+      <nav class="report-modes mb-3" aria-label="What would you like to send?">
+        <a class="btn <%= isIdea ? 'btn-outline-primary' : 'btn-primary' %>" href="/report-issue<%= values.page_url ? '?page=' + encodeURIComponent(values.page_url) : '' %>"
+           <%- isIdea ? '' : 'aria-current="page"' %>><i class="bi bi-bug me-1" aria-hidden="true"></i>Report a problem</a>
+        <a class="btn <%= isIdea ? 'btn-primary' : 'btn-outline-primary' %>" href="/report-issue?mode=idea<%= values.page_url ? '&page=' + encodeURIComponent(values.page_url) : '' %>"
+           <%- isIdea ? 'aria-current="page"' : '' %>><i class="bi bi-lightbulb me-1" aria-hidden="true"></i>Share an idea</a>
+      </nav>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <% if (errors.length) { %>
-        <div class="alert alert-danger">
-          <ul class="mb-0">
-            <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
-          </ul>
-        </div>
-      <% } %>
-
-      <form method="post" action="/report-issue">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <label class="form-label" for="f-type">What kind of problem <span aria-hidden="true">*</span></label>
-            <select class="form-select" id="f-type" name="issue_type" required>
-              <option value="">Choose…</option>
-              <%# The options come from Enquiry.ISSUE_TYPES, which mirrors the ENUM in
-                  migration 018 — so an option added here cannot be rejected behind it. %>
-              <% issueTypes.forEach(function (t) { %>
-                <option value="<%= t %>" <%= values.issue_type === t ? 'selected' : '' %>>
-                  <%= { bug: 'Something is broken', question: 'I cannot work out how to do something',
-                        account: 'My account', billing: 'A payment or an invoice',
-                        abuse: 'Someone\'s behaviour or content', other: 'Something else' }[t] %>
-                </option>
-              <% }) %>
-            </select>
+      <div class="glass-card"><div class="card-body">
+        <%- include('../partials/flash') %>
+        <% if (errors.length) { %>
+          <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+              <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+            </ul>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" for="f-severity">How badly does it affect you <span aria-hidden="true">*</span></label>
-            <select class="form-select" id="f-severity" name="severity" required>
-              <% severities.forEach(function (sv) { %>
-                <option value="<%= sv %>" <%= (values.severity || 'normal') === sv ? 'selected' : '' %>>
-                  <%= { low: 'Minor — I can work around it', normal: 'Normal — it is getting in the way',
-                        high: 'High — I cannot do what I came to do' }[sv] %>
-                </option>
-              <% }) %>
-            </select>
+        <% } %>
+
+        <form method="post" action="/report-issue" enctype="multipart/form-data" data-report-form>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="mode" value="<%= mode %>">
+
+          <div class="mb-3"><%- include('../partials/enquiry-identity', { values }) %></div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="f-type"><%= isIdea ? 'Idea type' : 'What kind of problem' %> <span aria-hidden="true">*</span></label>
+              <select class="form-select" id="f-type" name="issue_type" required
+                      <% if (!isIdea) { %>data-reveal="f-content-wrap" data-reveal-when="abuse"<% } %>>
+                <option value="">Choose…</option>
+                <% issueTypes.forEach(function (t) { %>
+                  <option value="<%= t %>" <%= values.issue_type === t ? 'selected' : '' %>><%= typeLabels[t] %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="f-severity"><%= isIdea ? 'Priority' : 'How badly does it affect you' %> <span aria-hidden="true">*</span></label>
+              <select class="form-select" id="f-severity" name="severity" required aria-describedby="severity-guide">
+                <% severities.forEach(function (sv) { %>
+                  <option value="<%= sv %>" <%= (values.severity || defaultSeverity) === sv ? 'selected' : '' %>><%= severityLabels[sv] %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <% if (!isIdea) { %>
+              <%#
+                The content being reported, separate from "Which page": the second is where
+                the reporter was, the first is what a moderator has to open to act.
+                Revealed by main.js when "Someone's behaviour or content" is chosen, and
+                rendered open after a refused submit that chose it.
+              -%>
+              <div class="col-12" id="f-content-wrap" <%= values.issue_type === 'abuse' ? '' : 'hidden' %>>
+                <label class="form-label" for="f-content">Link to the content you are reporting <span aria-hidden="true">*</span></label>
+                <input class="form-control" id="f-content" name="content_url" type="url" maxlength="500"
+                       inputmode="url" aria-describedby="f-content-help" value="<%= values.content_url || '' %>"
+                       placeholder="https://…">
+                <p class="form-text" id="f-content-help">The post, reply, profile or job advert. A person reviews every report.</p>
+              </div>
+            <% } %>
+
+            <div class="col-12">
+              <label class="form-label" for="f-page">Which page</label>
+              <input class="form-control" id="f-page" name="page_url" type="url" maxlength="500"
+                     inputmode="url" autocomplete="url" aria-describedby="f-page-help"
+                     value="<%= values.page_url || '' %>" placeholder="https://…">
+              <p class="form-text" id="f-page-help">
+                <%= isIdea ? 'If the idea is about one page, its address.' : 'Filled in for you when you came here from a page on this site.' %>
+                It is the difference between a report we can act on and one that begins "it was the page with the table".
+              </p>
+            </div>
           </div>
-          <div class="col-12">
-            <label class="form-label" for="f-page">Which page</label>
-            <input class="form-control" id="f-page" name="page_url" maxlength="500"
-                   value="<%= values.page_url || '' %>" placeholder="https://…">
-            <p class="form-text">
-              Paste the address from your browser. It is the difference between a report we
-              can act on and one that begins "it was the page with the table".
+
+          <%- include('../partials/enquiry-fields', { values, identityAbove: true }) %>
+
+          <div class="mt-3">
+            <label class="form-label" for="f-shots">Screenshots</label>
+            <input class="form-control" id="f-shots" name="screenshots" type="file" multiple
+                   accept="image/png,image/jpeg,image/webp,image/gif" aria-describedby="f-shots-help" data-screenshots
+                   data-max-files="<%= maxFiles %>" data-max-mb="<%= maxFileMb %>">
+            <p class="form-text" id="f-shots-help">
+              Up to <%= maxFiles %> images, <%= maxFileMb %> MB each. You can also paste a screenshot straight into the
+              message with <kbd>Ctrl</kbd>+<kbd>V</kbd> (<kbd>⌘</kbd>+<kbd>V</kbd> on a Mac).
             </p>
+            <ul class="list-unstyled small mb-0" data-screenshot-list aria-live="polite"></ul>
           </div>
-        </div>
 
-        <%- include('../partials/enquiry-fields', { values }) %>
-        <button class="btn btn-primary mt-3" type="submit">Send report</button>
-      </form>
-    </div></div>
+          <button class="btn btn-primary mt-3" type="submit"><%= isIdea ? 'Send idea' : 'Send report' %></button>
+          <p class="small text-muted-2 mt-2 mb-0">
+            We use your name and email only to reply to this <%= isIdea ? 'idea' : 'report' %>. What we keep and for how
+            long is in the <a href="/legal/privacy#reports">Privacy policy</a>.
+          </p>
+        </form>
+      </div></div>
+    </div>
 
-    <div class="glass-card"><div class="card-body">
-      <h2 class="h5">What happens to it</h2>
-      <p class="mb-0 text-muted-2">
-        It goes into a queue a person works through, and the reply comes to the address you
-        gave. If it is about your account we may need you to confirm something from the
-        address the account uses — nothing here can look you up from a name. A security
-        problem is welcome and is read first; please describe it rather than demonstrating
-        it against somebody else's data.
-      </p>
-    </div></div>
+    <aside class="col-lg-4">
+      <div class="glass-card mb-4"><div class="card-body">
+        <% if (isIdea) { %>
+          <h2 class="h6"><i class="bi bi-lightbulb me-1" aria-hidden="true"></i>Tips for sharing an idea</h2>
+          <ul class="small mb-0 ps-3">
+            <li><strong>The benefit.</strong> What would be easier, faster or possible that is not today?</li>
+            <li><strong>The use case.</strong> Who would use it, and when — "when I post a role I want to…"</li>
+            <li><strong>An example.</strong> Another site that does it well, or a screenshot of where it would go.</li>
+            <li><strong>The priority.</strong> Honest is more useful than high: it is how we decide what comes first.</li>
+          </ul>
+        <% } else { %>
+          <h2 class="h6"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Tips for reporting</h2>
+          <ul class="small mb-0 ps-3">
+            <li><strong>Be specific.</strong> Which button, which field, which message.</li>
+            <li><strong>Give the steps.</strong> What you did, in order, so we can do it too.</li>
+            <li><strong>Add a screenshot.</strong> Paste it into the message or attach it below.</li>
+            <li><strong>Say which browser</strong> and device you were using.</li>
+            <li><strong>Expected and actual.</strong> What you expected to happen, and what happened instead.</li>
+          </ul>
+        <% } %>
+      </div></div>
 
-  </div></div>
+      <div class="glass-card mb-4"><div class="card-body" id="severity-guide">
+        <h2 class="h6"><%= isIdea ? 'Priority guide' : 'Severity guide' %></h2>
+        <dl class="small mb-0">
+          <% guide.forEach(function (g) { %>
+            <dt><span class="badge <%= g[1] %>"><%= g[2] %></span></dt>
+            <dd class="mb-2"><%= g[3] %></dd>
+          <% }) %>
+        </dl>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6">What happens to it</h2>
+        <p class="small mb-0 text-muted-2">
+          It goes into a queue a person works through, and the reply comes to the address you
+          gave. If it is about your account we may need you to confirm something from the
+          address the account uses — nothing here can look you up from a name. A security
+          problem is welcome and is read first; please describe it rather than demonstrating
+          it against somebody else's data.
+        </p>
+      </div></div>
+    </aside>
+  </div>
 </div>
 </section>
+<script src="/js/report-issue.js" defer></script>
 <%- include('../partials/layout-end') %>

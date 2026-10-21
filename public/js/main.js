@@ -322,6 +322,24 @@
   });
 
   /**
+   * "Report a problem" knows which page you were on.
+   *
+   * The app sends `Referrer-Policy: no-referrer`, so the form cannot learn it from the
+   * request. Every link to /report-issue carries the page it was clicked on instead —
+   * origin and path only: a query string can hold a search, a token or somebody's filter,
+   * and none of that belongs in a report a stranger's email goes out with.
+   */
+  document.addEventListener('click', function (event) {
+    var link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+    if (!link || location.pathname === '/report-issue') return;
+    var url;
+    try { url = new URL(link.getAttribute('href'), location.href); } catch (e) { return; }
+    if (url.origin !== location.origin || url.pathname !== '/report-issue' || url.searchParams.has('page')) return;
+    url.searchParams.set('page', location.origin + location.pathname);
+    link.setAttribute('href', url.pathname + url.search);
+  });
+
+  /**
    * Guard against a double-submitted form producing two writes.
    * The button is disabled after submit, but the form still submits normally, so this
    * degrades to no-op without JavaScript.

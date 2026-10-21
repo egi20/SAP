@@ -65,13 +65,14 @@ describe('the privacy policy', () => {
     expect(PRIVACY).toMatch(/no third-party cookies/i);
   });
 
-  it('was re-versioned when that section was added, and again for the analytics trial', () => {
+  it('was re-versioned for the cookies section, the analytics trial and the reports section', () => {
     /*
      * The stamp on an account records what that person was shown. Leaving the version alone
      * would backdate the new text onto everybody who registered before it existed.
      */
     const versions = require('../../config/legal-versions');
-    expect(versions.PRIVACY_VERSION).toBe('2026-10-19');
+    // 2026-10-21: the section on messages, problem reports, ideas and screenshot retention.
+    expect(versions.PRIVACY_VERSION).toBe('2026-10-21');
   });
 });
 

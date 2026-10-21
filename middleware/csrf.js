@@ -50,7 +50,35 @@ function safeEqual(a, b) {
 /**
  * @param {{exempt?: (req) => boolean}} options
  */
-function csrfProtection({ exempt = () => false } = {}) {
+/**
+ * A multipart body has not been parsed when this middleware runs — multer parses it in the
+ * route — so the `_csrf` field inside it is invisible here, and every file upload on the
+ * site answered "Your session expired" in a real browser. Nothing caught it because no
+ * test posted a real multipart form.
+ *
+ * The fix DEFERS the check for those requests, and only for paths that are known upload
+ * routes (`deferMultipart`, fed from middleware/fileUpload.js). Deferring for any multipart
+ * request would let a cross-site multipart form reach a route that needs no body at all —
+ * a "mark verified" button, say — with no check ever run. The upload helpers call
+ * `verifyDeferred` as soon as multer has parsed the body, before the handler sees it.
+ */
+function isMultipart(req) {
+  return /^multipart\/form-data/i.test(req.get('content-type') || '');
+}
+
+function verifyDeferred(req) {
+  if (!req.csrfDeferred) return true;
+  return Boolean(req.session) && safeEqual(presentedToken(req), req.session.csrfSecret);
+}
+
+function csrfError() {
+  const err = new Error('Invalid or missing CSRF token.');
+  err.status = 403;
+  err.code = 'EBADCSRFTOKEN';
+  return err;
+}
+
+function csrfProtection({ exempt = () => false, deferMultipart = () => false } = {}) {
   return (req, res, next) => {
     if (!req.session) return next();
 
@@ -59,14 +87,15 @@ function csrfProtection({ exempt = () => false } = {}) {
 
     if (SAFE_METHODS.has(req.method)) return next();
     if (exempt(req)) return next();
+    if (isMultipart(req) && deferMultipart(req)) {
+      req.csrfDeferred = true;
+      return next();
+    }
 
     if (safeEqual(presentedToken(req), req.session.csrfSecret)) return next();
 
-    const err = new Error('Invalid or missing CSRF token.');
-    err.status = 403;
-    err.code = 'EBADCSRFTOKEN';
-    return next(err);
+    return next(csrfError());
   };
 }
 
-module.exports = { csrfProtection, tokenFor, TOKEN_FIELD };
+module.exports = { csrfProtection, verifyDeferred, csrfError, tokenFor, TOKEN_FIELD };

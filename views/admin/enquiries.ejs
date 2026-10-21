@@ -31,6 +31,22 @@
     </div>
   <% } %>
 
+  <% if (screenshotsDue > 0) { %>
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-3">
+      <div class="flex-grow-1 small mb-0">
+        <strong><%= screenshotsDue %></strong> <%= screenshotsDue === 1 ? 'screenshot is' : 'screenshots are' %>
+        attached to reports closed more than <%= screenshotRetentionDays %> days ago — the Privacy policy says they are deleted then.
+      </div>
+      <% if (currentUser && currentUser.isSuperadmin) { %>
+        <form method="post" action="/admin/enquiries/purge-screenshots"
+              data-confirm="Permanently delete the screenshots on reports closed more than <%= screenshotRetentionDays %> days ago? The reports themselves stay.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-sm btn-outline-danger" type="submit">Delete them</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
   <div class="glass-card mb-3"><div class="card-body">
     <p class="mb-3">
       <strong><%= openCount %></strong> waiting

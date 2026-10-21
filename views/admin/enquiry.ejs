@@ -18,6 +18,17 @@
           writer's newlines and breaks long tokens, or a pasted URL widens the page.
         %>
         <p class="message-body mb-0"><%= enquiry.body %></p>
+        <% if (attachments.length) { %>
+          <h2 class="h6 mt-4">Screenshots</h2>
+          <div class="d-flex flex-wrap gap-2">
+            <% attachments.forEach(function (a) { %>
+              <a href="/admin/enquiries/<%= enquiry.id %>/attachments/<%= a.id %>" target="_blank" rel="noopener">
+                <img class="enquiry-shot" src="/admin/enquiries/<%= enquiry.id %>/attachments/<%= a.id %>"
+                     alt="Screenshot <%= a.id %>, <%= a.width %>×<%= a.height %>" loading="lazy">
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
       </div></div>
 
       <div class="glass-card"><div class="card-body">
@@ -120,10 +131,23 @@
               <% } %>
             </li>
           <% } %>
-          <% if (enquiry.issue_type) { %><li><span class="text-muted-2">Type</span> — <%= enquiry.issue_type %></li><% } %>
-          <% if (enquiry.severity) { %><li><span class="text-muted-2">Severity</span> — <%= enquiry.severity %></li><% } %>
+          <% if (enquiry.issue_type) { %>
+            <% const isIdea = String(enquiry.issue_type).indexOf('idea_') === 0; %>
+            <li><span class="text-muted-2"><%= isIdea ? 'Idea' : 'Type' %></span> — <%= isIdea ? enquiry.issue_type.slice(5) : enquiry.issue_type %></li>
+            <% if (enquiry.severity) { %><li><span class="text-muted-2"><%= isIdea ? 'Priority' : 'Severity' %></span> — <%= enquiry.severity %></li><% } %>
+          <% } %>
+          <%#
+            A stored URL is a link only after passing the same http(s) check the form used:
+            anything older or odder is printed as text, so a `javascript:` address can never
+            be one click away for the person reading the report.
+          -%>
           <% if (enquiry.page_url) { %>
-            <li class="text-break"><span class="text-muted-2">Page</span> — <%= enquiry.page_url %></li>
+            <li class="text-break"><span class="text-muted-2">Page</span> —
+              <% if (pageLink) { %><a href="<%= pageLink %>" rel="noopener noreferrer" target="_blank"><%= pageLink %></a><% } else { %><%= enquiry.page_url %><% } %></li>
+          <% } %>
+          <% if (enquiry.content_url) { %>
+            <li class="text-break"><span class="text-muted-2">Reported content</span> —
+              <% if (contentLink) { %><a href="<%= contentLink %>" rel="noopener noreferrer" target="_blank"><%= contentLink %></a><% } else { %><%= enquiry.content_url %><% } %></li>
           <% } %>
           <li><span class="text-muted-2">Received</span> — <%= new Date(enquiry.created_at).toISOString().slice(0, 16).replace('T', ' ') %></li>
           <% if (enquiry.handler_name) { %>

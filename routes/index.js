@@ -3,6 +3,7 @@
 const express = require('express');
 const AccountClosure = require('../models/AccountClosure');
 const { hasDedupeAccess } = require('../middleware/auth');
+const { screenshots, SCREENSHOT_MAX_FILES, SCREENSHOT_MAX_BYTES } = require('../middleware/fileUpload');
 const { LEGAL_ENTITY } = require('../config/legalEntity');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
@@ -397,7 +398,11 @@ router.get('/faq', (req, res) => {
 });
 
 router.get('/legal/privacy', (req, res) => {
-  res.render('legal/privacy', { title: 'Privacy policy', version: legalVersions.PRIVACY_VERSION });
+  res.render('legal/privacy', {
+    title: 'Privacy policy',
+    version: legalVersions.PRIVACY_VERSION,
+    screenshotRetentionDays: Enquiry.ATTACHMENT_RETENTION_DAYS
+  });
 });
 
 router.get('/legal/terms', (req, res) => {
@@ -534,41 +539,70 @@ router.post(
 /**
  * GET/POST /report-issue
  *
- * The same queue, with the three fields that make a bug report answerable: what kind of
- * problem, how badly it bites, and which page it was on. `page_url` is prefilled from the
- * link that brought somebody here, which is the difference between a report we can act on
- * and one that begins "it was on the page with the table".
+ * The same queue, in two modes, as on dynamicshub.net: "Report a problem" and "Share an
+ * idea". The mode is a query parameter and the page is rendered for it on the server, so
+ * both work with scripting off; the idea mode uses the idea_* half of the same ENUM and
+ * asks for a priority where the problem mode asks for a severity (migration 030).
+ *
+ * `page_url` arrives prefilled from the link that brought somebody here — main.js adds the
+ * page they were on to every link to this form, because the app sends no Referer. It is
+ * refused unless it is a plain http(s) address: the admin screen renders it, and a
+ * `javascript:` URL there is a script one click away for the person reading the report.
+ *
+ * The body is multipart, because of the screenshots, so the CSRF check runs after multer
+ * has parsed it (middleware/csrf.js and middleware/fileUpload.js).
  */
-router.get('/report-issue', (req, res) => {
-  res.render('legal/report-issue', {
-    title: 'Report a problem',
-    issueTypes: Enquiry.ISSUE_TYPES,
-    severities: Enquiry.SEVERITIES,
-    values: { page_url: typeof req.query.page === 'string' ? req.query.page.slice(0, 500) : '' },
-    errors: []
+const REPORT_MODES = Object.freeze(['problem', 'idea']);
+
+function reportView(req, values, errors, status = 200, res) {
+  const mode = REPORT_MODES.includes(values.mode) ? values.mode : 'problem';
+  return res.status(status).render('legal/report-issue', {
+    title: mode === 'idea' ? 'Share an idea' : 'Report a problem',
+    mode,
+    issueTypes: mode === 'idea' ? Enquiry.IDEA_TYPES : Enquiry.PROBLEM_TYPES,
+    severities: mode === 'idea' ? Enquiry.PRIORITIES : Enquiry.SEVERITIES,
+    maxFiles: SCREENSHOT_MAX_FILES,
+    maxFileMb: SCREENSHOT_MAX_BYTES / 1024 / 1024,
+    values,
+    errors
   });
+}
+
+router.get('/report-issue', (req, res) => {
+  const page = Enquiry.reportUrl(typeof req.query.page === 'string' ? req.query.page.slice(0, 500) : '');
+  return reportView(req, {
+    mode: req.query.mode === 'idea' ? 'idea' : 'problem',
+    page_url: page.ok && page.value ? page.value : ''
+  }, [], 200, res);
 });
 
 router.post(
   '/report-issue',
   enquiryLimiter,
+  screenshots('screenshots'),
+  (req, res, next) => {
+    // A page cached from before the two modes posts no `mode`: it was a problem report.
+    req.body.mode = REPORT_MODES.includes(req.body.mode) ? req.body.mode : 'problem';
+    next();
+  },
   [
     ...ENQUIRY_RULES,
-    body('issue_type').isIn(Enquiry.ISSUE_TYPES).withMessage('Pick the kind of problem.'),
-    body('severity').isIn(Enquiry.SEVERITIES).withMessage('Pick how badly it affects you.'),
-    body('page_url').trim().isLength({ max: 500 })
+    body('issue_type').custom((v, { req }) => (req.body.mode === 'idea' ? Enquiry.IDEA_TYPES : Enquiry.PROBLEM_TYPES).includes(v))
+      .withMessage((v, { req }) => (req.body.mode === 'idea' ? 'Pick the kind of idea.' : 'Pick the kind of problem.')),
+    body('severity').custom((v, { req }) => (req.body.mode === 'idea' ? Enquiry.PRIORITIES : Enquiry.SEVERITIES).includes(v))
+      .withMessage((v, { req }) => (req.body.mode === 'idea' ? 'Pick a priority.' : 'Pick how badly it affects you.')),
+    body('page_url').custom((v) => Enquiry.reportUrl(v).ok)
+      .withMessage('"Which page" must be a web address starting with http:// or https://.'),
+    body('content_url').custom((v, { req }) => {
+      if (req.body.issue_type !== 'abuse') return true;
+      const url = Enquiry.reportUrl(v);
+      return url.ok && url.value !== null;
+    }).withMessage('Give the link to the content you are reporting, starting with http:// or https://.')
   ],
   asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(422).render('legal/report-issue', {
-        title: 'Report a problem',
-        issueTypes: Enquiry.ISSUE_TYPES,
-        severities: Enquiry.SEVERITIES,
-        values: req.body,
-        errors: errors.array()
-      });
-    }
+    const errors = validationResult(req).array();
+    if (req.uploadError) errors.push({ msg: req.uploadError });
+    if (errors.length) return reportView(req, req.body, errors, 422, res);
 
     if (!looksAutomated(req)) {
       const created = await Enquiry.create({
@@ -580,13 +614,30 @@ router.post(
         body: req.body.message.trim(),
         issueType: req.body.issue_type,
         severity: req.body.severity,
-        pageUrl: req.body.page_url ? req.body.page_url.trim() : null
+        pageUrl: Enquiry.reportUrl(req.body.page_url).value,
+        contentUrl: req.body.issue_type === 'abuse' ? Enquiry.reportUrl(req.body.content_url).value : null
       });
+      const files = Array.isArray(req.files) ? req.files : [];
+      if (files.length) {
+        try {
+          await Enquiry.addAttachments(created.id, files.map((f) => f.buffer));
+        } catch (err) {
+          /*
+           * sharp could not decode it, so it was not an image whatever its name said. The
+           * report itself is already in the queue; say so rather than pretend nothing
+           * arrived, and do not ask for it again.
+           */
+          console.error(`Report ${created.id}: an attachment was not a readable image (${err.message})`);
+          req.flash('info', 'Your report reached us, but one of the files was not a readable image and was left out.');
+        }
+      }
       notifySupport({ ...created, name: req.body.name, email: req.body.email, subject: req.body.subject, body: req.body.message }, 'issue');
     }
 
-    req.flash('success', 'Thank you — that is in the queue, and a person works through it.');
-    return res.redirect('/report-issue');
+    req.flash('success', req.body.mode === 'idea'
+      ? 'Thank you — your idea is in the queue, and a person reads every one.'
+      : 'Thank you — that is in the queue, and a person works through it.');
+    return res.redirect(req.body.mode === 'idea' ? '/report-issue?mode=idea' : '/report-issue');
   })
 );
 

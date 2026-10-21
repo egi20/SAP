@@ -60,6 +60,18 @@
          and how long the page took to load, and reports them to us only as totals.</p>
       <% } %>
 
+      <h2 class="h6" id="reports">Messages, problem reports and ideas</h2>
+      <p>When you write to us through the contact form or <a href="/report-issue">Report a problem</a>
+         we store what you send: your name, your email address, the subject and message, the type and
+         severity (or priority) you chose, the page address you gave, the link to any content you are
+         reporting, any screenshots you attached, and — if you were signed in — which account sent it.
+         We use it only to read and answer your message and to fix what you reported. We do not store
+         your IP address with it.</p>
+      <p>Screenshots are deleted <%= screenshotRetentionDays %> days after the report is closed: they can
+         show anything that was on your screen, so we keep them only while they are useful. The message
+         itself is kept as the record of what was reported and how it was answered; you can ask us to
+         delete yours at any time by writing to <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+
       <h2 class="h6">Your rate contributions</h2>
       <p>Contributions are never displayed individually. They are aggregated with other people's, and
          no aggregate is published until at least three different people have contributed to it.</p>

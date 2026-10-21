@@ -1979,3 +1979,7 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .admin-user-actions { white-space: nowrap; }
 .admin-user-actions form { display: inline-block; }
 .admin-user-actions .btn { padding: 0.3rem 0.55rem; margin-left: 0.15rem; }
+
+/* /report-issue: the two modes, and the screenshots on the admin side. */
+.report-modes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.enquiry-shot { width: 160px; height: 110px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border-color); }

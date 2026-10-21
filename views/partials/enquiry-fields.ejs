@@ -1,20 +1,12 @@
 <%
-  /* The four fields both forms share, in one partial: two copies would drift in their
-     labels, their lengths and — the one that matters — the honeypot. */
+  /* The fields both forms share, in one partial: two copies would drift in their labels,
+     their lengths and — the one that matters — the honeypot. A form that has already put
+     name and email at the top passes `identityAbove: true`. */
   const v = values || {};
+  const showIdentity = !(typeof identityAbove !== 'undefined' && identityAbove);
 %>
+<% if (showIdentity) { %><div class="mb-3"><%- include('./enquiry-identity', { values: v }) %></div><% } %>
 <div class="row g-3">
-  <div class="col-md-6">
-    <label class="form-label" for="f-name">Your name <span aria-hidden="true">*</span></label>
-    <input class="form-control" id="f-name" name="name" required maxlength="120"
-           value="<%= v.name || (currentUser ? currentUser.name : '') %>">
-  </div>
-  <div class="col-md-6">
-    <label class="form-label" for="f-email">Email <span aria-hidden="true">*</span></label>
-    <input class="form-control" id="f-email" name="email" type="email" required maxlength="190"
-           value="<%= v.email || (currentUser ? currentUser.email : '') %>">
-    <p class="form-text">Where the reply goes.</p>
-  </div>
   <div class="col-12">
     <label class="form-label" for="f-subject">Subject <span aria-hidden="true">*</span></label>
     <input class="form-control" id="f-subject" name="subject" required maxlength="200"
@@ -23,8 +15,10 @@
   <div class="col-12">
     <label class="form-label" for="f-message">Message <span aria-hidden="true">*</span></label>
     <textarea class="form-control" id="f-message" name="message" rows="8" required
-              minlength="20" maxlength="8000"><%= v.message || '' %></textarea>
-    <p class="form-text">Plain text. Include references — a payment starts <code>PAY-</code>, a quote <code>Q-</code>.</p>
+              minlength="20" maxlength="8000" aria-describedby="f-message-help"><%= v.message || '' %></textarea>
+    <p class="form-text" id="f-message-help">
+      At least 20 characters. Plain text. Include references — a payment starts <code>PAY-</code>, a quote <code>Q-</code>.
+    </p>
   </div>
 </div>
 

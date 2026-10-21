@@ -1,5 +1,6 @@
 'use strict';
 
+const sharp = require('sharp');
 const { promisePool } = require('../config/database');
 const { containsPattern } = require('../utils/likePattern');
 const { RETENTION_DAYS, isTopic, isArrangement } = require('../config/taxAdvisory');
@@ -22,9 +23,40 @@ const { RETENTION_DAYS, isTopic, isArrangement } = require('../config/taxAdvisor
  * reporter a table of its own.
  */
 const KINDS = Object.freeze(['contact', 'issue', 'tax_advisory']);
-const ISSUE_TYPES = Object.freeze(['bug', 'question', 'account', 'billing', 'abuse', 'other']);
-const SEVERITIES = Object.freeze(['low', 'normal', 'high']);
+/*
+ * One ENUM, two modes (migration 030). "Report a problem" offers the first six, "Share an
+ * idea" the idea_* four; both halves are derived from the one list, so neither can name a
+ * value the column would refuse.
+ */
+const ISSUE_TYPES = Object.freeze(['bug', 'question', 'account', 'billing', 'abuse', 'other',
+  'idea_feature', 'idea_improvement', 'idea_integration', 'idea_other']);
+const IDEA_TYPES = Object.freeze(ISSUE_TYPES.filter((t) => t.startsWith('idea_')));
+const PROBLEM_TYPES = Object.freeze(ISSUE_TYPES.filter((t) => !t.startsWith('idea_')));
+const SEVERITIES = Object.freeze(['low', 'normal', 'high', 'critical']);
+// For an idea the same column holds a PRIORITY, and "critical" means nothing for an idea.
+const PRIORITIES = Object.freeze(SEVERITIES.filter((s) => s !== 'critical'));
+
+/**
+ * An address somebody typed into "Which page" or "Link to the content", or null.
+ *
+ * http(s) only, parsed rather than pattern-matched, and with no credentials in it: a
+ * `javascript:` URL stored here is a script one click away for the administrator who
+ * reads the report, and `https://saphub.net@evil.example/` reads as ours and is not.
+ * @returns {{ ok: boolean, value: string|null }}
+ */
+function reportUrl(raw) {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  if (!text) return { ok: true, value: null };
+  if (text.length > 500) return { ok: false, value: null };
+  let url;
+  try { url = new URL(text); } catch (e) { return { ok: false, value: null }; }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || !url.hostname) {
+    return { ok: false, value: null };
+  }
+  return { ok: true, value: url.toString() };
+}
 const STATUSES = Object.freeze(['new', 'open', 'closed']);
+const ATTACHMENT_RETENTION_DAYS = 90;
 
 /**
  * The one filter builder for this table. A list view and a count that disagree about what
@@ -57,6 +89,10 @@ class Enquiry {
   static get KINDS() { return KINDS; }
   static get ISSUE_TYPES() { return ISSUE_TYPES; }
   static get SEVERITIES() { return SEVERITIES; }
+  static get PROBLEM_TYPES() { return PROBLEM_TYPES; }
+  static get IDEA_TYPES() { return IDEA_TYPES; }
+  static get PRIORITIES() { return PRIORITIES; }
+  static reportUrl = reportUrl;
   static get STATUSES() { return STATUSES; }
   static buildFilter = buildFilter;
 
@@ -71,7 +107,7 @@ class Enquiry {
    */
   static async create({
     kind, userId = null, name, email, subject, body,
-    issueType = null, severity = null, pageUrl = null,
+    issueType = null, severity = null, pageUrl = null, contentUrl = null,
     topic = null, arrangement = null, country = null, privacyVersion = null
   }) {
     if (!KINDS.includes(kind)) throw new Error(`Unknown enquiry kind: ${kind}`);
@@ -79,6 +115,13 @@ class Enquiry {
     const isIssue = kind === 'issue';
     if (isIssue && (!ISSUE_TYPES.includes(issueType) || !SEVERITIES.includes(severity))) {
       throw new Error('An issue needs a type and a severity');
+    }
+    if (isIssue && IDEA_TYPES.includes(issueType) && !PRIORITIES.includes(severity)) {
+      throw new Error('An idea has a priority, and "critical" is not one');
+    }
+    // Held here as well as in the route: a URL column is what the admin screen will trust.
+    for (const url of [pageUrl, contentUrl]) {
+      if (url !== null && !reportUrl(url).ok) throw new Error('A report URL must be http(s)');
     }
 
     const isTax = kind === 'tax_advisory';
@@ -89,14 +132,15 @@ class Enquiry {
     try {
       const [result] = await promisePool.query(
         `INSERT INTO enquiries
-           (kind, user_id, name, email, subject, body, issue_type, severity, page_url,
+           (kind, user_id, name, email, subject, body, issue_type, severity, page_url, content_url,
             topic, arrangement, country, privacy_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           kind, userId, name, email, subject, body,
           isIssue ? issueType : null,
           isIssue ? severity : null,
           isIssue ? pageUrl : null,
+          isIssue && issueType === 'abuse' ? contentUrl : null,
           isTax ? topic : null,
           isTax ? arrangement : null,
           isTax ? country : null,
@@ -136,6 +180,75 @@ class Enquiry {
       [days]
     );
     return result.affectedRows;
+  }
+
+  /**
+   * Store the screenshots on a report. The buffers are re-encoded by sharp first — that is
+   * the sanitiser, as for profile photographs — and bounded to 2000px on the long side,
+   * which keeps a 4K screenshot readable and a few hundred kilobytes.
+   */
+  static async addAttachments(enquiryId, buffers) {
+    for (const buffer of buffers) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data, info } = await sharp(buffer)
+        .rotate()
+        .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer({ resolveWithObject: true });
+      // eslint-disable-next-line no-await-in-loop
+      await promisePool.query(
+        `INSERT INTO enquiry_attachments (enquiry_id, content_type, bytes, byte_size, width, height)
+         VALUES (?, 'image/webp', ?, ?, ?, ?)`,
+        [enquiryId, data, data.length, info.width, info.height]
+      );
+    }
+  }
+
+  /** Metadata only — the list on the admin screen never loads the bytes. */
+  static async attachmentsFor(enquiryId) {
+    const [rows] = await promisePool.query(
+      `SELECT id, content_type, byte_size, width, height, created_at
+         FROM enquiry_attachments WHERE enquiry_id = ? ORDER BY id`,
+      [enquiryId]
+    );
+    return rows;
+  }
+
+  static async attachment(enquiryId, attachmentId) {
+    const [rows] = await promisePool.query(
+      'SELECT content_type, bytes FROM enquiry_attachments WHERE enquiry_id = ? AND id = ? LIMIT 1',
+      [enquiryId, attachmentId]
+    );
+    return rows[0] || null;
+  }
+
+  /*
+   * The Privacy policy promises screenshots are deleted ATTACHMENT_RETENTION_DAYS after the
+   * report is closed. The report text stays as the record of what was reported; the
+   * picture, which can carry anything that was on somebody's screen, does not.
+   */
+  static get ATTACHMENT_RETENTION_DAYS() { return ATTACHMENT_RETENTION_DAYS; }
+
+  static async purgeExpiredAttachments(days = ATTACHMENT_RETENTION_DAYS) {
+    const [result] = await promisePool.query(
+      `DELETE a FROM enquiry_attachments a
+         JOIN enquiries e ON e.id = a.enquiry_id
+        WHERE e.status = 'closed' AND e.handled_at IS NOT NULL
+          AND e.handled_at < (NOW() - INTERVAL ? DAY)`,
+      [days]
+    );
+    return result.affectedRows;
+  }
+
+  static async attachmentsDueForPurge(days = ATTACHMENT_RETENTION_DAYS) {
+    const [[row]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM enquiry_attachments a
+         JOIN enquiries e ON e.id = a.enquiry_id
+        WHERE e.status = 'closed' AND e.handled_at IS NOT NULL
+          AND e.handled_at < (NOW() - INTERVAL ? DAY)`,
+      [days]
+    );
+    return Number(row.total);
   }
 
   /** How many are due to go, so the retention promise is checkable rather than claimed. */

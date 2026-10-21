@@ -46,6 +46,7 @@ const { seoLocals } = require('./config/seoMeta');
 const AppSetting = require('./models/AppSetting');
 const { validateActiveAccount } = require('./middleware/auth');
 const { csrfProtection } = require('./middleware/csrf');
+const { isUploadPath } = require('./middleware/fileUpload');
 const { captureReferralCode } = require('./middleware/referral');
 const { notFound, errorHandler, asyncHandler } = require('./middleware/errorHandler');
 const { visitGeo } = require('./middleware/visitGeo');
@@ -356,7 +357,11 @@ app.use(flash());
  * body, a stronger check than a token it could not carry anyway: it has no browser, no
  * session and no page to read one from.
  */
-app.use(csrfProtection({ exempt: (req) => req.path === WEBHOOK_PATH }));
+app.use(csrfProtection({
+  exempt: (req) => req.path === WEBHOOK_PATH,
+  // Upload routes are checked after multer parses the body; see middleware/csrf.js.
+  deferMultipart: isUploadPath
+}));
 app.use(validateActiveAccount);
 /*
  * A referral link can point at any page, so the code is captured on every request rather

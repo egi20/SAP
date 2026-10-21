@@ -1,0 +1,19 @@
+<%
+  /* Name and email, on their own so a form can put them first (the reporter does, as
+     dynamicshub.net's does). Prefilled for a signed-in member; the reply goes here. */
+  const iv = values || {};
+%>
+<div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label" for="f-name">Your name <span aria-hidden="true">*</span></label>
+    <input class="form-control" id="f-name" name="name" required maxlength="120" autocomplete="name"
+           value="<%= iv.name || (currentUser ? currentUser.name : '') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="f-email">Email <span aria-hidden="true">*</span></label>
+    <input class="form-control" id="f-email" name="email" type="email" required maxlength="190"
+           autocomplete="email" aria-describedby="f-email-help"
+           value="<%= iv.email || (currentUser ? currentUser.email : '') %>">
+    <p class="form-text" id="f-email-help">Where the reply goes.</p>
+  </div>
+</div>

@@ -531,6 +531,20 @@ form and nowhere else; a purge that dropped the kind from its WHERE would quietl
 promise nobody made to messages nobody promised it about. The admin screen prints how many
 are due, so "we keep it for 180 days" is checkable rather than claimed.
 
+**`/report-issue` has two modes and takes screenshots** (migration 030, 2026-10-21). "Share
+an idea" is the idea_* half of the same `issue_type` ENUM, not a fourth kind, and for an idea
+`severity` holds the priority — `critical` exists for problems only, and the model refuses it
+for an idea. The mode is a query parameter rendered by the server, so both work without
+scripting. Screenshots are IMAGES ONLY, re-encoded by sharp before they are stored, because
+a PDF or an office document from a stranger is exactly what that re-encode keeps away from
+the administrator who opens the report; they are deleted `ATTACHMENT_RETENTION_DAYS` after
+the report is closed, which the Privacy policy states and the admin queue prints as a count
+with a purge button, like the tax retention. `page_url` and `content_url` must be plain
+http(s) on the way in AND are rendered as links on the admin screen only after the same
+check — a `javascript:` URL in that column is a script one click away for whoever reads it.
+The page the reporter was on is added to every link to the form by `main.js`, origin and
+path only, because the app sends no Referer.
+
 **One honeypot, in one partial.** Two copies of a defence is one that breaks silently the
 day somebody renames the field in the other.
 
@@ -1723,6 +1737,17 @@ Client-side fetches send `X-CSRF-Token`, which `public/js/main.js` attaches auto
 from the meta tag. A route that legitimately has no browser session (a signed webhook,
 when payments land) goes through the `exempt` predicate, not by being mounted outside the
 middleware.
+
+**A multipart body is checked AFTER multer parses it, and only on listed upload paths.**
+The CSRF middleware runs before any route, and a multipart body has not been parsed then, so
+the `_csrf` field inside it was invisible: every file upload on the site — photographs,
+logos, story pictures — answered "Your session expired" in a real browser, and nothing
+caught it because no test posted a real multipart form. `csrfProtection({ deferMultipart })`
+defers the check for exactly the paths in `UPLOAD_PATHS` (`middleware/fileUpload.js`), and the
+upload helpers there run `verifyDeferred` as soon as multer is done, before the handler. A
+multipart post anywhere else is refused as before — deferring for every multipart request
+would let a cross-site form reach a route that needs no body at all. **A new upload route
+goes in `UPLOAD_PATHS`, or it fails closed the first time anybody uses it.**
 
 ## Never use `res.redirect('back')`
 

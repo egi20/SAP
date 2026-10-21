@@ -1392,12 +1392,14 @@ router.get(
     };
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 25 });
 
-    const [{ rows, total }, openCount, dueForPurge] = await Promise.all([
+    const [{ rows, total }, openCount, dueForPurge, screenshotsDue] = await Promise.all([
       Enquiry.browse(filters, { limit, offset }),
       Enquiry.openCount(),
       // Printed so "we keep it for 180 days" is a fact somebody can check rather than a
       // sentence in a policy.
-      Enquiry.taxEnquiriesDueForPurge()
+      Enquiry.taxEnquiriesDueForPurge(),
+      // The same for the screenshots the Privacy policy promises to delete.
+      Enquiry.attachmentsDueForPurge()
     ]);
 
     res.render('admin/enquiries', {
@@ -1406,6 +1408,8 @@ router.get(
       filters,
       openCount,
       dueForPurge,
+      screenshotsDue,
+      screenshotRetentionDays: Enquiry.ATTACHMENT_RETENTION_DAYS,
       retentionDays: Enquiry.RETENTION_DAYS,
       kinds: Enquiry.KINDS,
       statuses: Enquiry.STATUSES,
@@ -1425,8 +1429,44 @@ router.get(
     return res.render('admin/enquiry', {
       title: `Enquiry #${enquiry.id}`,
       enquiry,
+      attachments: await Enquiry.attachmentsFor(enquiry.id),
+      // Rendered as links only after the same check the form applied on the way in.
+      pageLink: Enquiry.reportUrl(enquiry.page_url).value,
+      contentLink: Enquiry.reportUrl(enquiry.content_url).value,
       statuses: Enquiry.STATUSES
     });
+  })
+);
+
+/**
+ * A screenshot attached to a report. Behind the admin guard like the rest of this file,
+ * served as the WebP sharp produced, never cached by a shared cache, and with nosniff
+ * (set app-wide) so a browser cannot be talked into reading it as anything else.
+ */
+router.get(
+  '/enquiries/:id/attachments/:attachmentId',
+  requireIdParam('id'),
+  requireIdParam('attachmentId'),
+  asyncHandler(async (req, res) => {
+    const file = await Enquiry.attachment(req.params.id, req.params.attachmentId);
+    if (!file) return res.status(404).render('errors/404', { title: 'Not found' });
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Disposition', `inline; filename="enquiry-${req.params.id}-${req.params.attachmentId}.webp"`);
+    return res.type(file.content_type).send(file.bytes);
+  })
+);
+
+/**
+ * POST /admin/enquiries/purge-screenshots — delete screenshots past the retention the
+ * Privacy policy states. The report text stays; the pictures go.
+ */
+router.post(
+  '/enquiries/purge-screenshots',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const removed = await Enquiry.purgeExpiredAttachments();
+    req.flash('success', `${removed} ${removed === 1 ? 'screenshot' : 'screenshots'} past retention deleted.`);
+    return res.redirect('/admin/enquiries');
   })
 );
 
