@@ -1,0 +1,185 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-bar-chart-line',
+  heading: provider.name,
+  sub: 'The sections dynamicshub.net/admin/analytics shows, read from the GA4 Data API.'
+}) %>
+
+<%
+  const n = function (v) { return Number(v || 0).toLocaleString('en-GB'); };
+  const pct = function (v) { return (Number(v || 0) * 100).toFixed(1) + '%'; };
+  const dur = function (s) { s = Math.round(Number(s || 0)); return s >= 60 ? Math.floor(s / 60) + 'm ' + (s % 60) + 's' : s + 's'; };
+  const gaDay = function (d) { return d && d.length === 8 ? d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6) : d; };
+  const section = function (key) { return dashboard && dashboard[key] ? dashboard[key] : { rows: [] }; };
+%>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'analytics' }) %>
+  <%- include('../partials/flash') %>
+  <%- include('./analytics-partials/nav', { current: 'ga4' }) %>
+  <%- include('./analytics-partials/status') %>
+
+  <% if (reportingEnabled) { %>
+    <%- include('./analytics-partials/range') %>
+
+    <% if (error) { %>
+      <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        Google refused the request, so there are no figures to show:
+        <span class="font-monospace"><%= error %></span>
+        <p class="small mb-0 mt-1">A permission error means the service account is not a Viewer on this exact property: GA4 → Admin → Property access management.</p>
+      </div>
+    <% } else if (dashboard) { %>
+
+      <%# Realtime: who is on the site in the last thirty minutes. %>
+      <div class="glass-card mb-4"><div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-md-3">
+            <p class="small text-muted-2 mb-1"><span class="live-dot" aria-hidden="true"></span> Active right now (last 30 min)</p>
+            <p class="stat-value mb-0"><%= realtime && !realtime.error ? n(realtime.activeUsers) : '—' %></p>
+            <% if (realtime && realtime.error) { %><p class="small text-danger mb-0"><%= realtime.error %></p><% } %>
+          </div>
+          <div class="col-md-4">
+            <p class="small text-muted-2 mb-1"><i class="bi bi-geo-alt"></i> By country</p>
+            <% const rc = realtime && realtime.countries && realtime.countries.rows || []; %>
+            <% if (!rc.length) { %><p class="small text-muted-2 mb-0">No active users</p><% } %>
+            <ul class="list-unstyled small mb-0"><% rc.forEach(function (r) { %><li><%= r.country %> — <%= n(r.activeUsers) %></li><% }); %></ul>
+          </div>
+          <div class="col-md-5">
+            <p class="small text-muted-2 mb-1"><i class="bi bi-file-earmark"></i> By page</p>
+            <% const rp = realtime && realtime.pages && realtime.pages.rows || []; %>
+            <% if (!rp.length) { %><p class="small text-muted-2 mb-0">No active users</p><% } %>
+            <ul class="list-unstyled small mb-0"><% rp.forEach(function (r) { %><li class="text-break"><%= r.unifiedScreenName %> — <%= n(r.activeUsers) %></li><% }); %></ul>
+          </div>
+        </div>
+        <p class="small text-muted-2 mt-2 mb-0">Only visitors who pressed "Allow analytics" — including administrators.</p>
+      </div></div>
+
+      <%# KPIs %>
+      <% const k = (section('kpis').rows || [])[0] || {}; %>
+      <% if (section('kpis').error) { %>
+        <div class="glass-card mb-4"><div class="card-body"><%- include('./analytics-partials/card-error', { error: section('kpis').error }) %></div></div>
+      <% } %>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+          <p class="stat-value mb-0"><%= n(serverViews) %></p><p class="mb-0">SAP Hub's own count</p>
+          <p class="small text-muted-2 mb-0">pages browsers opened, counted on the server — the yardstick</p>
+        </div></div></div>
+        <% [
+          ['Page views', n(k.screenPageViews)], ['Active users', n(k.activeUsers)], ['Sessions', n(k.sessions)],
+          ['Engagement rate', pct(k.engagementRate)], ['New users', n(k.newUsers)],
+          ['Avg. session duration', dur(k.averageSessionDuration)], ['Bounce rate', pct(k.bounceRate)]
+        ].forEach(function (kpi) { %>
+          <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= kpi[1] %></p><p class="mb-0"><%= kpi[0] %></p>
+          </div></div></div>
+        <% }); %>
+      </div>
+
+      <%# Traffic over time %>
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-graph-up"></i> Traffic over time</h2>
+        <% if (section('series').error) { %><%- include('./analytics-partials/card-error', { error: section('series').error }) %>
+        <% } else { %>
+          <%- include('./analytics-partials/series', { valueLabel: 'Page views', points: section('series').rows.map(function (r) { return { day: gaDay(r.date), value: r.screenPageViews }; }) }) %>
+        <% } %>
+      </div></div>
+
+      <div class="row g-3 mb-4">
+        <%# Direct vs external %>
+        <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 mb-3"><i class="bi bi-signpost"></i> Direct vs external</h2>
+          <% if (section('channels').error) { %><%- include('./analytics-partials/card-error', { error: section('channels').error }) %>
+          <% } else { const split = dashboard.direct ? dashboard.direct.split : { direct: { users: 0, sessions: 0 }, external: { users: 0, sessions: 0 } }; %>
+            <div class="row g-2">
+              <div class="col-6"><p class="stat-value mb-0"><%= n(split.direct.users) %></p><p class="small mb-0">Direct users · <%= n(split.direct.sessions) %> sessions</p></div>
+              <div class="col-6"><p class="stat-value mb-0"><%= n(split.external.users) %></p><p class="small mb-0">External users · <%= n(split.external.sessions) %> sessions</p></div>
+            </div>
+            <p class="small text-muted-2 mt-2 mb-0"><strong>Direct</strong> = typed address, bookmark, or a link from an app that strips the referrer (WhatsApp, SMS). <strong>External</strong> = search, social, referrals and tagged links.</p>
+          <% } %>
+        </div></div></div>
+
+        <%# New vs returning %>
+        <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 mb-3"><i class="bi bi-arrow-repeat"></i> New vs returning</h2>
+          <% if (section('newReturning').error) { %><%- include('./analytics-partials/card-error', { error: section('newReturning').error }) %>
+          <% } else { %>
+            <div class="row g-2">
+              <% ['new', 'returning'].forEach(function (kind) { const r = section('newReturning').rows.find(function (x) { return x.newVsReturning === kind; }) || {}; %>
+                <div class="col-6">
+                  <p class="stat-value mb-0"><%= n(r.activeUsers) %></p>
+                  <p class="small mb-0"><%= kind === 'new' ? 'New' : 'Returning' %> users · <%= n(r.sessions) %> sessions · <%= pct(r.engagementRate) %> engaged</p>
+                </div>
+              <% }); %>
+            </div>
+            <p class="small text-muted-2 mt-2 mb-0"><strong>New</strong> = first recorded visit; <strong>returning</strong> = at least one before, on the same browser.</p>
+          <% } %>
+        </div></div></div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <% [
+          { key: 'age', title: 'Age', icon: 'bi-people', dim: 'userAgeBracket', metric: 'activeUsers', valueLabel: 'Users', hint: 'GA4 shows age and gender only with Google Signals switched on (GA4 → Admin → Data collection) and above a minimum number of users; below it the rows are withheld.' },
+          { key: 'gender', title: 'Gender', icon: 'bi-gender-ambiguous', dim: 'userGender', metric: 'activeUsers', valueLabel: 'Users', hint: 'Needs Google Signals and a minimum number of users, as above.' },
+          { key: 'devices', title: 'Devices', icon: 'bi-laptop', dim: 'deviceCategory', metric: 'activeUsers', valueLabel: 'Users' },
+          { key: 'countries', title: 'Countries', icon: 'bi-globe', dim: 'country', metric: 'activeUsers', valueLabel: 'Users' }
+        ].forEach(function (b) { const s = section(b.key); %>
+          <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+            <h2 class="h6 mb-3"><i class="bi <%= b.icon %>"></i> <%= b.title %></h2>
+            <% if (s.error) { %><%- include('./analytics-partials/card-error', { error: s.error, hint: b.hint }) %>
+            <% } else { %>
+              <%- include('./analytics-partials/bars', { rows: s.rows.map(function (r) { return { label: r[b.dim], value: r[b.metric] }; }), valueLabel: b.valueLabel, empty: b.hint ? 'Nothing recorded in this range. ' + b.hint : null }) %>
+            <% } %>
+          </div></div></div>
+        <% }); %>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 mb-3"><i class="bi bi-file-earmark"></i> Top pages <span class="small text-muted-2">(top 50)</span></h2>
+          <% if (section('pages').error) { %><%- include('./analytics-partials/card-error', { error: section('pages').error }) %>
+          <% } else { %>
+            <%- include('./analytics-partials/bars', { rows: section('pages').rows.map(function (r) { return { label: r.pagePath, value: r.screenPageViews, extra: n(r.activeUsers) }; }), valueLabel: 'Views', extraLabel: 'Users' }) %>
+          <% } %>
+        </div></div></div>
+
+        <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6 mb-2"><i class="bi bi-arrow-down-right-square"></i> Traffic sources <span class="small text-muted-2">(top 50)</span></h2>
+          <% if (section('sources').error) { %><%- include('./analytics-partials/card-error', { error: section('sources').error }) %>
+          <% } else { %>
+            <div class="small mb-3">
+              <strong><i class="bi bi-stars"></i> AI assistants:</strong>
+              <% const ai = dashboard.ai ? dashboard.ai.rows : []; %>
+              <% if (!ai.length) { %>
+                <span class="text-muted-2">none named in this range. Assistants that send no referrer are counted under (direct).</span>
+              <% } else { %>
+                <%= ai.map(function (r) { return r.sessionSourceMedium + ' (' + n(r.sessions) + ')'; }).join(', ') %>
+              <% } %>
+            </div>
+            <%- include('./analytics-partials/bars', { rows: section('sources').rows.map(function (r) { return { label: r.sessionSourceMedium, value: r.sessions, extra: n(r.activeUsers) }; }), valueLabel: 'Sessions', extraLabel: 'Users' }) %>
+          <% } %>
+        </div></div></div>
+      </div>
+
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h6 mb-1"><i class="bi bi-signpost-split"></i> What each source came for</h2>
+        <p class="small text-muted-2 mb-3">The <strong>landing page</strong> each source arrives on — the page the link pointed at. A source's total is the sum of its pages.</p>
+        <% if (section('landing').error) { %><%- include('./analytics-partials/card-error', { error: section('landing').error }) %>
+        <% } else { %>
+          <%- include('./analytics-partials/bars', { rows: section('landing').rows.map(function (r) { return { label: r.sessionSourceMedium + ' · ' + r.landingPage, value: r.sessions, extra: n(r.activeUsers) }; }), valueLabel: 'Sessions', extraLabel: 'Users' }) %>
+        <% } %>
+      </div></div>
+
+      <p class="small text-muted-2 mb-0">
+        GA4 counts only visitors who pressed "Allow analytics", so its totals sit below the server's
+        own count by however many declined or block trackers. Its reports lag by up to a day; the
+        realtime card does not. Figures are cached for ten minutes.
+      </p>
+    <% } %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

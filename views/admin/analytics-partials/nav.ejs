@@ -1,0 +1,13 @@
+<%#
+  The three analytics screens, carrying the range across so switching screens never
+  silently changes which days are being compared.
+%>
+<nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Analytics screens">
+  <% [
+    { key: 'site', href: '/admin/analytics', label: 'Site counts' },
+    { key: 'ga4', href: '/admin/analytics/ga4', label: 'Google Analytics 4' },
+    { key: 'cloudflare', href: '/admin/analytics/cloudflare', label: 'Cloudflare Web Analytics' }
+  ].forEach(function (s) { %>
+    <a class="btn btn-sm <%= s.key === current ? 'btn-primary' : 'btn-outline-primary' %>" href="<%= s.href %>?<%= rangeQuery(range) %>"<% if (s.key === current) { %> aria-current="page"<% } %>><%= s.label %></a>
+  <% }); %>
+</nav>

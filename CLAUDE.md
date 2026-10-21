@@ -1751,6 +1751,22 @@ change keep the bots; nothing rewrites them. And Cloudflare samples a long range
 coarsely than a short one, so its 30-day figure can come out BELOW its own 7-day figure —
 the shorter range is the more exact.
 
+**The screens carry dynamicshub.net/admin/analytics's sections** (2026-10-21): GA4 realtime,
+the seven KPIs, traffic over time, direct vs external, new vs returning, age, gender, devices,
+countries, top 50 pages, top 50 sources with the AI assistants named, and each source's
+landing pages; Cloudflare whatever of those it records, plus browsers and operating systems;
+and on Site counts the server-side panels — visitors and sign-ups by country, daily-challenge
+players. `services/analyticsDashboard.js` makes ONE REQUEST PER SECTION and each may fail on
+its own: GA4 refuses a whole batch for one dimension it will not serve (age without Google
+Signals) and Cloudflare a whole query for one field, and a page that went blank for that is
+worse than one card saying why it is empty. One date range for all three screens, from
+`utils/analyticsRange.js` (the reference's presets plus custom dates, refused rather than
+clamped when it cannot be answered). Charts are SVG drawn on the server, because the CSP
+allows no CDN. Two of the reference's sections are NOT here, deliberately and pending a
+decision: "signed-in vs anonymous" sends the member's id to Google, and "who opened the tax
+pages" records named people's visits to the most sensitive page on the site — both are new
+personal data the privacy policy does not mention.
+
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
 Cloudflare edge, so per-IP rate limits, `visit_geo_daily` and `users.signup_country` were all

@@ -1075,6 +1075,15 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 /* "Analytics choices" changes a setting rather than going anywhere, so it is a button dressed as its neighbours. */
 .footer-hub .footer-link-button { color: rgba(255, 255, 255, 0.75); text-decoration: none; font-size: inherit; vertical-align: baseline; }
 .footer-hub .footer-link-button:hover, .footer-hub .footer-link-button:focus { color: #fff; }
+/* The analytics screens: a bar behind each ranked row, long lists that scroll, the SVG series. */
+.analytics-bar { display: block; height: 4px; margin-top: 3px; border-radius: var(--radius-full); background: var(--grad-navyblue); opacity: 0.55; }
+.analytics-scroll { max-height: 420px; overflow-y: auto; }
+.analytics-series { width: 100%; height: auto; }
+.analytics-series .col { fill: var(--primary-blue); }
+.analytics-series .col:hover { opacity: 0.75; }
+.analytics-series .axis { stroke: var(--text-light); stroke-width: 1; opacity: 0.4; }
+.analytics-series .tick { font-size: 11px; fill: var(--text-light); }
+.live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--grad-success); vertical-align: middle; }
 /* The dashboard's welcome banner, role tabs and action tiles (views/dashboard/index.ejs). */
 .dashboard-welcome {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3);

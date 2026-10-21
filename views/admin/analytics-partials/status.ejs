@@ -1,0 +1,37 @@
+<%# Whether this provider's tag is on the site, and whether its reports can be read here. %>
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 mb-3">Status</h2>
+    <ul class="list-unstyled mb-0">
+      <li class="mb-1">
+        <i class="bi <%= tagEnabled ? 'bi-check-circle text-success' : 'bi-x-circle text-danger' %>"></i>
+        Tracking on the site:
+        <strong><%= tagEnabled ? 'on' : 'off' %></strong>
+        <% if (!tagEnabled) { %>
+          <span class="text-muted-2">— set <span class="font-monospace"><%= providerKey === 'ga4' ? 'GA4_MEASUREMENT_ID' : 'CF_WEB_ANALYTICS_TOKEN' %></span> on the web service.</span>
+        <% } else if (providerKey === 'ga4') { %>
+          <span class="text-muted-2">— only for visitors who press "Allow analytics".</span>
+        <% } else { %>
+          <span class="text-muted-2">— for every visitor; it sets no cookie.</span>
+        <% } %>
+      </li>
+      <li>
+        <i class="bi <%= reportingEnabled ? 'bi-check-circle text-success' : 'bi-x-circle text-danger' %>"></i>
+        Reports on this screen:
+        <strong><%= reportingEnabled ? 'on' : 'off' %></strong>
+        <% if (!reportingEnabled) { %>
+          <span class="text-muted-2">— set
+            <% if (providerKey === 'ga4') { %>
+              <span class="font-monospace">GA4_PROPERTY_ID</span> and <span class="font-monospace">GA4_SERVICE_ACCOUNT_JSON</span>.
+            <% } else { %>
+              <span class="font-monospace">CF_ACCOUNT_ID</span> and <span class="font-monospace">CF_API_TOKEN</span>.
+            <% } %>
+          </span>
+        <% } %>
+      </li>
+    </ul>
+    <p class="small text-muted-2 mt-3 mb-0">
+      The full reports are in the provider's own dashboard:
+      <a href="<%= provider.dashboardUrl %>" rel="noopener" target="_blank"><%= provider.name %></a>.
+    </p>
+  </div></div>
+

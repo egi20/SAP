@@ -1,0 +1,126 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-bar-chart-line',
+  heading: provider.name,
+  sub: 'The same sections as the GA4 screen, wherever Cloudflare records them, read from its GraphQL API.'
+}) %>
+
+<%
+  const n = function (v) { return Number(v || 0).toLocaleString('en-GB'); };
+  const section = function (key) { return dashboard && dashboard[key] ? dashboard[key] : { rows: [] }; };
+%>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'analytics' }) %>
+  <%- include('../partials/flash') %>
+  <%- include('./analytics-partials/nav', { current: 'cloudflare' }) %>
+  <%- include('./analytics-partials/status') %>
+
+  <% if (reportingEnabled) { %>
+    <%- include('./analytics-partials/range') %>
+
+    <% if (error) { %>
+      <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        Cloudflare refused the request, so there are no figures to show:
+        <span class="font-monospace"><%= error %></span>
+      </div>
+    <% } else if (report) { %>
+      <% if (report.totals[0].value === 0) { %>
+        <div class="alert alert-warning">
+          <p class="mb-2">
+            <i class="bi bi-info-circle"></i>
+            The request worked and there are no page views for this range<% if (report.filteredBy) { %>, filtered by <span class="font-monospace"><%= report.filteredBy %></span><% } %>.
+          </p>
+          <% if (providerKey === 'cloudflare') { %>
+            <% if (report.seenError) { %>
+              <p class="mb-0">Could not ask Cloudflare what else it has: <span class="font-monospace"><%= report.seenError %></span></p>
+            <% } else if (report.seen && report.seen.length) { %>
+              <p class="mb-1"><strong>Cloudflare does have page loads in this account, for:</strong></p>
+              <ul class="mb-2">
+                <% report.seen.forEach(function (row) { %>
+                  <li><span class="font-monospace"><%= row.host %></span> — <%= row.value.toLocaleString('en-GB') %> page views<% if (row.siteTag) { %> (site tag <span class="font-monospace"><%= row.siteTag %></span>)<% } %></li>
+                <% }); %>
+              </ul>
+              <p class="mb-0">So the beacon works and this screen is asking for a different site. If one of these is SAP Hub, set
+                <span class="font-monospace">CF_WEB_ANALYTICS_SITE_TAG</span> to its site tag on the web service, or make
+                <span class="font-monospace">APP_BASE_URL</span> use that host.</p>
+            <% } else { %>
+              <p class="mb-0"><strong>Cloudflare has no page loads at all in this account for this range</strong>, so the
+                beacon is not reaching it. Check that <span class="font-monospace">CF_ACCOUNT_ID</span> is the account
+                where saphub.net was added to Web Analytics, that <span class="font-monospace">CF_WEB_ANALYTICS_TOKEN</span>
+                is that site's token, and test in a browser without a tracker blocker — Opera, Brave and uBlock Origin never send it.</p>
+            <% } %>
+          <% } else { %>
+            <p class="mb-0">GA4 counts nobody until they press "Allow analytics", ignores visitors with a tracker blocker,
+              and its reports lag by up to a day.</p>
+          <% } %>
+        </div>
+      <% } %>
+      <% if (report.sampleInterval) { %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          Cloudflare <strong>samples</strong> page loads: each one it recorded here stands for about
+          <strong><%= report.sampleInterval %></strong>, so every figure moves in steps of
+          <%= report.sampleInterval %>. On a site this quiet the numbers are estimates, not counts —
+          <%= report.totals[0].value %> page views means roughly <%= Math.round(report.totals[0].value / report.sampleInterval) %> were actually recorded.
+          Cloudflare samples a long range more coarsely than a short one, so the shorter range is the more exact of the two: if it shows more than this one, believe the shorter range.
+        </div>
+      <% } %>
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4"><div class="glass-card h-100"><div class="card-body">
+          <p class="stat-value mb-0"><%= n(serverViews) %></p><p class="mb-0">SAP Hub's own count</p>
+          <p class="small text-muted-2 mb-0">pages browsers opened, counted on the server — no script, sampling or consent. Bots and failed requests are left out from 21 October 2026; earlier days still include them.</p>
+        </div></div></div>
+        <% report.totals.forEach(function (t) { %>
+          <div class="col-6 col-md-4"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= n(t.value) %></p><p class="mb-0"><%= t.label %></p>
+          </div></div></div>
+        <% }); %>
+      </div>
+
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-graph-up"></i> Traffic over time</h2>
+        <% if (section('series').error) { %><%- include('./analytics-partials/card-error', { error: section('series').error }) %>
+        <% } else { %>
+          <%- include('./analytics-partials/series', { valueLabel: 'Page views', points: section('series').rows.map(function (r) { return { day: r.label, value: r.views }; }) }) %>
+        <% } %>
+      </div></div>
+
+      <div class="row g-3 mb-4">
+        <% [
+          { key: 'pages', title: 'Top pages', icon: 'bi-file-earmark', note: '(top 50)', extra: true },
+          { key: 'referrers', title: 'Where visitors came from', icon: 'bi-arrow-down-right-square', note: '(top 50)', extra: true },
+          { key: 'countries', title: 'Countries', icon: 'bi-globe', country: true },
+          { key: 'devices', title: 'Devices', icon: 'bi-laptop' },
+          { key: 'browsers', title: 'Browsers', icon: 'bi-browser-chrome' },
+          { key: 'os', title: 'Operating systems', icon: 'bi-pc-display' }
+        ].forEach(function (b) { const s = section(b.key); %>
+          <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+            <h2 class="h6 mb-3"><i class="bi <%= b.icon %>"></i> <%= b.title %> <% if (b.note) { %><span class="small text-muted-2"><%= b.note %></span><% } %></h2>
+            <% if (s.error) { %><%- include('./analytics-partials/card-error', { error: s.error }) %>
+            <% } else { %>
+              <%- include('./analytics-partials/bars', {
+                rows: s.rows.map(function (r) { return { label: b.country ? (countryName(r.label) || r.label) : r.label, value: r.views, extra: n(r.visits) }; }),
+                valueLabel: 'Page views', extraLabel: b.extra ? 'Visits' : null
+              }) %>
+            <% } %>
+          </div></div></div>
+        <% }); %>
+      </div>
+
+      <p class="small text-muted-2 mb-0">
+        Cloudflare counts every visitor with scripting on and no tracker blocker, sets no cookie
+        and has no notion of a returning user, so it has no age, gender, new-versus-returning or
+        engagement figures — those exist only on the GA4 screen. Figures are sampled estimates on
+        a quiet site and cached for ten minutes.
+      </p>
+    <% } %>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

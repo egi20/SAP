@@ -1,0 +1,3 @@
+<%# One section the provider refused. The rest of the page stands; this card says why it is empty. %>
+<p class="small text-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Not available: <span class="font-monospace"><%= error %></span></p>
+<% if (typeof hint !== 'undefined' && hint) { %><p class="small text-muted-2 mt-1 mb-0"><%= hint %></p><% } %>

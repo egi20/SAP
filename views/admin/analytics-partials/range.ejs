@@ -1,0 +1,24 @@
+<%#
+  The date range, as links and one GET form, so it works without scripting and every
+  view is a URL somebody can send. The presets match dynamicshub.net's selector.
+%>
+<div class="analytics-range mb-4">
+  <div class="d-flex flex-wrap gap-2 align-items-center mb-2" role="group" aria-label="Date range">
+    <% presets.forEach(function (p) { %>
+      <a class="btn btn-sm <%= range.key === p.key ? 'btn-primary' : 'btn-outline-secondary' %>" href="?range=<%= p.key %>"<% if (range.key === p.key) { %> aria-current="true"<% } %>><%= p.label %></a>
+    <% }); %>
+  </div>
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+    <input type="hidden" name="range" value="custom">
+    <label class="small text-muted-2 mb-0" for="rangeFrom">Custom range</label>
+    <input type="date" class="form-control form-control-sm w-auto" id="rangeFrom" name="from" value="<%= range.from %>" aria-label="Start date">
+    <span class="small text-muted-2">to</span>
+    <input type="date" class="form-control form-control-sm w-auto" id="rangeTo" name="to" value="<%= range.to %>" aria-label="End date">
+    <button type="submit" class="btn btn-sm <%= range.key === 'custom' ? 'btn-primary' : 'btn-outline-primary' %>">Apply</button>
+  </form>
+  <% if (range.error) { %>
+    <p class="small text-danger mt-2 mb-0"><%= range.error %> Showing <%= range.label.toLowerCase() %> instead.</p>
+  <% } else { %>
+    <p class="small text-muted-2 mt-2 mb-0">Showing <%= range.from %> to <%= range.to %> (UTC days).</p>
+  <% } %>
+</div>

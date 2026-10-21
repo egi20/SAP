@@ -11,11 +11,63 @@
   <%- include('./_tabs', { current: 'analytics' }) %>
   <%- include('../partials/flash') %>
 
-  <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Analytics screens">
-    <a class="btn btn-sm btn-primary" href="/admin/analytics" aria-current="page">Site counts</a>
-    <a class="btn btn-sm btn-outline-primary" href="/admin/analytics/ga4">Google Analytics 4</a>
-    <a class="btn btn-sm btn-outline-primary" href="/admin/analytics/cloudflare">Cloudflare Web Analytics</a>
-  </nav>
+  <%- include('./analytics-partials/nav', { current: 'site' }) %>
+  <%- include('./analytics-partials/range') %>
+
+  <%#
+    The server-side panels dynamicshub.net shows under its GA charts. Counted by this
+    application, so they include the visitors who decline analytics or block trackers —
+    which is why they run higher than GA4. Aggregates only: a country, a day, a count.
+  %>
+  <% const n = function (v) { return Number(v || 0).toLocaleString('en-GB'); }; %>
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+        <h2 class="h6 mb-0"><i class="bi bi-globe-americas"></i> Visitors by country <span class="badge-hub">Server-side</span></h2>
+        <% if (currentUser.isSuperadmin) { %>
+          <form method="post" action="/admin/analytics/reset-geo" class="m-0"
+                data-confirm="Clear all collected visitor geography? It rebuilds from the next real page view, and the old figures cannot be brought back.">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+          </form>
+        <% } %>
+      </div>
+      <p class="small text-muted-2 mb-3">
+        <%= n(visitors.total) %> page views in this range, by the country of the request. Counts
+        everybody who opened a page in a browser — including those who decline analytics — so it
+        runs higher than GA4. Crawlers and failed requests are left out from 21 October 2026.
+      </p>
+      <%- include('./analytics-partials/bars', {
+        rows: visitors.rows.map(function (r) { return { label: countryName(r.country) || r.country, value: r.visits, extra: visitors.total ? Math.round(100 * r.visits / visitors.total) + '%' : '—' }; }),
+        valueLabel: 'Page views', extraLabel: 'Share'
+      }) %>
+    </div></div></div>
+
+    <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
+      <h2 class="h6 mb-1"><i class="bi bi-person-plus"></i> Sign-ups by country</h2>
+      <p class="small text-muted-2 mb-3">Accounts created in this range, by the country their sign-up came from (IP-derived, so a VPN or a trip abroad moves it). Independent of GA4 and cookie consent.</p>
+      <%- include('./analytics-partials/bars', {
+        rows: signups.map(function (r) { return { label: r.country ? (countryName(r.country) || r.country) : 'Unknown', value: r.signups }; }),
+        valueLabel: 'Sign-ups'
+      }) %>
+    </div></div></div>
+  </div>
+
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 mb-1"><i class="bi bi-trophy"></i> Daily challenge <span class="badge-hub">Server-side</span></h2>
+    <p class="small text-muted-2 mb-3">Distinct people who completed the daily challenge each day in this range.</p>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><p class="stat-value mb-0"><%= n(challenges.players) %></p><p class="small mb-0">Unique players</p></div>
+      <div class="col-4"><p class="stat-value mb-0"><%= n(challenges.plays) %></p><p class="small mb-0">Total plays</p></div>
+      <div class="col-4"><p class="stat-value mb-0"><%= n(challenges.activeDays) %></p><p class="small mb-0">Active days</p></div>
+    </div>
+    <%- include('./analytics-partials/bars', {
+      rows: challenges.perDay.map(function (r) { return { label: r.day, value: r.players, extra: n(r.plays) }; }),
+      valueLabel: 'Players', extraLabel: 'Plays'
+    }) %>
+  </div></div>
+
+  <h2 class="h6 mb-2">Growth by month</h2>
 
   <% if (!periods.length) { %>
     <div class="glass-card"><div class="card-body text-center py-5">

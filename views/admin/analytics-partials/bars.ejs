@@ -1,0 +1,30 @@
+<%#
+  A ranked list with a bar per row, scaled to the largest value in it.
+  Locals: rows [{ label, value, extra? }], valueLabel, extraLabel?, empty?
+%>
+<% const barMax = rows.reduce(function (m, r) { return Math.max(m, r.value); }, 0) || 1; %>
+<% if (!rows.length) { %>
+  <p class="text-muted-2 small mb-0"><%= (typeof empty !== 'undefined' && empty) || 'Nothing recorded in this range.' %></p>
+<% } else { %>
+  <div class="table-responsive analytics-scroll">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr>
+        <th scope="col"></th>
+        <th scope="col" class="text-end"><%= valueLabel %></th>
+        <% if (typeof extraLabel !== 'undefined' && extraLabel) { %><th scope="col" class="text-end"><%= extraLabel %></th><% } %>
+      </tr></thead>
+      <tbody>
+        <% rows.forEach(function (r) { %>
+          <tr>
+            <td class="text-break">
+              <%= r.label %>
+              <span class="analytics-bar" style="width: <%= Math.max(2, Math.round(100 * r.value / barMax)) %>%"></span>
+            </td>
+            <td class="text-end"><%= Number(r.value).toLocaleString('en-GB') %></td>
+            <% if (typeof extraLabel !== 'undefined' && extraLabel) { %><td class="text-end"><%= r.extra %></td><% } %>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

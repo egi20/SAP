@@ -47,6 +47,9 @@ const STALLED_AFTER_DAYS = 14;
 
 const webAnalyticsConfig = require('../config/webAnalytics');
 const webAnalyticsService = require('../services/webAnalytics');
+const analyticsDashboard = require('../services/analyticsDashboard');
+const SiteStats = require('../models/SiteStats');
+const { rangeFrom, rangeQuery, PRESETS: RANGE_PRESETS } = require('../utils/analyticsRange');
 
 const router = express.Router();
 
@@ -1289,8 +1292,26 @@ router.get(
     // Every period present in ANY series, so a month with no sign-ups still has a row.
     const periods = [...new Set(collected.flatMap((s) => s.rows.map((r) => r.period)))].sort();
 
+    /*
+     * The server-side panels dynamicshub.net shows under its GA charts, read over the same
+     * date range as the provider screens: who looked (by country), who signed up (by
+     * country) and who played the daily challenge. Aggregates only, never a person.
+     */
+    const range = rangeFrom(req.query);
+    const [visitors, signups, challenges] = await Promise.all([
+      SiteStats.visitorsByCountry(range),
+      SiteStats.signupsByCountry(range),
+      SiteStats.challengePlayers(range)
+    ]);
+
     return res.render('admin/analytics', {
       title: 'Analytics',
+      range,
+      presets: RANGE_PRESETS,
+      rangeQuery,
+      visitors,
+      signups,
+      challenges,
       periods,
       series: collected.map((s) => ({
         label: s.label,
@@ -1330,44 +1351,80 @@ Object.entries(WEB_ANALYTICS_PROVIDERS).forEach(([key, provider]) => {
   router.get(
     `/analytics/${key}`,
     asyncHandler(async (req, res) => {
-      const days = webAnalyticsService.RANGES.includes(Number(req.query.days)) ? Number(req.query.days) : 30;
+      const range = rangeFrom(req.query);
       let report = null;
+      let dashboard = null;
+      let realtime = null;
       let error = null;
       if (provider.reportingEnabled()) {
         try {
-          report = await provider.report(days);
+          if (key === 'cloudflare') {
+            /*
+             * The totals keep coming from the summary report, because it is the one that
+             * asks the two diagnostic questions — what the sample interval is, and which
+             * hosts have data when this one has none — and the sections from the
+             * dashboard, each its own request so one refused field empties one card.
+             */
+            const end = new Date(`${range.to}T23:59:59Z`);
+            [report, dashboard] = await Promise.all([
+              webAnalyticsService.cloudflareReport(range.days, { now: end }),
+              analyticsDashboard.cloudflareDashboard(range)
+            ]);
+          } else {
+            [dashboard, realtime] = await Promise.all([
+              analyticsDashboard.ga4Dashboard(range),
+              analyticsDashboard.ga4Realtime().catch((err) => ({ error: err.message }))
+            ]);
+          }
         } catch (err) {
           error = err.message;
         }
       }
-      /*
-       * The site's OWN count for the same days, from `visit_geo_daily`: every page a browser
-       * navigated to, counted on the server, with no script, no sampling and no consent
-       * involved. It is the yardstick for the trial — a provider far below it is losing
-       * visitors (blockers, declined consent), one above it is extrapolating.
-       */
-      const [[own]] = await promisePool.query(
-        `SELECT COALESCE(SUM(visits), 0) AS views
-           FROM visit_geo_daily
-          WHERE day > DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
-        [days]
-      );
 
-      return res.render('admin/web-analytics', {
+      /*
+       * The site's OWN count for the same days, from `visit_geo_daily`: pages browsers
+       * opened, counted on the server, with no script, no sampling and no consent involved.
+       * It is the yardstick for the trial — a provider far below it is losing visitors
+       * (blockers, declined consent), one above it is extrapolating.
+       */
+      const own = await SiteStats.visitorsByCountry(range, { limit: 1 });
+
+      return res.render(`admin/analytics-${key}`, {
         title: provider.name,
-        serverViews: Number(own.views),
+        serverViews: own.total,
         providerKey: key,
         provider: { name: provider.name, dashboardUrl: provider.dashboardUrl },
         tagEnabled: provider.tagEnabled(),
         reportingEnabled: provider.reportingEnabled(),
-        ranges: webAnalyticsService.RANGES,
-        days,
+        range,
+        presets: RANGE_PRESETS,
+        rangeQuery,
         report,
+        dashboard,
+        realtime,
         error
       });
     })
   );
 });
+
+/**
+ * POST /admin/analytics/reset-geo — clear the server-side visitor geography so it rebuilds
+ * from real traffic. Superadmin, because it deletes a table's history and nothing undoes it;
+ * the button carries `data-confirm`. Until 2026-10-21 that table counted crawlers and, before
+ * the proxy fix, Cloudflare's own edges, so this is the one deliberate way to stop reading
+ * around them.
+ */
+router.post(
+  '/analytics/reset-geo',
+  isSuperadmin,
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const removed = await SiteStats.resetVisitorGeography();
+    req.flash('success', `Visitor geography cleared (${removed} day-and-country rows). It rebuilds from the next real page view.`);
+    return res.redirect('/admin/analytics');
+  })
+);
 
 /**
  * THE ENQUIRY QUEUE.

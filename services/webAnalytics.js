@@ -241,7 +241,7 @@ query Seen($accountTag: string!, $from: Time!, $to: Time!) {
 }`;
 
 async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalytics.settings, now = new Date(), host = defaultHost() } = {}) {
-  return cached(`cloudflare:${days}`, async () => {
+  return cached(`cloudflare:${days}:${now.toISOString().slice(0, 10)}`, async () => {
     const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     const range = { from: from.toISOString(), to: now.toISOString() };
     const bySiteTag = Boolean(settings.cloudflare.explicitSiteTag);
@@ -308,5 +308,11 @@ module.exports = {
   normaliseCloudflare,
   ga4Requests,
   cloudflareQuery,
-  clearCache
+  clearCache,
+  // For services/analyticsDashboard.js, which reads the same two APIs in more detail.
+  cached,
+  googleAccessToken,
+  cloudflareGraphql,
+  CLOUDFLARE_FILTERS,
+  defaultHost
 };
