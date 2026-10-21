@@ -1605,6 +1605,19 @@ and a legitimate flow fails as "security verification failed".
 **One provider account confirms one Hub account.** A second attempt is refused rather than
 moved, and the message never names the other account.
 
+## The dashboard
+
+**It is laid out like dynamicshub.net's, from one catalogue.** A welcome banner with the
+account's roles and the admin-panel button, one tab per role the account holds, and a row of
+action tiles per tab above that role's own figures. `config/dashboard.js` is the only list of
+tabs and tiles, asserted at boot, and `tests/integration/dashboardTiles.test.js` opens every
+tile's href — the dashboard is the page every member lands on, and a dead tile there is the
+most-seen broken button on the site. Tabs are `?tab=` LINKS, not a scripted strip, so they
+work without scripting and can be bookmarked. Visibility is the same role FLAG the guards
+read, so a tab never offers a page its own guard would refuse; Sales Agent shows for everybody
+because anybody can join the referral scheme. The sign-in "Welcome back" flash is skipped
+when the destination is the dashboard, whose banner already says it.
+
 ## The cookie notice, and what it is not
 
 **It is a notice, not a consent gate, because there is nothing to refuse.** This site sets
@@ -1685,6 +1698,11 @@ API keys a site on its site tag, which is a different value from the token in th
 the first version assumed they were the same and the screen showed a clean zero for a site
 Cloudflare was counting. The host comes from `APP_BASE_URL`, which this application knows
 for certain. `CF_WEB_ANALYTICS_SITE_TAG` overrides it only when set explicitly.
+
+**A zero report asks a second question.** When the filtered Cloudflare report is empty,
+the service asks which hosts and site tags the account holds ANY page loads for, and the
+screen prints them. A bare zero cannot tell "the beacon never reached Cloudflare" from "the
+report asked for the wrong site", and those two need opposite fixes.
 
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a

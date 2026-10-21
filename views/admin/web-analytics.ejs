@@ -69,13 +69,33 @@
     <% } else if (report) { %>
       <% if (report.totals[0].value === 0) { %>
         <div class="alert alert-warning">
-          <i class="bi bi-info-circle"></i>
-          The request worked and the provider has no page views for this range<% if (report.filteredBy) { %> (filtered by <span class="font-monospace"><%= report.filteredBy %></span>)<% } %>.
-          Compare with the provider's own dashboard: if it shows visits, this screen is
-          asking for the wrong site; if it shows none either, the tag is not reaching the
-          provider — a browser with a tracker blocker (Opera, Brave, uBlock Origin) never
-          sends it, so test in an ordinary Chrome window without extensions.
-          <% if (providerKey === 'ga4') { %>GA4 also counts nobody until they press "Allow analytics", and its reports lag by up to a day.<% } %>
+          <p class="mb-2">
+            <i class="bi bi-info-circle"></i>
+            The request worked and there are no page views for this range<% if (report.filteredBy) { %>, filtered by <span class="font-monospace"><%= report.filteredBy %></span><% } %>.
+          </p>
+          <% if (providerKey === 'cloudflare') { %>
+            <% if (report.seenError) { %>
+              <p class="mb-0">Could not ask Cloudflare what else it has: <span class="font-monospace"><%= report.seenError %></span></p>
+            <% } else if (report.seen && report.seen.length) { %>
+              <p class="mb-1"><strong>Cloudflare does have page loads in this account, for:</strong></p>
+              <ul class="mb-2">
+                <% report.seen.forEach(function (row) { %>
+                  <li><span class="font-monospace"><%= row.host %></span> — <%= row.value.toLocaleString('en-GB') %> page views<% if (row.siteTag) { %> (site tag <span class="font-monospace"><%= row.siteTag %></span>)<% } %></li>
+                <% }); %>
+              </ul>
+              <p class="mb-0">So the beacon works and this screen is asking for a different site. If one of these is SAP Hub, set
+                <span class="font-monospace">CF_WEB_ANALYTICS_SITE_TAG</span> to its site tag on the web service, or make
+                <span class="font-monospace">APP_BASE_URL</span> use that host.</p>
+            <% } else { %>
+              <p class="mb-0"><strong>Cloudflare has no page loads at all in this account for this range</strong>, so the
+                beacon is not reaching it. Check that <span class="font-monospace">CF_ACCOUNT_ID</span> is the account
+                where saphub.net was added to Web Analytics, that <span class="font-monospace">CF_WEB_ANALYTICS_TOKEN</span>
+                is that site's token, and test in a browser without a tracker blocker — Opera, Brave and uBlock Origin never send it.</p>
+            <% } %>
+          <% } else { %>
+            <p class="mb-0">GA4 counts nobody until they press "Allow analytics", ignores visitors with a tracker blocker,
+              and its reports lag by up to a day.</p>
+          <% } %>
         </div>
       <% } %>
       <div class="row g-3 mb-4">

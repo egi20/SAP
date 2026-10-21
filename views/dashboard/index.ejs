@@ -1,9 +1,27 @@
 <%- include('../partials/layout-start') %>
 
-<%- include('../partials/page-header', { icon: 'bi-speedometer2', heading: 'Dashboard', sub: 'Everything happening on your account.' }) %>
-
-<section class="glass-section pb-5">
+<section class="glass-section pb-5 pt-4">
 <div class="container">
+  <%#
+    The welcome banner, as on dynamicshub.net: who you are signed in as, which roles the
+    account holds, and the way into the admin panel for those who have one. It replaces the
+    "Welcome back" flash the sign-in used to leave, so the greeting is not said twice.
+  %>
+  <div class="dashboard-welcome mb-4">
+    <div>
+      <h1 class="h3 mb-1">Welcome back, <%= currentUser.name %></h1>
+      <p class="mb-0">Here's what's happening with your account today.</p>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <% badges.forEach(function (b) { %>
+        <span class="dashboard-role-badge"><%= b %></span>
+      <% }); %>
+      <% if (currentUser.isAdmin) { %>
+        <a class="btn btn-outline-light btn-sm ms-lg-2" href="/admin"><i class="bi bi-gear"></i> Admin Panel</a>
+      <% } %>
+    </div>
+  </div>
+
   <%- include('../partials/flash') %>
 
   <% if (!currentUser.emailVerified) { %>
@@ -38,23 +56,34 @@
     </div></div>
   <% } %>
 
-  <% if (consultant) { %>
-    <section class="mb-5">
-      <h2 class="h5 mb-3">Consultant</h2>
+  <% if (tabs.length > 1) { %>
+    <nav class="dashboard-tabs mb-4" aria-label="Dashboard sections">
+      <% tabs.forEach(function (t) { %>
+        <a class="dashboard-tab<%= t.key === activeTab.key ? ' active' : '' %>" href="/dashboard?tab=<%= t.key %>"<% if (t.key === activeTab.key) { %> aria-current="page"<% } %>>
+          <i class="bi <%= t.icon %>"></i> <%= t.label %>
+        </a>
+      <% }); %>
+    </nav>
+  <% } %>
 
-      <%#
-        The same row of ways on as the hiring half has. It was only on the company side,
-        so a consultant's dashboard showed them what had happened and offered nowhere to
-        go next — the pages exist, and the one place somebody lands after signing in did
-        not name them.
-      -%>
-      <div class="d-flex flex-wrap gap-2 mb-3">
-        <a class="btn btn-primary btn-sm" href="/jobs"><i class="bi bi-briefcase"></i> Browse roles</a>
-        <a class="btn btn-outline-primary btn-sm" href="/dashboard/applications"><i class="bi bi-send"></i> Your applications</a>
-        <a class="btn btn-outline-primary btn-sm" href="/profile/cv"><i class="bi bi-file-earmark-text"></i> Your CV</a>
-        <a class="btn btn-outline-primary btn-sm" href="/consultants/<%= currentUser.id %>"><i class="bi bi-eye"></i> Your public profile</a>
-        <a class="btn btn-outline-primary btn-sm" href="/rates/calculator"><i class="bi bi-calculator"></i> Benchmark your rate</a>
+  <div class="row g-4 mb-5">
+    <% activeTab.tiles.forEach(function (tile) { %>
+      <div class="col-sm-6 col-lg-4">
+        <div class="dashboard-tile h-100">
+          <span class="icon-tile <%= tile.tone %> mb-3"><i class="bi <%= tile.icon %>"></i></span>
+          <h2 class="h5 mb-1"><%= tile.title %></h2>
+          <p class="text-muted-2 small mb-3"><%= tile.text %></p>
+          <a class="btn btn-sm <%= tile.primary ? 'btn-primary' : 'btn-outline-primary' %> mt-auto" href="<%= tile.href %>"><%= tile.cta %></a>
+        </div>
       </div>
+    <% }); %>
+  </div>
+
+  <% if (consultant && activeTab.key === 'consultant') { %>
+    <section class="mb-5">
+      <h2 class="h5 mb-3">Your consultant activity</h2>
+
+      <p class="small mb-3"><a href="/consultants/<%= currentUser.id %>"><i class="bi bi-eye"></i> See your public profile as others see it</a></p>
 
       <% if (consultant.profile.completeness < 60) { %>
         <div class="glass-card mb-3"><div class="card-body">
@@ -114,7 +143,7 @@
     </section>
   <% } %>
 
-  <% if (company) { %>
+  <% if (company && activeTab.key === 'company') { %>
     <section class="mb-5">
       <h2 class="h5 mb-3">Hiring</h2>
 
@@ -157,7 +186,7 @@
     </section>
   <% } %>
 
-  <% if (currentUser.isConsultant) { %>
+  <% if (currentUser.isConsultant && activeTab.key === 'consultant') { %>
   <section>
     <h2 class="h5 mb-3">Saved jobs</h2>
     <% if (savedJobs.length === 0) { %>

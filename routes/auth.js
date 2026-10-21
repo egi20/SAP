@@ -219,7 +219,10 @@ router.post(
       }
 
       await User.recordLogin(user.id);
-      req.flash('success', `Welcome back, ${req.session.user.name}.`);
+      // The dashboard greets by name in its own banner; anywhere else the flash does.
+      if (redirectAfterLogin !== '/dashboard') {
+        req.flash('success', `Welcome back, ${req.session.user.name}.`);
+      }
       return res.redirect(redirectAfterLogin);
     });
   })

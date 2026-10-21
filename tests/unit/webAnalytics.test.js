@@ -187,6 +187,33 @@ describe('Cloudflare report', () => {
     expect(body.query).toMatch(/siteTag: \$siteTag/);
   });
 
+  it('when the site reads zero, asks which hosts DO have data, so the fix is obvious', async () => {
+    const calls = [];
+    const fetchImpl = async (url, init) => {
+      const body = JSON.parse(init.body);
+      calls.push(body);
+      const data = body.query.includes('seen:')
+        ? { viewer: { accounts: [{ seen: [{ count: 42, dimensions: { requestHost: 'www.saphub.net', siteTag: 'd'.repeat(32) } }] }] } }
+        : { viewer: { accounts: [{ totals: [{ count: 0, sum: { visits: 0 } }] }] } };
+      return { ok: true, status: 200, json: async () => ({ data }) };
+    };
+    const report = await service.cloudflareReport(7, { fetchImpl, settings, host: 'saphub.net' });
+    expect(calls).toHaveLength(2);
+    expect(calls[1].query).not.toMatch(/requestHost: \$host|siteTag: \$siteTag/);
+    expect(report.seen).toEqual([{ host: 'www.saphub.net', siteTag: 'd'.repeat(32), value: 42 }]);
+  });
+
+  it('does not ask the second question when the report has data', async () => {
+    let n = 0;
+    const fetchImpl = async () => {
+      n += 1;
+      return { ok: true, status: 200, json: async () => ({ data: { viewer: { accounts: [{ totals: [{ count: 5, sum: { visits: 2 } }] }] } } }) };
+    };
+    const report = await service.cloudflareReport(30, { fetchImpl, settings });
+    expect(n).toBe(1);
+    expect(report.seen).toBeUndefined();
+  });
+
   it('surfaces GraphQL errors, which arrive with a 200', async () => {
     const fetchImpl = fakeFetch([
       ['https://api.cloudflare.com/', () => [200, { data: null, errors: [{ message: 'not authorized for that account' }] }]]

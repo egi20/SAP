@@ -38,6 +38,7 @@ const { assertTaxAdvisoryIntegrity } = require('./config/taxAdvisory');
 const { assertRateBoundsIntegrity } = require('./config/rateBounds');
 const { assertCountriesIntegrity } = require('./config/countries');
 const webAnalytics = require('./config/webAnalytics');
+const { assertDashboardIntegrity } = require('./config/dashboard');
 const { optionLabel } = require('./utils/optionLabel');
 const { deploymentShort } = require('./config/sapDeployments');
 const { pendingMigrations } = require('./scripts/migrate');
@@ -132,6 +133,11 @@ assertCountriesIntegrity();
  * loads, reports to nobody, and the admin screen shows an empty month.
  */
 webAnalytics.assertWebAnalyticsIntegrity();
+/*
+ * And the dashboard's tiles: the page everybody lands on after signing in, where a tile
+ * pointing at a route that was never built is a dead button on the busiest screen.
+ */
+assertDashboardIntegrity();
 const WEB_ANALYTICS_CSP = webAnalytics.cspAdditions();
 const WEB_ANALYTICS_TAGS = webAnalytics.publicTags();
 

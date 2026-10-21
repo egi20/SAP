@@ -39,6 +39,7 @@ check('country list is non-empty', () => {
   if (!Array.isArray(countries) || countries.length < 100) throw new Error(`only ${countries.length} countries`);
 });
 check('country dropdown list is consistent', () => require('../config/countries').assertCountriesIntegrity());
+check('dashboard tiles are well formed', () => require('../config/dashboard').assertDashboardIntegrity());
 check('web analytics ids are well formed', () => require('../config/webAnalytics').assertWebAnalyticsIntegrity());
 
 /*

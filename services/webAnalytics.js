@@ -203,30 +203,67 @@ function normaliseCloudflare(body, days) {
   };
 }
 
+async function cloudflareGraphql(query, variables, { fetchImpl, settings }) {
+  const res = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${settings.cloudflare.apiToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables })
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || (body.errors && body.errors.length)) {
+    const message = body.errors && body.errors.length ? body.errors.map((e) => e.message).join('; ') : res.status;
+    throw new Error(`Cloudflare GraphQL API: ${message}`);
+  }
+  return body;
+}
+
+/*
+ * Asked only when the filtered report is empty: which hosts and site tags does this
+ * account hold ANY page loads for? A zero on its own cannot say whether the beacon never
+ * reached Cloudflare or the report asked for the wrong site, and those two need opposite
+ * fixes — this answers which.
+ */
+const CLOUDFLARE_SEEN_QUERY = `
+query Seen($accountTag: string!, $from: Time!, $to: Time!) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
+      seen: rumPageloadEventsAdaptiveGroups(
+        filter: { datetime_geq: $from, datetime_leq: $to }, limit: 10, orderBy: [count_DESC]
+      ) { count dimensions { requestHost siteTag } }
+    }
+  }
+}`;
+
 async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalytics.settings, now = new Date(), host = defaultHost() } = {}) {
   return cached(`cloudflare:${days}`, async () => {
     const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const range = { from: from.toISOString(), to: now.toISOString() };
     const bySiteTag = Boolean(settings.cloudflare.explicitSiteTag);
-    const res = await fetchImpl('https://api.cloudflare.com/client/v4/graphql', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${settings.cloudflare.apiToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: cloudflareQuery(bySiteTag ? 'siteTag' : 'host'),
-        variables: {
-          accountTag: settings.cloudflare.accountId,
-          ...(bySiteTag ? { siteTag: settings.cloudflare.explicitSiteTag } : { host }),
-          from: from.toISOString(),
-          to: now.toISOString()
-        }
-      })
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || (body.errors && body.errors.length)) {
-      const message = body.errors && body.errors.length ? body.errors.map((e) => e.message).join('; ') : res.status;
-      throw new Error(`Cloudflare GraphQL API: ${message}`);
-    }
+    const body = await cloudflareGraphql(
+      cloudflareQuery(bySiteTag ? 'siteTag' : 'host'),
+      {
+        accountTag: settings.cloudflare.accountId,
+        ...(bySiteTag ? { siteTag: settings.cloudflare.explicitSiteTag } : { host }),
+        ...range
+      },
+      { fetchImpl, settings }
+    );
     const report = normaliseCloudflare(body, days);
     report.filteredBy = bySiteTag ? `site tag ${settings.cloudflare.explicitSiteTag}` : `host ${host}`;
+
+    if (report.totals[0].value === 0) {
+      try {
+        const seen = await cloudflareGraphql(CLOUDFLARE_SEEN_QUERY, { accountTag: settings.cloudflare.accountId, ...range }, { fetchImpl, settings });
+        const account = (seen.data && seen.data.viewer && seen.data.viewer.accounts && seen.data.viewer.accounts[0]) || {};
+        report.seen = (account.seen || []).map((g) => ({
+          host: (g.dimensions && g.dimensions.requestHost) || '(none)',
+          siteTag: (g.dimensions && g.dimensions.siteTag) || '',
+          value: Number(g.count) || 0
+        }));
+      } catch (err) {
+        report.seenError = err.message;
+      }
+    }
     return report;
   });
 }

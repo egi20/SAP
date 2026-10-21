@@ -15,6 +15,8 @@ const { writeLimiter } = require('../middleware/rateLimit');
 const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { matchScore } = require('../utils/jobMatcher');
+const Referral = require('../models/Referral');
+const { tabsFor } = require('../config/dashboard');
 
 const router = express.Router();
 
@@ -66,12 +68,32 @@ router.get(
       company = { jobs, totalOpen: total, statusCounts, stages: Application.BOARD_COLUMNS };
     }
 
+    /*
+     * One tab per role the account holds, chosen with `?tab=` — links rather than a
+     * scripted tab strip, so the page works without scripting and a tab can be bookmarked.
+     * An unknown or unavailable key falls back to the first tab instead of an empty page.
+     */
+    const tabs = tabsFor(user);
+    const activeTab = tabs.find((t) => t.key === req.query.tab) || tabs[0];
+    const referrer = await Referral.findByUserId(user.id);
+
+    const badges = [
+      user.isConsultant && 'Consultant',
+      user.isCompany && 'Company',
+      user.isRecruiter && 'Agency',
+      referrer && 'Sales Agent',
+      user.isSuperadmin ? 'Superadmin' : user.isAdmin && 'Admin'
+    ].filter(Boolean);
+
     res.render('dashboard/index', {
       title: 'Dashboard',
       unreadNotifications: unread,
       savedJobs,
       consultant,
-      company
+      company,
+      tabs,
+      activeTab,
+      badges
     });
   })
 );
