@@ -1742,7 +1742,14 @@ page loads and scales each one up, so on a quiet site every number moves in step
 sample interval — 30, then 40, every page exactly 10 — which reads as a bug and is not one.
 The service asks for `avg { sampleInterval }` separately and never fatally, and both screens
 print the site's own server-side count from `visit_geo_daily` beside the provider's figures
-as the yardstick: no script, no sampling, no consent involved.
+as the yardstick: no script, no sampling, no consent involved. **That count is of
+browsers, not of requests** (from 2026-10-21): only a 2xx response to a navigation whose
+user agent does not declare itself a crawler, library or headless browser. Counting every
+non-asset GET made the yardstick ~4,000 a week against 73 from Cloudflare — it was
+measuring the scanners that ask every site for /wp-login.php. Rows recorded before the
+change keep the bots; nothing rewrites them. And Cloudflare samples a long range more
+coarsely than a short one, so its 30-day figure can come out BELOW its own 7-day figure —
+the shorter range is the more exact.
 
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a

@@ -105,6 +105,7 @@
           <strong><%= report.sampleInterval %></strong>, so every figure moves in steps of
           <%= report.sampleInterval %>. On a site this quiet the numbers are estimates, not counts —
           <%= report.totals[0].value %> page views means roughly <%= Math.round(report.totals[0].value / report.sampleInterval) %> were actually recorded.
+          Cloudflare samples a long range more coarsely than a short one, so the shorter range is the more exact of the two: if it shows more than this one, believe the shorter range.
         </div>
       <% } %>
       <div class="row g-3 mb-4">
@@ -112,7 +113,7 @@
           <div class="glass-card h-100"><div class="card-body">
             <p class="stat-value mb-0"><%= serverViews.toLocaleString('en-GB') %></p>
             <p class="mb-0">SAP Hub's own count</p>
-            <p class="small text-muted-2 mb-0">page views the server itself counted in the same days — the yardstick</p>
+            <p class="small text-muted-2 mb-0">pages browsers opened, counted on the server — no script, sampling or consent. Bots and failed requests are left out from 21 October 2026; earlier days still include them.</p>
           </div></div>
         </div>
         <% report.totals.forEach(function (t) { %>
