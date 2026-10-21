@@ -322,6 +322,18 @@
   });
 
   /**
+   * /faq#faq3 opens that answer. The FAQ is an accordion with only the first panel open,
+   * so a link from a suggestion on /report-issue would otherwise land on a closed heading.
+   */
+  if (location.hash && /^#faq\d+$/.test(location.hash) && window.bootstrap) {
+    var faqPanel = document.querySelector(location.hash + '.accordion-collapse');
+    if (faqPanel) {
+      window.bootstrap.Collapse.getOrCreateInstance(faqPanel).show();
+      faqPanel.scrollIntoView({ block: 'start' });
+    }
+  }
+
+  /**
    * "Report a problem" knows which page you were on.
    *
    * The app sends `Referrer-Policy: no-referrer`, so the form cannot learn it from the

@@ -4,18 +4,24 @@
      name and email at the top passes `identityAbove: true`. */
   const v = values || {};
   const showIdentity = !(typeof identityAbove !== 'undefined' && identityAbove);
+  const ffe = typeof fieldErrors !== 'undefined' && fieldErrors ? fieldErrors : {};
 %>
 <% if (showIdentity) { %><div class="mb-3"><%- include('./enquiry-identity', { values: v }) %></div><% } %>
 <div class="row g-3">
   <div class="col-12">
     <label class="form-label" for="f-subject">Subject <span aria-hidden="true">*</span></label>
-    <input class="form-control" id="f-subject" name="subject" required maxlength="200"
+    <input class="form-control<%= ffe.subject ? ' is-invalid' : '' %>" id="f-subject" name="subject" required maxlength="200"
+           <% if (ffe.subject) { %>aria-invalid="true" aria-describedby="f-subject-error"<% } %>
            value="<%= v.subject || '' %>">
+    <% if (ffe.subject) { %><div class="invalid-feedback" id="f-subject-error"><%= ffe.subject %></div><% } %>
   </div>
   <div class="col-12">
     <label class="form-label" for="f-message">Message <span aria-hidden="true">*</span></label>
-    <textarea class="form-control" id="f-message" name="message" rows="8" required
-              minlength="20" maxlength="8000" aria-describedby="f-message-help"><%= v.message || '' %></textarea>
+    <textarea class="form-control<%= ffe.message ? ' is-invalid' : '' %>" id="f-message" name="message" rows="8" required
+              minlength="20" maxlength="8000" aria-describedby="f-message-help<%= ffe.message ? ' f-message-error' : '' %>"
+              <% if (ffe.message) { %>aria-invalid="true"<% } %> data-char-count="f-message-count" data-char-min="20"><%= v.message || '' %></textarea>
+    <% if (ffe.message) { %><div class="invalid-feedback" id="f-message-error"><%= ffe.message %></div><% } %>
+    <p class="form-text mb-0 text-end small" id="f-message-count" aria-live="polite"></p>
     <p class="form-text" id="f-message-help">
       At least 20 characters. Plain text. Include references — a payment starts <code>PAY-</code>, a quote <code>Q-</code>.
     </p>

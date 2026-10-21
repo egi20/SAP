@@ -48,7 +48,9 @@ const config = {
     name: process.env.APP_NAME || 'SAP Hub',
     port: parseInt(process.env.PORT, 10) || 3000,
     baseUrl: (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''),
-    supportEmail: process.env.SUPPORT_EMAIL || PLACEHOLDER_SUPPORT_EMAIL
+    supportEmail: process.env.SUPPORT_EMAIL || PLACEHOLDER_SUPPORT_EMAIL,
+    // Named in /.well-known/security.txt; the support address when not set separately.
+    securityEmail: (process.env.SECURITY_EMAIL || '').trim() || process.env.SUPPORT_EMAIL || PLACEHOLDER_SUPPORT_EMAIL
   },
   database: {
     host: process.env.DB_HOST || 'localhost',

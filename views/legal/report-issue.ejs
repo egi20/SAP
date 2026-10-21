@@ -56,6 +56,14 @@
 
       <div class="glass-card"><div class="card-body">
         <%- include('../partials/flash') %>
+        <% if (sent) { %>
+          <%# data-report-sent tells report-issue.js to drop the saved draft: it has arrived. -%>
+          <div class="alert alert-success" role="status" data-report-sent>
+            <strong>Thank you — your <%= isIdea ? 'idea' : 'report' %> reached us.</strong>
+            Your reference is <strong><%= sent %></strong>; a confirmation is on its way to your email.
+            <% if (currentUser) { %><a href="/report-issue/mine">See it in My reports</a>.<% } %>
+          </div>
+        <% } %>
         <% if (errors.length) { %>
           <div class="alert alert-danger" role="alert">
             <ul class="mb-0">
@@ -64,7 +72,7 @@
           </div>
         <% } %>
 
-        <form method="post" action="/report-issue" enctype="multipart/form-data" data-report-form>
+        <form method="post" action="/report-issue" enctype="multipart/form-data" data-report-form data-draft-key="report-draft-<%= mode %>">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="mode" value="<%= mode %>">
 
@@ -73,21 +81,38 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label" for="f-type"><%= isIdea ? 'Idea type' : 'What kind of problem' %> <span aria-hidden="true">*</span></label>
-              <select class="form-select" id="f-type" name="issue_type" required
+              <select class="form-select<%= fieldErrors.issue_type ? ' is-invalid' : '' %>" id="f-type" name="issue_type" required
+                      <% if (fieldErrors.issue_type) { %>aria-invalid="true" aria-describedby="f-type-error"<% } %>
                       <% if (!isIdea) { %>data-reveal="f-content-wrap" data-reveal-when="abuse"<% } %>>
                 <option value="">Choose…</option>
                 <% issueTypes.forEach(function (t) { %>
                   <option value="<%= t %>" <%= values.issue_type === t ? 'selected' : '' %>><%= typeLabels[t] %></option>
                 <% }) %>
               </select>
+              <% if (fieldErrors.issue_type) { %><div class="invalid-feedback" id="f-type-error"><%= fieldErrors.issue_type %></div><% } %>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="f-severity"><%= isIdea ? 'Priority' : 'How badly does it affect you' %> <span aria-hidden="true">*</span></label>
-              <select class="form-select" id="f-severity" name="severity" required aria-describedby="severity-guide">
+              <select class="form-select<%= fieldErrors.severity ? ' is-invalid' : '' %>" id="f-severity" name="severity" required aria-describedby="severity-guide<%= fieldErrors.severity ? ' f-severity-error' : '' %>">
                 <% severities.forEach(function (sv) { %>
                   <option value="<%= sv %>" <%= (values.severity || defaultSeverity) === sv ? 'selected' : '' %>><%= severityLabels[sv] %></option>
                 <% }) %>
               </select>
+              <% if (fieldErrors.severity) { %><div class="invalid-feedback" id="f-severity-error"><%= fieldErrors.severity %></div><% } %>
+              <%#
+                On a phone the sidebar guide is at the bottom of the page, after the button —
+                so the same guide opens here, beside the field it explains. <details> needs no
+                script and the keyboard reaches it.
+              -%>
+              <details class="d-lg-none mt-2 small">
+                <summary><%= isIdea ? 'What do the priorities mean?' : 'What do the levels mean?' %></summary>
+                <dl class="mt-2 mb-0">
+                  <% guide.forEach(function (g) { %>
+                    <dt><span class="badge <%= g[1] %>"><%= g[2] %></span></dt>
+                    <dd class="mb-1"><%= g[3] %></dd>
+                  <% }) %>
+                </dl>
+              </details>
             </div>
 
             <% if (!isIdea) { %>
@@ -99,18 +124,21 @@
               -%>
               <div class="col-12" id="f-content-wrap" <%= values.issue_type === 'abuse' ? '' : 'hidden' %>>
                 <label class="form-label" for="f-content">Link to the content you are reporting <span aria-hidden="true">*</span></label>
-                <input class="form-control" id="f-content" name="content_url" type="url" maxlength="500"
-                       inputmode="url" aria-describedby="f-content-help" value="<%= values.content_url || '' %>"
-                       placeholder="https://…">
+                <input class="form-control<%= fieldErrors.content_url ? ' is-invalid' : '' %>" id="f-content" name="content_url" type="url" maxlength="500"
+                       inputmode="url" aria-describedby="f-content-help<%= fieldErrors.content_url ? ' f-content-error' : '' %>" value="<%= values.content_url || '' %>"
+                       <% if (fieldErrors.content_url) { %>aria-invalid="true"<% } %> placeholder="https://…">
+                <% if (fieldErrors.content_url) { %><div class="invalid-feedback" id="f-content-error"><%= fieldErrors.content_url %></div><% } %>
                 <p class="form-text" id="f-content-help">The post, reply, profile or job advert. A person reviews every report.</p>
               </div>
             <% } %>
 
             <div class="col-12">
               <label class="form-label" for="f-page">Which page</label>
-              <input class="form-control" id="f-page" name="page_url" type="url" maxlength="500"
-                     inputmode="url" autocomplete="url" aria-describedby="f-page-help"
+              <input class="form-control<%= fieldErrors.page_url ? ' is-invalid' : '' %>" id="f-page" name="page_url" type="url" maxlength="500"
+                     inputmode="url" autocomplete="url" aria-describedby="f-page-help<%= fieldErrors.page_url ? ' f-page-error' : '' %>"
+                     <% if (fieldErrors.page_url) { %>aria-invalid="true"<% } %>
                      value="<%= values.page_url || '' %>" placeholder="https://…">
+              <% if (fieldErrors.page_url) { %><div class="invalid-feedback" id="f-page-error"><%= fieldErrors.page_url %></div><% } %>
               <p class="form-text" id="f-page-help">
                 <%= isIdea ? 'If the idea is about one page, its address.' : 'Filled in for you when you came here from a page on this site.' %>
                 It is the difference between a report we can act on and one that begins "it was the page with the table".
@@ -119,6 +147,17 @@
           </div>
 
           <%- include('../partials/enquiry-fields', { values, identityAbove: true }) %>
+
+          <%#
+            FAQ suggestions while the subject is typed. The questions come from config/faq.js,
+            the same list the FAQ page renders its headings from; report-issue.js matches
+            words and shows up to three. Nothing is sent anywhere to do it.
+          -%>
+          <div class="faq-suggest small mt-2" data-faq-suggest hidden aria-live="polite">
+            <p class="mb-1 text-muted-2">This might already be answered:</p>
+            <ul class="mb-0 ps-3" data-faq-suggest-list></ul>
+          </div>
+          <script type="application/json" id="faq-questions"><%- JSON.stringify(faqQuestions.map(function (f) { return { id: f.id, q: f.q, words: f.words }; })).replace(/</g, '\\u003c') %></script>
 
           <div class="mt-3">
             <label class="form-label" for="f-shots">Screenshots</label>
@@ -129,8 +168,32 @@
               Up to <%= maxFiles %> images, <%= maxFileMb %> MB each. You can also paste a screenshot straight into the
               message with <kbd>Ctrl</kbd>+<kbd>V</kbd> (<kbd>⌘</kbd>+<kbd>V</kbd> on a Mac).
             </p>
-            <ul class="list-unstyled small mb-0" data-screenshot-list aria-live="polite"></ul>
+            <ul class="list-unstyled small mb-0 d-flex flex-wrap gap-2" data-screenshot-list aria-live="polite"></ul>
+            <% if (fieldErrors.screenshots) { %><div class="text-danger small mt-1" id="f-shots-error"><%= fieldErrors.screenshots %></div><% } %>
           </div>
+
+          <%#
+            Optional, unticked by default, and stated in the Privacy policy. The line is read
+            from the browser by report-issue.js only when the box is ticked, and shown before
+            it is sent, so nobody sends something they have not seen.
+          -%>
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="f-env" name="include_env" data-env-toggle
+                   <%= values.include_env === 'on' ? 'checked' : '' %>>
+            <label class="form-check-label" for="f-env">Include my browser and device details (helps us reproduce it)</label>
+            <input type="hidden" name="env_info" value="<%= values.env_info || '' %>" data-env-info>
+            <p class="form-text mb-0" data-env-preview></p>
+          </div>
+
+          <% if (isIdea) { %>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="f-publish" name="publish_consent"
+                     <%= values.publish_consent === 'on' ? 'checked' : '' %>>
+              <label class="form-check-label" for="f-publish">
+                You may publish this idea on the <a href="/ideas">ideas page</a> for others to vote on — without my name.
+              </label>
+            </div>
+          <% } %>
 
           <button class="btn btn-primary mt-3" type="submit"><%= isIdea ? 'Send idea' : 'Send report' %></button>
           <p class="small text-muted-2 mt-2 mb-0">
@@ -151,6 +214,7 @@
             <li><strong>An example.</strong> Another site that does it well, or a screenshot of where it would go.</li>
             <li><strong>The priority.</strong> Honest is more useful than high: it is how we decide what comes first.</li>
           </ul>
+          <p class="small mt-3 mb-0"><a href="/ideas">See the ideas others shared, and vote</a></p>
         <% } else { %>
           <h2 class="h6"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Tips for reporting</h2>
           <ul class="small mb-0 ps-3">
@@ -163,7 +227,7 @@
         <% } %>
       </div></div>
 
-      <div class="glass-card mb-4"><div class="card-body" id="severity-guide">
+      <div class="glass-card mb-4 d-none d-lg-block"><div class="card-body" id="severity-guide">
         <h2 class="h6"><%= isIdea ? 'Priority guide' : 'Severity guide' %></h2>
         <dl class="small mb-0">
           <% guide.forEach(function (g) { %>
@@ -175,6 +239,9 @@
 
       <div class="glass-card"><div class="card-body">
         <h2 class="h6">What happens to it</h2>
+        <% if (currentUser) { %>
+          <p class="small mb-2"><i class="bi bi-person-check me-1" aria-hidden="true"></i>You are signed in, so this is linked to your account and appears in <a href="/report-issue/mine">My reports</a> with its status.</p>
+        <% } %>
         <p class="small mb-0 text-muted-2">
           It goes into a queue a person works through, and the reply comes to the address you
           gave. If it is about your account we may need you to confirm something from the

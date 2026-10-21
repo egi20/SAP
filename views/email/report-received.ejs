@@ -1,0 +1,20 @@
+<%#
+  The confirmation a reporter gets. It echoes NOTHING they typed — not the subject, not the
+  message. The form is open to anybody and sends to whatever address is typed into it, so a
+  confirmation that repeated the text would let a stranger put their own words in an email
+  from us to somebody who never asked. The reference and fixed sentences only.
+-%>
+<p>Thank you — your <%= isIdea ? 'idea' : 'report' %> reached <%= appName %>.</p>
+<p style="font-size:18px;margin:16px 0"><strong>Your reference: <%= reference %></strong></p>
+<p>A person reads every <%= isIdea ? 'idea' : 'report' %>, and the reply comes to this address. Quote the reference if you write to us about it.</p>
+<% if (mineUrl) { %>
+  <p style="margin:24px 0">
+    <a href="<%= mineUrl %>"
+       style="background:#0b5cab;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+      See its status
+    </a>
+  </p>
+<% } %>
+<p style="font-size:13px;color:#6b7280">
+  If you did not send this, you can ignore this email — nothing else will be sent to you about it.
+</p>

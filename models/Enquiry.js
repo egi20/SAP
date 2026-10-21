@@ -108,6 +108,7 @@ class Enquiry {
   static async create({
     kind, userId = null, name, email, subject, body,
     issueType = null, severity = null, pageUrl = null, contentUrl = null,
+    envInfo = null, publishConsent = false,
     topic = null, arrangement = null, country = null, privacyVersion = null
   }) {
     if (!KINDS.includes(kind)) throw new Error(`Unknown enquiry kind: ${kind}`);
@@ -133,14 +134,17 @@ class Enquiry {
       const [result] = await promisePool.query(
         `INSERT INTO enquiries
            (kind, user_id, name, email, subject, body, issue_type, severity, page_url, content_url,
-            topic, arrangement, country, privacy_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            env_info, publish_consent, topic, arrangement, country, privacy_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           kind, userId, name, email, subject, body,
           isIssue ? issueType : null,
           isIssue ? severity : null,
           isIssue ? pageUrl : null,
           isIssue && issueType === 'abuse' ? contentUrl : null,
+          isIssue && envInfo ? String(envInfo).slice(0, 400) : null,
+          // Only an idea can be published, so only an idea carries the consent.
+          isIssue && IDEA_TYPES.includes(issueType) && publishConsent ? 1 : 0,
           isTax ? topic : null,
           isTax ? arrangement : null,
           isTax ? country : null,
@@ -180,6 +184,93 @@ class Enquiry {
       [days]
     );
     return result.affectedRows;
+  }
+
+  /** The reference a reporter is given and quotes back: R-<id>, nothing else encoded in it. */
+  static reference(id) {
+    return `R-${id}`;
+  }
+
+  /**
+   * How many reports this address sent recently. The per-IP limiter bounds one machine;
+   * this bounds one address spread across many, because the confirmation email goes to the
+   * address typed, and an open form that mails whoever it is told to is a way to mail
+   * somebody who never asked.
+   */
+  static async recentCountForEmail(email, minutes = 60) {
+    const [[row]] = await promisePool.query(
+      `SELECT COUNT(*) AS n FROM enquiries
+        WHERE email = ? AND kind = 'issue' AND created_at > (NOW() - INTERVAL ? MINUTE)`,
+      [String(email || '').trim(), minutes]
+    );
+    return Number(row.n);
+  }
+
+  /** A member's own reports, newest first — /report-issue/mine. Only rows tied to the account. */
+  static async issuesForUser(userId, { limit = 50 } = {}) {
+    const [rows] = await promisePool.query(
+      `SELECT id, subject, issue_type, severity, status, created_at, handled_at, published_at
+         FROM enquiries
+        WHERE user_id = ? AND kind = 'issue'
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?`,
+      [userId, limit]
+    );
+    return rows;
+  }
+
+  /*
+   * Ideas on /ideas. PUBLIC ONLY WITH BOTH SWITCHES (migration 031): the sender consented on
+   * the form, and an administrator published it. Every public read below carries both
+   * conditions, from this one fragment.
+   */
+  static publicIdeaFilter() {
+    return {
+      clause: "e.kind = 'issue' AND e.issue_type IN (?) AND e.publish_consent = 1 AND e.published_at IS NOT NULL",
+      params: [IDEA_TYPES]
+    };
+  }
+
+  static async setIdeaPublished(id, published, adminUserId) {
+    const [result] = await promisePool.query(
+      `UPDATE enquiries
+          SET published_at = ${published ? 'NOW()' : 'NULL'}, published_by = ?
+        WHERE id = ? AND kind = 'issue' AND issue_type IN (?) AND publish_consent = 1`,
+      [published ? adminUserId : null, id, IDEA_TYPES]
+    );
+    return result.affectedRows === 1;
+  }
+
+  /** Published ideas with their vote counts, and whether the viewer voted. No names. */
+  static async publishedIdeas({ viewerUserId = null, limit = 100 } = {}) {
+    const { clause, params } = Enquiry.publicIdeaFilter();
+    const [rows] = await promisePool.query(
+      `SELECT e.id, e.subject, e.body, e.issue_type, e.status, e.published_at,
+              (SELECT COUNT(*) FROM idea_votes v WHERE v.enquiry_id = e.id) AS votes,
+              EXISTS (SELECT 1 FROM idea_votes v WHERE v.enquiry_id = e.id AND v.user_id = ?) AS my_vote
+         FROM enquiries e
+        WHERE ${clause}
+        ORDER BY votes DESC, e.published_at DESC
+        LIMIT ?`,
+      [viewerUserId || 0, ...params, limit]
+    );
+    return rows.map((r) => ({ ...r, votes: Number(r.votes), my_vote: Boolean(Number(r.my_vote)) }));
+  }
+
+  /**
+   * Vote, or take the vote back. Refused for anything that is not a published idea, so a
+   * vote cannot be cast on a report nobody was meant to see — or used to find out which ids
+   * are ideas waiting to be published.
+   * @returns {Promise<{ok: boolean, voted?: boolean}>}
+   */
+  static async toggleIdeaVote(id, userId) {
+    const { clause, params } = Enquiry.publicIdeaFilter();
+    const [[idea]] = await promisePool.query(`SELECT e.id FROM enquiries e WHERE e.id = ? AND ${clause}`, [id, ...params]);
+    if (!idea) return { ok: false };
+    const [removed] = await promisePool.query('DELETE FROM idea_votes WHERE enquiry_id = ? AND user_id = ?', [id, userId]);
+    if (removed.affectedRows) return { ok: true, voted: false };
+    await promisePool.query('INSERT IGNORE INTO idea_votes (enquiry_id, user_id) VALUES (?, ?)', [id, userId]);
+    return { ok: true, voted: true };
   }
 
   /**

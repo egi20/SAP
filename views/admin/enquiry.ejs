@@ -145,6 +145,24 @@
             <li class="text-break"><span class="text-muted-2">Page</span> —
               <% if (pageLink) { %><a href="<%= pageLink %>" rel="noopener noreferrer" target="_blank"><%= pageLink %></a><% } else { %><%= enquiry.page_url %><% } %></li>
           <% } %>
+          <% if (enquiry.env_info) { %>
+            <li class="text-break"><span class="text-muted-2">Browser</span> — <%= enquiry.env_info %></li>
+          <% } %>
+          <% if (enquiry.issue_type && String(enquiry.issue_type).indexOf('idea_') === 0) { %>
+            <li>
+              <span class="text-muted-2">Ideas page</span> —
+              <% if (!enquiry.publish_consent) { %>
+                the sender did not agree to it being published
+              <% } else { %>
+                <%= enquiry.published_at ? 'published' : 'not published' %>
+                <form class="d-inline" method="post" action="/admin/enquiries/<%= enquiry.id %>/publish">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <% if (!enquiry.published_at) { %><input type="hidden" name="published" value="on"><% } %>
+                  <button class="btn btn-link btn-sm p-0 align-baseline" type="submit"><%= enquiry.published_at ? 'Take it down' : 'Publish it' %></button>
+                </form>
+              <% } %>
+            </li>
+          <% } %>
           <% if (enquiry.content_url) { %>
             <li class="text-break"><span class="text-muted-2">Reported content</span> —
               <% if (contentLink) { %><a href="<%= contentLink %>" rel="noopener noreferrer" target="_blank"><%= contentLink %></a><% } else { %><%= enquiry.content_url %><% } %></li>

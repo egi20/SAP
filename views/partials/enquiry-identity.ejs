@@ -1,19 +1,25 @@
 <%
   /* Name and email, on their own so a form can put them first (the reporter does, as
-     dynamicshub.net's does). Prefilled for a signed-in member; the reply goes here. */
+     dynamicshub.net's does). Prefilled for a signed-in member; the reply goes here.
+     `fieldErrors` (optional, from the parent) puts a refusal under the box it is about. */
   const iv = values || {};
+  const ife = typeof fieldErrors !== 'undefined' && fieldErrors ? fieldErrors : {};
 %>
 <div class="row g-3">
   <div class="col-md-6">
     <label class="form-label" for="f-name">Your name <span aria-hidden="true">*</span></label>
-    <input class="form-control" id="f-name" name="name" required maxlength="120" autocomplete="name"
+    <input class="form-control<%= ife.name ? ' is-invalid' : '' %>" id="f-name" name="name" required maxlength="120" autocomplete="name"
+           <% if (ife.name) { %>aria-invalid="true" aria-describedby="f-name-error"<% } %>
            value="<%= iv.name || (currentUser ? currentUser.name : '') %>">
+    <% if (ife.name) { %><div class="invalid-feedback" id="f-name-error"><%= ife.name %></div><% } %>
   </div>
   <div class="col-md-6">
     <label class="form-label" for="f-email">Email <span aria-hidden="true">*</span></label>
-    <input class="form-control" id="f-email" name="email" type="email" required maxlength="190"
-           autocomplete="email" aria-describedby="f-email-help"
+    <input class="form-control<%= ife.email ? ' is-invalid' : '' %>" id="f-email" name="email" type="email" required maxlength="190"
+           autocomplete="email" aria-describedby="f-email-help<%= ife.email ? ' f-email-error' : '' %>"
+           <% if (ife.email) { %>aria-invalid="true"<% } %>
            value="<%= iv.email || (currentUser ? currentUser.email : '') %>">
+    <% if (ife.email) { %><div class="invalid-feedback" id="f-email-error"><%= ife.email %></div><% } %>
     <p class="form-text" id="f-email-help">Where the reply goes.</p>
   </div>
 </div>

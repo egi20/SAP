@@ -545,6 +545,25 @@ check — a `javascript:` URL in that column is a script one click away for whoe
 The page the reporter was on is added to every link to the form by `main.js`, origin and
 path only, because the app sends no Referer.
 
+**After a report is sent** (migration 031, 2026-10-21): the reporter gets a reference,
+`R-<id>`, on the page and in a confirmation email that echoes NOTHING they typed — the form
+mails whatever address is typed into it, so repeating the text would let a stranger put their
+words in an email from us. On top of the per-IP limiter, one address may send five reports an
+hour (`Enquiry.recentCountForEmail`). A honeypot hit gets the same page with a reference that
+belongs to nothing. A critical report also goes to Slack through `SLACK_ALERT_WEBHOOK_URL`,
+pinned to hooks.slack.com and asserted at boot; only the reference, subject and queue link go.
+`/report-issue/mine` lists what a member sent while signed in. The optional browser line is
+stored only when its box is ticked, and shown before it is sent.
+
+**An idea is public only with BOTH switches**: the sender ticked `publish_consent`, and an
+administrator published it. `Enquiry.publicIdeaFilter` holds both and every read of `/ideas`
+and every vote goes through it, so a vote cannot be cast on — or used to discover — an idea
+nobody was meant to see. No names on that page, and votes are counted, never listed.
+
+**The FAQ's questions live in `config/faq.js`**: the FAQ renders its headings from it and the
+report form suggests matching questions from it while a subject is typed. A second copy is how
+a suggestion ends up naming a question the FAQ no longer asks. `/faq#faqN` opens that answer.
+
 **One honeypot, in one partial.** Two copies of a defence is one that breaks silently the
 day somebody renames the field in the other.
 

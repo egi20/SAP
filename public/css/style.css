@@ -1983,3 +1983,12 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 /* /report-issue: the two modes, and the screenshots on the admin side. */
 .report-modes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .enquiry-shot { width: 160px; height: 110px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+
+/* /report-issue: screenshot thumbnails before sending, and the FAQ suggestions. */
+.shot-preview { position: relative; width: 120px; }
+.shot-preview img { width: 120px; height: 84px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border-color); display: block; }
+.shot-preview.is-too-big img { outline: 2px solid var(--bs-danger); }
+.shot-preview .shot-remove { position: absolute; top: 4px; right: 4px; padding: 0.1rem 0.35rem; line-height: 1; }
+.shot-preview .shot-caption { display: block; font-size: 0.75rem; overflow-wrap: anywhere; margin-top: 0.25rem; }
+.shot-preview.is-too-big .shot-caption { color: var(--bs-danger); }
+.faq-suggest { border-left: 3px solid var(--border-color); padding-left: 0.75rem; }

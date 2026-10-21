@@ -2,9 +2,13 @@
 
 const express = require('express');
 const AccountClosure = require('../models/AccountClosure');
-const { hasDedupeAccess } = require('../middleware/auth');
+const { hasDedupeAccess, isAuthenticated } = require('../middleware/auth');
+const { criticalReport } = require('../utils/alerts');
+const { requireIdParam } = require('../utils/ids');
+const { writeLimiter } = require('../middleware/rateLimit');
 const { screenshots, SCREENSHOT_MAX_FILES, SCREENSHOT_MAX_BYTES } = require('../middleware/fileUpload');
 const { LEGAL_ENTITY } = require('../config/legalEntity');
+const { FAQ_QUESTIONS, faqQuestion } = require('../config/faq');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -394,7 +398,7 @@ router.get('/account-closed', (req, res) => {
  * goes stale.
  */
 router.get('/faq', (req, res) => {
-  res.render('legal/faq', { title: 'Frequently asked questions', minSample: config.rates.minSampleSize });
+  res.render('legal/faq', { title: 'Frequently asked questions', minSample: config.rates.minSampleSize, faqQuestion });
 });
 
 router.get('/legal/privacy', (req, res) => {
@@ -484,7 +488,7 @@ const ENQUIRY_RULES = [
 function notifySupport(enquiry, kind) {
   email.send({
     to: config.app.supportEmail,
-    subject: `[${kind}] ${enquiry.subject}`,
+    subject: `${enquiry.severity === 'critical' ? '[CRITICAL] ' : ''}[${kind}] ${enquiry.subject}`,
     template: 'enquiry-received',
     locals: {
       kind,
@@ -553,9 +557,21 @@ router.post(
  * has parsed it (middleware/csrf.js and middleware/fileUpload.js).
  */
 const REPORT_MODES = Object.freeze(['problem', 'idea']);
+// Per address, on top of the per-IP limiter: see Enquiry.recentCountForEmail.
+const REPORTS_PER_EMAIL_PER_HOUR = 5;
 
-function reportView(req, values, errors, status = 200, res) {
+function reportView(req, values, errors, status = 200, res, { sent = null } = {}) {
   const mode = REPORT_MODES.includes(values.mode) ? values.mode : 'problem';
+  /*
+   * The first message per field, keyed by the field's name, so each one is shown under the
+   * box it is about — a list at the top of a long form makes somebody hunt for the field.
+   * The list stays too, for a screen reader announcing the alert.
+   */
+  const fieldErrors = {};
+  errors.forEach((e) => {
+    const key = e.path || e.field;
+    if (key && !fieldErrors[key]) fieldErrors[key] = e.msg;
+  });
   return res.status(status).render('legal/report-issue', {
     title: mode === 'idea' ? 'Share an idea' : 'Report a problem',
     mode,
@@ -563,18 +579,43 @@ function reportView(req, values, errors, status = 200, res) {
     severities: mode === 'idea' ? Enquiry.PRIORITIES : Enquiry.SEVERITIES,
     maxFiles: SCREENSHOT_MAX_FILES,
     maxFileMb: SCREENSHOT_MAX_BYTES / 1024 / 1024,
+    faqQuestions: FAQ_QUESTIONS,
+    sent,
     values,
-    errors
+    errors,
+    fieldErrors
   });
 }
 
 router.get('/report-issue', (req, res) => {
   const page = Enquiry.reportUrl(typeof req.query.page === 'string' ? req.query.page.slice(0, 500) : '');
+  /*
+   * `?sent=<id>` after a successful post shows the reference. It is only the number echoed
+   * back: nothing is looked up, so it reveals nothing about any report, and somebody who
+   * edits it learns only that the page can print a number.
+   */
+  const sent = /^\d{1,10}$/.test(String(req.query.sent || '')) ? Enquiry.reference(req.query.sent) : null;
   return reportView(req, {
     mode: req.query.mode === 'idea' ? 'idea' : 'problem',
     page_url: page.ok && page.value ? page.value : ''
-  }, [], 200, res);
+  }, [], 200, res, { sent });
 });
+
+/**
+ * GET /report-issue/mine — a member's own reports and ideas, with where each one stands.
+ *
+ * Only reports sent while signed in are tied to an account; the page says so, because a
+ * report sent signed out is missing from it for that reason and no other.
+ */
+const REPORT_STATUS_LABELS = Object.freeze({ new: 'Open', open: 'In progress', closed: 'Closed' });
+
+router.get('/report-issue/mine', isAuthenticated, asyncHandler(async (req, res) => {
+  const reports = await Enquiry.issuesForUser(req.session.user.id);
+  res.render('legal/my-reports', {
+    title: 'My reports',
+    reports: reports.map((r) => ({ ...r, reference: Enquiry.reference(r.id), statusLabel: REPORT_STATUS_LABELS[r.status] }))
+  });
+}));
 
 router.post(
   '/report-issue',
@@ -601,9 +642,17 @@ router.post(
   ],
   asyncHandler(async (req, res) => {
     const errors = validationResult(req).array();
-    if (req.uploadError) errors.push({ msg: req.uploadError });
+    if (req.uploadError) errors.push({ path: 'screenshots', msg: req.uploadError });
     if (errors.length) return reportView(req, req.body, errors, 422, res);
 
+    if (await Enquiry.recentCountForEmail(req.body.email) >= REPORTS_PER_EMAIL_PER_HOUR) {
+      return reportView(req, req.body, [{
+        path: 'email',
+        msg: 'Several reports have already come from this address in the last hour. Please give it a little while, or email us directly.'
+      }], 429, res);
+    }
+
+    let createdId = null;
     if (!looksAutomated(req)) {
       const created = await Enquiry.create({
         kind: 'issue',
@@ -615,8 +664,12 @@ router.post(
         issueType: req.body.issue_type,
         severity: req.body.severity,
         pageUrl: Enquiry.reportUrl(req.body.page_url).value,
-        contentUrl: req.body.issue_type === 'abuse' ? Enquiry.reportUrl(req.body.content_url).value : null
+        contentUrl: req.body.issue_type === 'abuse' ? Enquiry.reportUrl(req.body.content_url).value : null,
+        // Only when the box was ticked; main.js fills the line from the browser itself.
+        envInfo: req.body.include_env === 'on' && typeof req.body.env_info === 'string' ? req.body.env_info.trim() || null : null,
+        publishConsent: req.body.mode === 'idea' && req.body.publish_consent === 'on'
       });
+      createdId = created.id;
       const files = Array.isArray(req.files) ? req.files : [];
       if (files.length) {
         try {
@@ -631,15 +684,72 @@ router.post(
           req.flash('info', 'Your report reached us, but one of the files was not a readable image and was left out.');
         }
       }
-      notifySupport({ ...created, name: req.body.name, email: req.body.email, subject: req.body.subject, body: req.body.message }, 'issue');
+      notifySupport({ ...created, severity: req.body.severity, name: req.body.name, email: req.body.email, subject: req.body.subject, body: req.body.message }, 'issue');
+      const reference = Enquiry.reference(created.id);
+      email.send({
+        to: req.body.email.trim(),
+        subject: `We received your ${req.body.mode === 'idea' ? 'idea' : 'report'} — ${reference}`,
+        template: 'report-received',
+        locals: {
+          reference,
+          isIdea: req.body.mode === 'idea',
+          mineUrl: req.session.user ? `${config.app.baseUrl}/report-issue/mine` : null
+        }
+      }).catch((err) => console.error(`Report confirmation failed: ${err.message}`));
+      if (req.body.severity === 'critical') {
+        criticalReport({ reference, subject: req.body.subject.trim(), id: created.id });
+      }
     }
 
-    req.flash('success', req.body.mode === 'idea'
-      ? 'Thank you — your idea is in the queue, and a person reads every one.'
-      : 'Thank you — that is in the queue, and a person works through it.');
-    return res.redirect(req.body.mode === 'idea' ? '/report-issue?mode=idea' : '/report-issue');
+    /*
+     * A honeypot hit is accepted and discarded without saying so — so it gets the same page
+     * as a real report, with a reference that belongs to nothing. Telling a bot it was
+     * caught is telling whoever wrote it what to change.
+     */
+    const shown = createdId || Math.floor(100000 + Math.random() * 900000);
+    const params = new URLSearchParams({ sent: String(shown) });
+    if (req.body.mode === 'idea') params.set('mode', 'idea');
+    return res.redirect(`/report-issue?${params.toString()}`);
   })
 );
+
+/**
+ * /ideas — the ideas people shared and agreed to make public, once an administrator has
+ * published them, with a vote each for signed-in members. No names. Both switches are held
+ * by Enquiry.publicIdeaFilter, which every read here goes through.
+ */
+router.get('/ideas', asyncHandler(async (req, res) => {
+  const ideas = await Enquiry.publishedIdeas({ viewerUserId: req.session.user ? req.session.user.id : null });
+  res.render('legal/ideas', { title: 'Ideas', ideas });
+}));
+
+router.post('/ideas/:id/vote', isAuthenticated, requireIdParam('id'), writeLimiter, asyncHandler(async (req, res) => {
+  const result = await Enquiry.toggleIdeaVote(req.params.id, req.session.user.id);
+  if (!result.ok) return res.status(404).render('errors/404', { title: 'Not found' });
+  return res.redirect(`/ideas#idea-${req.params.id}`);
+}));
+
+/**
+ * GET /.well-known/security.txt (RFC 9116) — where to report a vulnerability.
+ *
+ * The address is SECURITY_EMAIL, or the support address when that is not set; the policy
+ * is the Report a problem page, whose "What happens to it" already says a security problem
+ * is read first and asks for it to be described rather than demonstrated. `Expires` is
+ * required by the RFC and is computed a little under a year ahead, so the file never
+ * states a date in the past.
+ */
+router.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
+  const expires = new Date(Date.now() + 330 * 24 * 60 * 60 * 1000);
+  expires.setUTCHours(0, 0, 0, 0);
+  res.type('text/plain').send([
+    `Contact: mailto:${config.app.securityEmail}`,
+    `Expires: ${expires.toISOString()}`,
+    `Policy: ${config.app.baseUrl}/report-issue`,
+    'Preferred-Languages: en, sq',
+    `Canonical: ${config.app.baseUrl}/.well-known/security.txt`,
+    ''
+  ].join('\n'));
+});
 
 /**
  * robots.txt and the sitemap are generated from the SAME allowlist, so the sitemap can

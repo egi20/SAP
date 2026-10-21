@@ -157,6 +157,8 @@ assertJobSectionsIntegrity();
  */
 assertTaxProgramIntegrity();
 assertLegalEntityIntegrity();
+require('./config/faq').assertFaqIntegrity();
+require('./utils/alerts').assertAlertsConfig();
 
 /*
  * And the CRM's own vocabulary. Two of the things this one checks are about somebody's
@@ -234,7 +236,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'", ...WEB_ANALYTICS_CSP.script],
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
         connectSrc: ["'self'", ...WEB_ANALYTICS_CSP.connect],
         formAction: ["'self'"],
         /*

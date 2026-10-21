@@ -1457,6 +1457,24 @@ router.get(
 );
 
 /**
+ * Publish a shared idea on /ideas, or take it down. Only an idea whose sender ticked the
+ * consent box can be published at all — the model's WHERE refuses anything else — and the
+ * sender's name never goes with it.
+ */
+router.post(
+  '/enquiries/:id/publish',
+  requireIdParam('id'),
+  asyncHandler(async (req, res) => {
+    const on = req.body.published === 'on';
+    const changed = await Enquiry.setIdeaPublished(req.params.id, on, req.session.user.id);
+    req.flash(changed ? 'success' : 'error', changed
+      ? (on ? 'Published on the ideas page.' : 'Taken off the ideas page.')
+      : 'Only an idea whose sender agreed to it can be published.');
+    return res.redirect(`/admin/enquiries/${req.params.id}`);
+  })
+);
+
+/**
  * POST /admin/enquiries/purge-screenshots — delete screenshots past the retention the
  * Privacy policy states. The report text stays; the pictures go.
  */
