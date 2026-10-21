@@ -1340,8 +1340,22 @@ Object.entries(WEB_ANALYTICS_PROVIDERS).forEach(([key, provider]) => {
           error = err.message;
         }
       }
+      /*
+       * The site's OWN count for the same days, from `visit_geo_daily`: every page a browser
+       * navigated to, counted on the server, with no script, no sampling and no consent
+       * involved. It is the yardstick for the trial — a provider far below it is losing
+       * visitors (blockers, declined consent), one above it is extrapolating.
+       */
+      const [[own]] = await promisePool.query(
+        `SELECT COALESCE(SUM(visits), 0) AS views
+           FROM visit_geo_daily
+          WHERE day > DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
+        [days]
+      );
+
       return res.render('admin/web-analytics', {
         title: provider.name,
+        serverViews: Number(own.views),
         providerKey: key,
         provider: { name: provider.name, dashboardUrl: provider.dashboardUrl },
         tagEnabled: provider.tagEnabled(),

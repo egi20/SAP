@@ -98,7 +98,23 @@
           <% } %>
         </div>
       <% } %>
+      <% if (report.sampleInterval) { %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          Cloudflare <strong>samples</strong> page loads: each one it recorded here stands for about
+          <strong><%= report.sampleInterval %></strong>, so every figure moves in steps of
+          <%= report.sampleInterval %>. On a site this quiet the numbers are estimates, not counts —
+          <%= report.totals[0].value %> page views means roughly <%= Math.round(report.totals[0].value / report.sampleInterval) %> were actually recorded.
+        </div>
+      <% } %>
       <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
+          <div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= serverViews.toLocaleString('en-GB') %></p>
+            <p class="mb-0">SAP Hub's own count</p>
+            <p class="small text-muted-2 mb-0">page views the server itself counted in the same days — the yardstick</p>
+          </div></div>
+        </div>
         <% report.totals.forEach(function (t) { %>
           <div class="col-6 col-md-4">
             <div class="glass-card h-100"><div class="card-body">
@@ -126,7 +142,7 @@
                   <tbody>
                     <% report[block.key].forEach(function (row) { %>
                       <tr>
-                        <td class="text-break"><%= row.label %></td>
+                        <td class="text-break"><%= block.key === 'countries' && providerKey === 'cloudflare' ? (countryName(row.label) || row.label) : row.label %></td>
                         <td class="text-end"><%= row.value.toLocaleString('en-GB') %></td>
                       </tr>
                     <% }) %>

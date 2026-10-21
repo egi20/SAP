@@ -203,15 +203,32 @@ describe('Cloudflare report', () => {
     expect(report.seen).toEqual([{ host: 'www.saphub.net', siteTag: 'd'.repeat(32), value: 42 }]);
   });
 
-  it('does not ask the second question when the report has data', async () => {
-    let n = 0;
-    const fetchImpl = async () => {
-      n += 1;
-      return { ok: true, status: 200, json: async () => ({ data: { viewer: { accounts: [{ totals: [{ count: 5, sum: { visits: 2 } }] }] } } }) };
+  it('says how many visits each sampled page load stands for, and never fails over it', async () => {
+    const queries = [];
+    const fetchImpl = async (url, init) => {
+      const body = JSON.parse(init.body);
+      queries.push(body.query);
+      const data = body.query.includes('sampling:')
+        ? { viewer: { accounts: [{ sampling: [{ avg: { sampleInterval: 10 } }] }] } }
+        : { viewer: { accounts: [{ totals: [{ count: 40, sum: { visits: 40 } }] }] } };
+      return { ok: true, status: 200, json: async () => ({ data }) };
     };
     const report = await service.cloudflareReport(30, { fetchImpl, settings });
-    expect(n).toBe(1);
-    expect(report.seen).toBeUndefined();
+    expect(report.sampleInterval).toBe(10);
+    // The "which hosts have data" question is only for an empty report.
+    expect(queries.some((q) => q.includes('seen:'))).toBe(false);
+
+    service.clearCache();
+    let n = 0;
+    const failing = async () => {
+      n += 1;
+      return n === 1
+        ? { ok: true, status: 200, json: async () => ({ data: { viewer: { accounts: [{ totals: [{ count: 5, sum: { visits: 2 } }] }] } } }) }
+        : { ok: true, status: 200, json: async () => ({ data: null, errors: [{ message: 'unknown field sampleInterval' }] }) };
+    };
+    const stillThere = await service.cloudflareReport(7, { fetchImpl: failing, settings });
+    expect(stillThere.totals[0].value).toBe(5);
+    expect(stillThere.sampleInterval).toBeUndefined();
   });
 
   it('surfaces GraphQL errors, which arrive with a 200', async () => {

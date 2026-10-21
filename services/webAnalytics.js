@@ -165,10 +165,16 @@ const CLOUDFLARE_FILTERS = Object.freeze({
   host: { declare: '$host: string!', filter: '{ requestHost: $host, datetime_geq: $from, datetime_leq: $to }' }
 });
 
-function cloudflareQuery(kind) {
+function cloudflareQuery(kind, shape = 'report') {
   const { declare, filter } = CLOUDFLARE_FILTERS[kind];
   const group = (alias, extra, fields) =>
     `${alias}: rumPageloadEventsAdaptiveGroups(filter: ${filter}, ${extra}) { ${fields} }`;
+  if (shape === 'sampling') {
+    return `
+query Sampling($accountTag: string!, ${declare}, $from: Time!, $to: Time!) {
+  viewer { accounts(filter: { accountTag: $accountTag }) { ${group('sampling', 'limit: 1', 'avg { sampleInterval }')} } }
+}`;
+  }
   return `
 query WebAnalytics($accountTag: string!, ${declare}, $from: Time!, $to: Time!) {
   viewer {
@@ -250,6 +256,32 @@ async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalyti
     );
     const report = normaliseCloudflare(body, days);
     report.filteredBy = bySiteTag ? `site tag ${settings.cloudflare.explicitSiteTag}` : `host ${host}`;
+
+    /*
+     * Cloudflare SAMPLES page loads and scales each recorded one up: on a quiet site every
+     * figure moves in steps of the sample interval (10, 20, 30…), which reads as a bug and
+     * is not one. Asked separately and never fatal — the report stands without it — so the
+     * screen can say how many visits each recorded one stands for.
+     */
+    if (report.totals[0].value > 0) {
+      try {
+        const sampled = await cloudflareGraphql(
+          cloudflareQuery(bySiteTag ? 'siteTag' : 'host', 'sampling'),
+          {
+            accountTag: settings.cloudflare.accountId,
+            ...(bySiteTag ? { siteTag: settings.cloudflare.explicitSiteTag } : { host }),
+            ...range
+          },
+          { fetchImpl, settings }
+        );
+        const acc = (sampled.data && sampled.data.viewer && sampled.data.viewer.accounts && sampled.data.viewer.accounts[0]) || {};
+        const row = acc.sampling && acc.sampling[0];
+        const interval = row && row.avg && Number(row.avg.sampleInterval);
+        if (interval && interval > 1) report.sampleInterval = Math.round(interval);
+      } catch (err) {
+        // Without it the figures are the same; only the explanation is missing.
+      }
+    }
 
     if (report.totals[0].value === 0) {
       try {

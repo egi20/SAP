@@ -1704,6 +1704,13 @@ the service asks which hosts and site tags the account holds ANY page loads for,
 screen prints them. A bare zero cannot tell "the beacon never reached Cloudflare" from "the
 report asked for the wrong site", and those two need opposite fixes.
 
+**Cloudflare's figures are sampled estimates, and the screen says so.** It records a share of
+page loads and scales each one up, so on a quiet site every number moves in steps of the
+sample interval — 30, then 40, every page exactly 10 — which reads as a bug and is not one.
+The service asks for `avg { sampleInterval }` separately and never fatally, and both screens
+print the site's own server-side count from `visit_geo_daily` beside the provider's figures
+as the yardstick: no script, no sampling, no consent involved.
+
 **`req.ip` is resolved past Cloudflare as well as Render's balancer**
 (`config/trustedProxies.js`). With `trust proxy = 1` every request appeared to come from a
 Cloudflare edge, so per-IP rate limits, `visit_geo_daily` and `users.signup_country` were all
