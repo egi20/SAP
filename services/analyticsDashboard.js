@@ -186,7 +186,7 @@ async function cloudflareDashboard(range, { fetchImpl = fetch, settings = webAna
     const sections = await Promise.all(
       Object.entries(CF_GROUPS).map(([key, group]) =>
         settle(key, async () => {
-          const body = await base.cloudflareGraphql(cloudflareGroupQuery(bySiteTag ? 'siteTag' : 'host', group), variables, { fetchImpl, settings });
+          const body = await base.cloudflareGraphqlRanged(cloudflareGroupQuery(bySiteTag ? 'siteTag' : 'host', group), variables, { fetchImpl, settings });
           const account = (body.data && body.data.viewer && body.data.viewer.accounts && body.data.viewer.accounts[0]) || {};
           return (account.rows || []).map((g) => ({
             label: (g.dimensions && g.dimensions.label) || (key === 'referrers' ? '(direct)' : '(none)'),

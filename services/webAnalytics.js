@@ -224,6 +224,85 @@ async function cloudflareGraphql(query, variables, { fetchImpl, settings }) {
 }
 
 /*
+ * Cloudflare answers a long range from a more coarsely sampled table than a short one: on
+ * this site 28 days came back as 180 page views while the 7 days inside it said 242 — a
+ * longer period showing FEWER visits than a period it contains, which is simply wrong,
+ * and the screen used to tell the reader to believe the shorter one instead of fixing it.
+ * So a long range is asked as week-sized windows and the answers are added up: each week
+ * gets the finer sampling a 7-day question gets, and the sum can never fall below any
+ * week inside it. Past MAX_WINDOWS the windows widen rather than multiply, because each
+ * one is a request against an API that rate-limits.
+ */
+const WINDOW_DAYS = 7;
+const MAX_WINDOWS = 13;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Pure: disjoint [from, to] windows covering the range, newest last. */
+function windowsFor(fromIso, toIso) {
+  const from = Date.parse(fromIso);
+  const to = Date.parse(toIso);
+  if (!(to > from)) return [{ from: fromIso, to: toIso }];
+  const span = to - from;
+  const size = Math.max(WINDOW_DAYS * DAY_MS, Math.ceil(span / MAX_WINDOWS));
+  if (span <= size) return [{ from: fromIso, to: toIso }];
+  const windows = [];
+  for (let start = from; start < to; start += size) {
+    const end = start + size >= to ? to : start + size - 1000;
+    windows.push({ from: new Date(start).toISOString(), to: new Date(end).toISOString() });
+  }
+  return windows;
+}
+
+/**
+ * Pure: several `viewer.accounts[0]` objects, one per window, into one. Groups are merged
+ * on their dimensions; counts and visit sums are added; a sample interval keeps the
+ * largest, since that is the coarsest any of the figures was estimated at.
+ */
+function mergeCloudflareAccounts(accounts) {
+  const out = {};
+  const keys = new Set(accounts.flatMap((a) => Object.keys(a || {})));
+  keys.forEach((key) => {
+    const merged = new Map();
+    let longest = 0;
+    accounts.forEach((a) => {
+      const groups = (a && a[key]) || [];
+      longest = Math.max(longest, groups.length);
+      groups.forEach((g) => {
+        const id = JSON.stringify(g.dimensions || {});
+        const into = merged.get(id) || { ...g, count: 0, ...(g.sum ? { sum: { visits: 0 } } : {}), ...(g.avg ? { avg: { sampleInterval: 0 } } : {}) };
+        into.count += Number(g.count) || 0;
+        if (g.sum) into.sum.visits += Number(g.sum.visits) || 0;
+        if (g.avg) into.avg.sampleInterval = Math.max(into.avg.sampleInterval, Number(g.avg.sampleInterval) || 0);
+        merged.set(id, into);
+      });
+    });
+    const rows = [...merged.values()];
+    const label = (g) => String((g.dimensions && g.dimensions.label) || '');
+    // A date series keeps every day; a ranked list keeps as many rows as one window may return.
+    if (rows.length && rows.every((g) => /^\d{4}-\d{2}-\d{2}/.test(label(g)))) {
+      out[key] = rows.sort((a, b) => label(a).localeCompare(label(b)));
+    } else {
+      out[key] = rows.sort((a, b) => b.count - a.count).slice(0, Math.max(longest, 1));
+    }
+  });
+  return out;
+}
+
+/** `cloudflareGraphql`, asked week by week over `variables.from`..`variables.to` and summed. */
+async function cloudflareGraphqlRanged(query, variables, opts) {
+  const windows = windowsFor(variables.from, variables.to);
+  if (windows.length === 1) return cloudflareGraphql(query, variables, opts);
+  const accounts = [];
+  for (const w of windows) {
+    // One at a time: the API rate-limits, and a section is cached for ten minutes anyway.
+    // eslint-disable-next-line no-await-in-loop
+    const body = await cloudflareGraphql(query, { ...variables, from: w.from, to: w.to }, opts);
+    accounts.push((body.data && body.data.viewer && body.data.viewer.accounts && body.data.viewer.accounts[0]) || {});
+  }
+  return { data: { viewer: { accounts: [mergeCloudflareAccounts(accounts)] } }, windows: windows.length };
+}
+
+/*
  * Asked only when the filtered report is empty: which hosts and site tags does this
  * account hold ANY page loads for? A zero on its own cannot say whether the beacon never
  * reached Cloudflare or the report asked for the wrong site, and those two need opposite
@@ -245,7 +324,7 @@ async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalyti
     const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     const range = { from: from.toISOString(), to: now.toISOString() };
     const bySiteTag = Boolean(settings.cloudflare.explicitSiteTag);
-    const body = await cloudflareGraphql(
+    const body = await cloudflareGraphqlRanged(
       cloudflareQuery(bySiteTag ? 'siteTag' : 'host'),
       {
         accountTag: settings.cloudflare.accountId,
@@ -255,6 +334,7 @@ async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalyti
       { fetchImpl, settings }
     );
     const report = normaliseCloudflare(body, days);
+    report.windows = body.windows || 1;
     report.filteredBy = bySiteTag ? `site tag ${settings.cloudflare.explicitSiteTag}` : `host ${host}`;
 
     /*
@@ -265,7 +345,7 @@ async function cloudflareReport(days, { fetchImpl = fetch, settings = webAnalyti
      */
     if (report.totals[0].value > 0) {
       try {
-        const sampled = await cloudflareGraphql(
+        const sampled = await cloudflareGraphqlRanged(
           cloudflareQuery(bySiteTag ? 'siteTag' : 'host', 'sampling'),
           {
             accountTag: settings.cloudflare.accountId,
@@ -313,6 +393,9 @@ module.exports = {
   cached,
   googleAccessToken,
   cloudflareGraphql,
+  cloudflareGraphqlRanged,
+  windowsFor,
+  mergeCloudflareAccounts,
   CLOUDFLARE_FILTERS,
   defaultHost
 };

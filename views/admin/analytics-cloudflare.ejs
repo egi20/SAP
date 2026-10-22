@@ -62,18 +62,17 @@
       <% if (report.sampleInterval) { %>
         <div class="alert alert-info">
           <i class="bi bi-info-circle"></i>
-          Cloudflare <strong>samples</strong> page loads: each one it recorded here stands for about
-          <strong><%= report.sampleInterval %></strong>, so every figure moves in steps of
-          <%= report.sampleInterval %>. On a site this quiet the numbers are estimates, not counts —
-          <%= report.totals[0].value %> page views means roughly <%= Math.round(report.totals[0].value / report.sampleInterval) %> were actually recorded.
-          Cloudflare samples a long range more coarsely than a short one, so the shorter range is the more exact of the two: if it shows more than this one, believe the shorter range.
+          Cloudflare <strong>samples</strong> page loads, and on a quiet site each one it recorded can stand for up to
+          <strong><%= report.sampleInterval %></strong>, so these are estimates rather than counts.
+          <% if (report.windows > 1) { %>A range this long is asked week by week and added up<% } else { %>Longer ranges are asked week by week and added up<% } %>,
+          because Cloudflare samples a long period more coarsely than a short one — so a longer range never shows fewer visits than a week inside it.
         </div>
       <% } %>
 
       <div class="row g-3 mb-4">
         <div class="col-6 col-md-4"><div class="glass-card h-100"><div class="card-body">
           <p class="stat-value mb-0"><%= n(serverViews) %></p><p class="mb-0">SAP Hub's own count</p>
-          <p class="small text-muted-2 mb-0">pages browsers opened, counted on the server — no script, sampling or consent. Bots and failed requests are left out from 21 October 2026; earlier days still include them.</p>
+          <p class="small text-muted-2 mb-0">pages browsers opened, counted on the server — no script, sampling or consent. Bots and failed requests are left out from 21 October 2026, the admin pages and administrators from 22 October; earlier days still include them, so do not compare it with the providers across those dates.</p>
         </div></div></div>
         <% report.totals.forEach(function (t) { %>
           <div class="col-6 col-md-4"><div class="glass-card h-100"><div class="card-body">

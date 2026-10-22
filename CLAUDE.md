@@ -1829,8 +1829,13 @@ user agent does not declare itself a crawler, library or headless browser. Count
 non-asset GET made the yardstick ~4,000 a week against 73 from Cloudflare — it was
 measuring the scanners that ask every site for /wp-login.php. Rows recorded before the
 change keep the bots; nothing rewrites them. And Cloudflare samples a long range more
-coarsely than a short one, so its 30-day figure can come out BELOW its own 7-day figure —
-the shorter range is the more exact.
+coarsely than a short one, so its 30-day figure came out BELOW its own 7-day figure (180
+against 242) — and the screen used to tell the reader to believe the shorter range, which
+covered the bug instead of fixing it. Since 2026-10-22 a range longer than a week is asked
+as week-sized windows and summed (`cloudflareGraphqlRanged`, `windowsFor`,
+`mergeCloudflareAccounts` in `services/webAnalytics.js`), so a longer range can never show
+fewer visits than a week inside it; past thirteen windows they widen rather than multiply,
+because each window is a request against a rate-limited API.
 
 **The screens carry dynamicshub.net/admin/analytics's sections** (2026-10-21): GA4 realtime,
 the seven KPIs, traffic over time, direct vs external, new vs returning, age, gender, devices,
