@@ -86,7 +86,7 @@ const PAGE_META = {
   '/faq': {
     title: 'SAP Hub — frequently asked questions',
     description:
-      'How the day-rate index is built, what the scope estimator produces, what the LinkedIn badge means, and what anything costs.'
+      'What SAP Hub is and what it costs, how to post and feature a job, how quotes and the day-rate index work, and how to get help.'
   },
   '/consultant-hub': {
     title: 'SAP Hub for consultants',
