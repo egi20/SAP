@@ -783,7 +783,7 @@ though it were a finished answer.
 owner's robot (`public/images/hub-assistant.webp`, background removed by flood-filling from
 the edges so the dark visor inside stays opaque; the head crop is the panel avatar), with an
 "AI" tag, a one-time teaser and three suggested questions. The name is
-`config.assistant.name` (`ASSISTANT_NAME`, default "Hubi"), read by BOTH the widget and the
+`config.assistant.name` (`ASSISTANT_NAME`, default "Saphire"; the widget greets with "WhatSAP?"), read by BOTH the widget and the
 system prompt, so the two cannot introduce it differently — and it is a per-process constant,
 so the cached prefix stays byte-identical. The opening message is written on one line:
 messages are `pre-wrap`, and template indentation showed inside the bubble.

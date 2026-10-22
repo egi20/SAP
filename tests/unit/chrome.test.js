@@ -141,7 +141,7 @@ describe('Home is the community, so there is no Community tab', () => {
     // `/community` has categories, an author picker and a sort the feed does not, so it
     // stays reachable — from the feed's own heading and from the footer.
     expect(feed).toContain('href="/community"');
-    ['/community', '/community/articles', '/challenges'].forEach((href) => {
+    ['/community', '/community/articles'].forEach((href) => {
       expect(footer).toContain(`href="${href}"`);
     });
     expect(nav).toContain('href="/community/new"');
@@ -149,12 +149,13 @@ describe('Home is the community, so there is no Community tab', () => {
   });
 
   it('gives the daily challenge a home in the menus', () => {
-    // As on dynamicshub.net: "Challenges" under the Consultant section of the account
-    // menu, and "Daily challenge" in the footer for everybody else.
+    // The account menu carries "Challenges" for the signed-in; for everybody the public
+    // Services menu opens SAP Games, whose hub leads with the daily challenge. The footer
+    // link went on 2026-10-22, when the owner trimmed the footer to dynamicshub.net's.
     const userMenu = nav.slice(nav.indexOf('user-menu-dropdown'));
     expect(userMenu).toContain('href="/challenges"');
-    expect(fs.readFileSync(path.join(__dirname, '..', '..', 'views', 'partials', 'footer.ejs'), 'utf8'))
-      .toContain('href="/challenges"');
+    expect(nav.slice(0, nav.indexOf('user-menu-dropdown'))).toContain('href="/games"');
+    expect(source('views/games/index.ejs')).toContain('href="/challenges"');
   });
 });
 
