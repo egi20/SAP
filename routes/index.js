@@ -33,6 +33,7 @@ const { body, validationResult } = require('express-validator');
 const { findDuplicates, MAX_LINES } = require('../utils/dedupe');
 const TaxApplication = require('../models/TaxApplication');
 const TaxInterest = require('../models/TaxInterest');
+const SalesAgent = require('../models/SalesAgent');
 const { looksLikeAPerson } = require('../middleware/visitGeo');
 const {
   TAX_PROGRAM, TAX_SUCCESS_STORIES, COUNTRIES: TAX_COUNTRIES, APPLY_COUNTRIES: TAX_APPLY_COUNTRIES,
@@ -395,6 +396,41 @@ router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
  * claim somebody has to remember to update. What is here is true on the day the site has
  * no members at all.
  */
+/**
+ * GET /s/:code — a sales agent's personal sign-up link, as on dynamicshub.net.
+ *
+ * It lands on registration with the code in the URL (`?a=`) as well as in the session: an
+ * in-app browser (LinkedIn, WhatsApp) hands the real browser the URL and never its
+ * cookies, so the URL is the copy that survives "Open in browser". No cookie of its own —
+ * this site sets one cookie and says so; a second would change what the notice is.
+ *
+ * Counting is STRICTER than attribution and the two are separate on purpose. Every open
+ * stores the code, so a person we decline to count is still credited if they sign up; an
+ * open is COUNTED only once per session and only for something that looks like a person.
+ * Link previews matter most here: pasting a link into a chat makes the chat's servers open
+ * it to draw the card, and they are what made every agent read "3 opens, 0 sign-ups" on
+ * the reference before it filtered them.
+ *
+ * 302, never 301: a cached permanent redirect would stop the opens being counted.
+ */
+const LINK_PREVIEW = /whatsapp|facebookexternalhit|slack|telegram|discord|linkedin|twitter|skype|viber|embedly|vkshare/i;
+
+router.get(
+  '/s/:code',
+  asyncHandler(async (req, res) => {
+    const agent = await SalesAgent.findActiveByCode(req.params.code);
+    if (!agent) return res.redirect(302, '/auth/register');
+    if (!req.session.salesAgentCode) req.session.salesAgentCode = agent.code;
+    const ua = req.get('user-agent') || '';
+    const counted = Array.isArray(req.session.salesAgentOpens) ? req.session.salesAgentOpens : [];
+    if (looksLikeAPerson(ua) && !LINK_PREVIEW.test(ua) && !counted.includes(agent.code)) {
+      req.session.salesAgentOpens = [...counted, agent.code].slice(-10);
+      await SalesAgent.countOpen(agent.user_id);
+    }
+    return res.redirect(302, `/auth/register?a=${encodeURIComponent(agent.code)}`);
+  })
+);
+
 router.get('/about', (req, res) => {
   res.render('legal/about', { title: `About ${config.app.name}` });
 });

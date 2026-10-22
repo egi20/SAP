@@ -73,7 +73,7 @@ describe('the privacy policy', () => {
     const versions = require('../../config/legal-versions');
     // 2026-10-21: the section on messages, problem reports, ideas and screenshot retention.
     // 2026-10-21.2: browser details, the confirmation email and published ideas.
-    expect(versions.PRIVACY_VERSION).toBe('2026-10-21.3');
+    expect(versions.PRIVACY_VERSION).toBe('2026-10-22');
   });
 });
 

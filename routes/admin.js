@@ -13,6 +13,8 @@ const Application = require('../models/Application');
 const AppSetting = require('../models/AppSetting');
 const AccountClosure = require('../models/AccountClosure');
 const Referral = require('../models/Referral');
+const SalesAgent = require('../models/SalesAgent');
+const config = require('../config/config');
 const SuccessStory = require('../models/SuccessStory');
 const SiteReview = require('../models/SiteReview');
 const Enquiry = require('../models/Enquiry');
@@ -866,12 +868,29 @@ router.get(
   '/referrals',
   isSuperadmin,
   asyncHandler(async (req, res) => {
+    if (req.query.tab === 'agents') {
+      const agents = await SalesAgent.listAll();
+      const [direct, agentPeople] = await Promise.all([
+        SalesAgent.unattributed(),
+        SalesAgent.peopleFor(agents.map((a) => a.user_id))
+      ]);
+      return res.render('admin/referrals', {
+        title: 'Sales agents',
+        tab: 'agents',
+        agents,
+        direct,
+        agentPeople,
+        linkFor: (code) => `${config.app.baseUrl}/s/${code}`
+      });
+    }
+
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
     const { rows, total } = await Referral.listAll({ limit, offset });
     const people = await Referral.introducedPeople(rows.map((r) => r.id));
 
     res.render('admin/referrals', {
       title: 'Referrals and payouts',
+      tab: 'referrers',
       referrers: rows,
       people,
       payoutMethods: PAYOUT_METHODS,
@@ -939,6 +958,53 @@ router.post(
  * and there should not be: Stripe collects, a person pays out, and the gap between them is
  * where somebody looks at the number before it goes.
  */
+/**
+ * POST /admin/referrals/agents/add — promote an existing account to sales agent, as
+ * dynamicshub.net's "Promote existing user". Never creates an account, and never touches
+ * the account's roles: an agent is a row in `sales_agents`, not a user type, so promoting
+ * an administrator cannot demote them (the reference re-typed the account and did).
+ */
+router.post(
+  '/referrals/agents/add',
+  isSuperadmin,
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const back = '/admin/referrals?tab=agents';
+    const emailAddress = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    if (!emailAddress) {
+      req.flash('error', 'Give the email address of the account to add.');
+      return res.redirect(back);
+    }
+    const user = await User.findByEmail(emailAddress);
+    if (!user || !user.is_active) {
+      req.flash('error', 'No active account has that email address. The person must sign up first.');
+      return res.redirect(back);
+    }
+    const { agent, created } = await SalesAgent.add(user.id, req.session.user.id);
+    if (!created) {
+      req.flash('info', `${user.name || user.email} is already a sales agent (link /s/${agent.code}).`);
+      return res.redirect(back);
+    }
+    req.flash('success', `${user.name || user.email} is now a sales agent. Their link: ${config.app.baseUrl}/s/${agent.code}`);
+    return res.redirect(back);
+  })
+);
+
+/** Pausing a link stops new sign-ups being credited; who it brought in stays. */
+router.post(
+  '/referrals/agents/:id/active',
+  isSuperadmin,
+  requireIdParam('id'),
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const changed = await SalesAgent.setActive(Number(req.params.id), req.body.is_active === 'true');
+    req.flash(changed ? 'success' : 'error', changed
+      ? 'Sales agent updated. The people they already brought in are still credited to them.'
+      : 'That account is not a sales agent.');
+    return res.redirect('/admin/referrals?tab=agents');
+  })
+);
+
 router.post(
   '/referrals/:id/payout',
   isSuperadmin,

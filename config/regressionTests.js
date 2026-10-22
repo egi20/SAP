@@ -107,6 +107,7 @@ const handWritten = [
   { name: 'Malformed advert id is refused', category: 'Not found', path: '/applications/44.map', status: [302, 404] },
 
   // ------------------------------------------------------------------ redirects
+  { name: "An unknown sales agent link still reaches sign-up", category: 'Redirects', path: '/s/NOTACODE', status: 302, redirect: '/auth/register' },
   { name: 'Old talent URL goes to the directory', category: 'Redirects', path: '/companies/talent', status: [301, 302], redirect: '/consultants' },
 
   // ---------------------------------------------------------- signed-out guards

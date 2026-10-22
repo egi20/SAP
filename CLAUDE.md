@@ -1007,6 +1007,19 @@ re-enrolling would rewrite a rate stamped on their introductions. The rate is bo
 Each referrer row expands into the people they brought in (`Referral.introducedPeople`, one
 query for the page) with what each has earned them, read from the ledger.
 
+**Sales agents are NOT referrers** (migration 035, `/admin/referrals?tab=agents`, 2026-10-22,
+as dynamicshub.net's Sales Agents tab). An agent is a colleague a superadmin promoted; their
+`/s/<code>` link is MEASURED and pays nothing — staff paid per sign-up through the referral
+scheme is the thing this separation prevents. They live in `sales_agents`, not in a user type,
+so promoting an admin cannot demote them (the reference re-typed the account and did). Credit
+is `users.sales_agent_id`, first touch, written once at registration — session before the
+posted `a` field, the referral rule. The link carries the code in the URL (`?a=`) because an
+in-app browser passes on the URL and never the cookies; there is NO second cookie, because this
+site sets one and says so. An open is counted once per session and only for something that
+looks like a person and is not a link preview; every open still stores the code, so a counter
+is never a gate. The tab ends with a "No agent link" row so the agents' sign-ups have a
+denominator. The privacy policy names both kinds of link (`2026-10-22`).
+
 **Deactivating a referrer stops new introductions only.** It does not touch existing
 attributions or anything already earned.
 

@@ -7,6 +7,17 @@
   <%- include('./_tabs', { current: 'referrals' }) %>
   <%- include('../partials/flash') %>
 
+  <%# Two lists, as dynamicshub.net's /admin/referrers: people PAID per introduction, and the
+      Hub's own people whose links are MEASURED. ?tab= links, so they work without scripting. %>
+  <ul class="nav nav-tabs mb-4">
+    <li class="nav-item"><a class="nav-link <%= tab === 'agents' ? '' : 'active' %>" href="/admin/referrals" <%= tab === 'agents' ? '' : 'aria-current="page"' %>><i class="bi bi-people me-1"></i>Referrers</a></li>
+    <li class="nav-item"><a class="nav-link <%= tab === 'agents' ? 'active' : '' %>" href="/admin/referrals?tab=agents" <%= tab === 'agents' ? 'aria-current="page"' : '' %>><i class="bi bi-person-badge me-1"></i>Sales agents</a></li>
+  </ul>
+
+  <% if (tab === 'agents') { %>
+    <%- include('./_sales-agents') %>
+  <% } else { %>
+
   <div class="glass-card mb-4">
     <div class="card-body">
       <h2 class="h6">What these buttons do</h2>
@@ -179,6 +190,7 @@
   <% }); %>
 
   <%- include('../partials/pagination') %>
+  <% } %>
 </div>
 </section>
 

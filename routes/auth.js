@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Token = require('../models/Token');
 const Referral = require('../models/Referral');
+const SalesAgent = require('../models/SalesAgent');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const { isGuest, isAuthenticated } = require('../middleware/auth');
@@ -54,10 +55,14 @@ const registerValidators = [
 ];
 
 router.get('/register', isGuest, registrationOpen, (req, res) => {
+  // A sales agent's code arriving on the URL (`/s/<code>` sends it, and it is the copy an
+  // in-app browser passes on). Shape-checked before it is kept or echoed; first touch wins.
+  const agentCode = SalesAgent.normaliseCode(req.query.a);
+  if (agentCode && !req.session.salesAgentCode) req.session.salesAgentCode = agentCode;
   res.render('auth/register', {
     signupSources: SIGNUP_SOURCES,
     title: 'Create an account',
-    values: {},
+    values: { a: req.session.salesAgentCode || agentCode || '' },
     errors: [],
     redirect: safePath(req.query.redirect, '')
   });
@@ -135,6 +140,12 @@ router.post(
     const referralCode = req.session.referralCode || req.body.ref || null;
     if (referralCode) await Referral.attribute(referralCode, user.id);
     delete req.session.referralCode;
+
+    // A sales agent's link, the same way round: the session (from the link followed) before
+    // the posted field. Measured, never paid — this is not the referral scheme.
+    const agentCode = req.session.salesAgentCode || SalesAgent.normaliseCode(req.body.a) || null;
+    if (agentCode) await SalesAgent.attribute(agentCode, user.id);
+    delete req.session.salesAgentCode;
 
 
     const { token } = await Token.issue('email_verification', user.id);
