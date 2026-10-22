@@ -1919,6 +1919,17 @@ lets a mis-picked engagement type be refused instead of averaged in. The amount 
 carries `step="1"` and NO `min`/`max`: the real bound depends on two other controls, and an
 HTML constraint that cannot express that must not pretend to.
 
+**`/rates` is laid out like dynamicshub.net's Rate & Salary Index** (2026-10-22): the
+benchmark form and the market charts first, then the community index with By role / By
+seniority / By country tabs (`?tab=` links), then what OPEN ADVERTS offer — contract day
+rates and permanent salaries, from `utils/advertRates.js` over `Job.advertisedRateRows`,
+which goes through `Job.buildFilter` — then the per-role links and the methodology. Three
+sources in three sections, never one number. Advert figures carry no floor (they are
+already public) but leave out any advert whose company HID its rate and any figure outside
+`config/rateBounds.js`, and say how many. The reference's "Now keep more of it" take-home
+teaser and its saved scenarios are NOT here: the first is the "no tax, no saving" rule
+above, the second stores what somebody asked about their own pay.
+
 `RATE_MIN_SAMPLE` is configurable, but lowering it below 3 to make a sparse index look
 fuller defeats the point of having it. It is an environment variable and not a setting,
 precisely so that lowering it is a deployment decision with a diff behind it.

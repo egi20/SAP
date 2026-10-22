@@ -178,6 +178,16 @@ class RateSubmission {
     }));
   }
 
+  /** Aggregate per country, for the index's "By country" tab. Suppressed rows keep their count. */
+  static async byCountry(filters, { months = 12 } = {}) {
+    const periods = recentPeriods(months);
+    const rows = await RateSubmission.rowsFor({ ...filters, country: '', periods });
+    const grouped = aggregateBy(rows.filter((r) => r.country), (r) => r.country);
+    return [...grouped.entries()]
+      .map(([country, agg]) => ({ country, ...agg }))
+      .sort((a, b) => (b.median ?? -1) - (a.median ?? -1) || b.contributors - a.contributors);
+  }
+
   /** Monthly trend. Suppressed periods come back with `value: null` — render as gaps. */
   static async trend(filters, { months = 12 } = {}) {
     const periods = recentPeriods(months);

@@ -402,6 +402,23 @@ class Job {
     return { rows, total };
   }
 
+  /**
+   * The rate fields of every OPEN advert of one engagement type, for the rate index
+   * (`utils/advertRates.js`). Through `buildFilter`, so drafts, closed adverts and
+   * moderator takedowns are excluded by the same rule as the board; only adverts whose
+   * company chose to SHOW the rate are read.
+   */
+  static async advertisedRateRows(engagementType) {
+    const { clause, params } = buildFilter({ engagement_type: engagementType });
+    const [rows] = await promisePool.query(
+      `SELECT j.id, j.role, j.seniority, j.rate_min, j.rate_max, j.currency, j.rate_visible, j.published_at
+         FROM jobs j
+        WHERE ${clause} AND j.rate_visible = 1 AND (j.rate_min IS NOT NULL OR j.rate_max IS NOT NULL)`,
+      params
+    );
+    return rows;
+  }
+
   /** Counts per role for the browse sidebar, using the same filter minus `role`. */
   static async facetByRole(filters = {}) {
     const { clause, params } = buildFilter({ ...filters, role: undefined });

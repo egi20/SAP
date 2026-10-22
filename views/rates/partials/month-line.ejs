@@ -1,0 +1,41 @@
+<%#
+  A month-by-month line drawn on the server (the CSP allows no chart library). A month with
+  no published figure is a GAP in the line, never a zero and never interpolated — drawing
+  through missing data invents it (CLAUDE.md, "The rate index").
+  Locals: points [{ period: 'YYYY-MM', value|null }], color, label.
+  Colours are SVG attributes so no cached stylesheet can turn the chart black.
+%>
+<%
+  const W = 640, H = 220, L = 50, R = 12, T = 12, B = 28;
+  const plotW = W - L - R, plotH = H - T - B;
+  const vals = points.filter(function (p) { return p.value !== null; }).map(function (p) { return p.value; });
+  const top = vals.length ? Math.max.apply(null, vals) : 0;
+  const nice = (function (v) { if (v <= 0) return 100; const p = Math.pow(10, Math.floor(Math.log10(v))); const f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; })(top * 1.1);
+  const x = function (i) { return L + (points.length === 1 ? plotW / 2 : (plotW * i) / (points.length - 1)); };
+  const y = function (v) { return T + plotH - (plotH * v) / nice; };
+  const fmt = function (v) { return Number(v).toLocaleString('en-GB'); };
+  const mon = function (p) { return new Date(p + '-01T00:00:00Z').toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' }); };
+  const segments = [];
+  let current = [];
+  points.forEach(function (p, i) { if (p.value === null) { if (current.length) segments.push(current); current = []; } else current.push(x(i).toFixed(1) + ',' + y(p.value).toFixed(1)); });
+  if (current.length) segments.push(current);
+%>
+<% if (!vals.length) { %>
+  <div class="rate-chart-empty"><i class="bi bi-graph-up"></i><span>No month in this view has enough data to publish yet.</span></div>
+<% } else { %>
+<svg viewBox="0 0 <%= W %> <%= H %>" width="100%" role="img" aria-label="<%= label %> by month; gaps are months without a published figure" style="display:block;height:auto">
+  <% [0, 0.25, 0.5, 0.75, 1].forEach(function (f) { const v = nice * f; %>
+    <line x1="<%= L %>" x2="<%= W - R %>" y1="<%= y(v).toFixed(1) %>" y2="<%= y(v).toFixed(1) %>" stroke="#e2e8f0" stroke-width="1"></line>
+    <text x="<%= L - 6 %>" y="<%= (y(v) + 4).toFixed(1) %>" text-anchor="end" font-size="11" fill="#5a6673">€<%= fmt(Math.round(v)) %></text>
+  <% }); %>
+  <% points.forEach(function (p, i) { %>
+    <text x="<%= x(i).toFixed(1) %>" y="<%= H - 8 %>" text-anchor="<%= i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' %>" font-size="11" fill="#5a6673"><%= mon(p.period) %></text>
+  <% }); %>
+  <% segments.forEach(function (seg) { if (seg.length > 1) { %>
+    <polyline points="<%= seg.join(' ') %>" fill="none" stroke="<%= color %>" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></polyline>
+  <% } }); %>
+  <% points.forEach(function (p, i) { if (p.value !== null) { %>
+    <circle cx="<%= x(i).toFixed(1) %>" cy="<%= y(p.value).toFixed(1) %>" r="4" fill="#ffffff" stroke="<%= color %>" stroke-width="2"><title><%= p.period %>: €<%= fmt(p.value) %></title></circle>
+  <% } }); %>
+</svg>
+<% } %>

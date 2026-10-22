@@ -45,7 +45,7 @@ const PAGE_META = {
     description: 'Case studies from real SAP engagements, and what members say about the Hub.'
   },
   '/rates': {
-    title: 'SAP day rate index',
+    title: 'SAP Rate & Salary Index',
     description:
       'Aggregated day rates for SAP roles, contributed anonymously by the community. Aggregates below three contributors are suppressed.'
   },
@@ -113,7 +113,7 @@ const PAGE_META = {
 
 /** Paths that may appear in the sitemap and carry a canonical URL. */
 const PUBLIC_PATHS = ['/', '/jobs', '/consultants', '/companies', '/recruiters', '/rates',
-  '/rates/calculator', '/community', '/community/articles', '/success-stories',
+  '/rates/calculator', '/community', '/community/articles',
   '/consultant-hub', '/company-hub', '/cv-generator', '/tax', '/tax/apply', '/about', '/blog', '/faq', '/contact', '/report-issue',
   '/legal/privacy', '/legal/terms'];
 
