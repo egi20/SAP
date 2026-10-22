@@ -2,11 +2,14 @@
   A month-by-month line drawn on the server (the CSP allows no chart library). A month with
   no published figure is a GAP in the line, never a zero and never interpolated — drawing
   through missing data invents it (CLAUDE.md, "The rate index").
-  Locals: points [{ period: 'YYYY-MM', value|null }], color, label.
+  Locals: points [{ period: 'YYYY-MM', value|null, contributors? }], color, label, and
+  showCounts — prints how many people each month rests on under its label, which is what
+  explains a gap: a month below the floor has a count and no point.
   Colours are SVG attributes so no cached stylesheet can turn the chart black.
 %>
 <%
-  const W = 640, H = 220, L = 50, R = 12, T = 12, B = 28;
+  const counts = typeof showCounts !== 'undefined' && showCounts;
+  const W = 640, H = counts ? 236 : 220, L = 50, R = 12, T = 12, B = counts ? 44 : 28;
   const plotW = W - L - R, plotH = H - T - B;
   const vals = points.filter(function (p) { return p.value !== null; }).map(function (p) { return p.value; });
   const top = vals.length ? Math.max.apply(null, vals) : 0;
@@ -29,7 +32,8 @@
     <text x="<%= L - 6 %>" y="<%= (y(v) + 4).toFixed(1) %>" text-anchor="end" font-size="11" fill="#5a6673">€<%= fmt(Math.round(v)) %></text>
   <% }); %>
   <% points.forEach(function (p, i) { %>
-    <text x="<%= x(i).toFixed(1) %>" y="<%= H - 8 %>" text-anchor="<%= i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' %>" font-size="11" fill="#5a6673"><%= mon(p.period) %></text>
+    <text x="<%= x(i).toFixed(1) %>" y="<%= H - (counts ? 24 : 8) %>" text-anchor="<%= i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' %>" font-size="11" fill="#5a6673"><%= mon(p.period) %></text>
+    <% if (counts) { %><text x="<%= x(i).toFixed(1) %>" y="<%= H - 8 %>" text-anchor="<%= i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' %>" font-size="10" fill="#8a94a3"><%= p.contributors || 0 %></text><% } %>
   <% }); %>
   <% segments.forEach(function (seg) { if (seg.length > 1) { %>
     <polyline points="<%= seg.join(' ') %>" fill="none" stroke="<%= color %>" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></polyline>

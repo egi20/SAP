@@ -26,6 +26,9 @@ beforeAll(async () => {
   ids.shown = (await Job.create(company.id, { ...base, title: 'Rateindex shown', status: 'open', rate_min: 800, rate_max: 900, rate_visible: 1 })).id;
   ids.hidden = (await Job.create(company.id, { ...base, title: 'Rateindex hidden', status: 'open', rate_min: 700, rate_max: 750, rate_visible: 0 })).id;
   ids.draft = (await Job.create(company.id, { ...base, title: 'Rateindex draft', status: 'draft', rate_min: 600, rate_max: 650, rate_visible: 1 })).id;
+  // An advert stored under a role slug the taxonomy no longer knows.
+  ids.legacy = (await Job.create(company.id, { ...base, title: 'Rateindex legacy', status: 'open', rate_min: 1200, rate_max: 1300, rate_visible: 1 })).id;
+  await promisePool.query("UPDATE jobs SET role = 'retired-role-slug' WHERE id = ?", [ids.legacy]);
 });
 
 maybe()('the Rate & Salary Index', () => {
@@ -55,5 +58,26 @@ maybe()('the Rate & Salary Index', () => {
     const body = (await request(app).get('/rates')).text.toLowerCase();
     expect(body).not.toContain('take-home');
     expect(body).not.toContain('monthly saving');
+  });
+
+  it('labels an advert whose role the taxonomy no longer knows, and does not link it', async () => {
+    const res = await request(app).get('/rates');
+    expect(res.text).toContain('Other role');
+    expect(res.text).not.toContain('/rates/retired-role-slug');
+  });
+
+  it('describes itself as a Dataset to search engines, with the badge style hero', async () => {
+    const res = await request(app).get('/rates');
+    const ld = JSON.parse(res.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    expect(ld['@type']).toBe('Dataset');
+    expect(res.text).toContain('section-badge');
+  });
+
+  it('carries industry and skills through the calculator and into the shared link', async () => {
+    const res = await request(app).get('/rates/calculator?role=s4-ewm&industry=finance&skills=btp&skills=ai');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Client industry');
+    expect(res.text).toMatch(/data-copy="[^"]*industry=finance[^"]*skills=btp&amp;skills=ai/);
+    expect(res.text).toContain('data-print');
   });
 });

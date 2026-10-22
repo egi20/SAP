@@ -46,7 +46,13 @@ function normaliseInput(input = {}) {
   const contractType = model.CONTRACT_TYPES.find((c) => c.key === input.contractType)
     || model.CONTRACT_TYPES.find((c) => c.key === 'time-and-materials');
 
-  return { role, years, certifications, country, region, workMode, contractType };
+  const industry = model.INDUSTRIES.find((i) => i.key === input.industry)
+    || model.INDUSTRIES.find((i) => i.key === 'general');
+  // A query string repeats the key for each ticked box; one tick arrives as a string.
+  const asked = [].concat(input.skills || []).map(String);
+  const skills = model.SKILLS.filter((s) => asked.includes(s.key)).map((s) => s.key);
+
+  return { role, years, certifications, country, region, workMode, contractType, industry, skills };
 }
 
 /**
@@ -71,7 +77,16 @@ function benchmark(input = {}) {
     { key: 'region', label: 'Region', choice: chosen.region.label, multiplier: chosen.region.multiplier },
     { key: 'workMode', label: 'Work arrangement', choice: chosen.workMode.label, multiplier: chosen.workMode.multiplier },
     { key: 'certifications', label: 'SAP certifications', choice: certification.label, multiplier: certification.multiplier },
-    { key: 'contractType', label: 'Pricing model', choice: chosen.contractType.label, multiplier: chosen.contractType.multiplier }
+    { key: 'contractType', label: 'Pricing model', choice: chosen.contractType.label, multiplier: chosen.contractType.multiplier },
+    { key: 'industry', label: 'Client industry', choice: chosen.industry.label, multiplier: chosen.industry.multiplier },
+    {
+      key: 'skills',
+      label: 'In-demand skills',
+      choice: chosen.skills.length
+        ? model.SKILLS.filter((s) => chosen.skills.includes(s.key)).map((s) => s.label).join(', ')
+        : 'None selected',
+      multiplier: model.skillsMultiplier(chosen.skills)
+    }
   ];
 
   const product = factors.reduce((acc, factor) => acc * factor.multiplier, 1);
@@ -89,7 +104,9 @@ function benchmark(input = {}) {
       country: chosen.country,
       region: chosen.region.key,
       workMode: chosen.workMode.key,
-      contractType: chosen.contractType.key
+      contractType: chosen.contractType.key,
+      industry: chosen.industry.key,
+      skills: chosen.skills
     },
     base,
     factors,

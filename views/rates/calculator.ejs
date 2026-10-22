@@ -1,6 +1,7 @@
 <%- include('../partials/layout-start') %>
 <%- include('../partials/page-header', {
   icon: 'bi-calculator',
+  label: 'Rate & Salary Index',
   heading: 'Benchmark your day rate',
   sub: 'What a role like yours is worth, and the arithmetic that says so.'
 }) %>
@@ -68,6 +69,27 @@
           </select>
         </div>
 
+        <div class="col-md-4">
+          <label class="form-label" for="industry">Client industry</label>
+          <select class="form-select" id="industry" name="industry">
+            <% model.INDUSTRIES.forEach(function (i) { %>
+              <option value="<%= i.key %>" <%= result && result.input.industry === i.key ? 'selected' : '' %>><%= i.label %><%= i.multiplier !== 1 ? ' (' + (i.multiplier > 1 ? '+' : '−') + Math.round(Math.abs(i.multiplier - 1) * 100) + '%)' : '' %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <fieldset class="col-md-8">
+          <legend class="form-label fs-6 mb-1">In-demand skills you bring</legend>
+          <div class="d-flex flex-wrap gap-2">
+            <% model.SKILLS.forEach(function (sk) { %>
+              <input type="checkbox" class="btn-check" name="skills" id="sk-<%= sk.key %>" value="<%= sk.key %>" autocomplete="off"
+                     <%= result && result.input.skills.includes(sk.key) ? 'checked' : '' %>>
+              <label class="btn btn-outline-primary btn-sm" for="sk-<%= sk.key %>"><%= sk.label %> +<%= Math.round(sk.premium * 100) %>%</label>
+            <% }) %>
+          </div>
+          <p class="form-text mb-0">Added together and capped at +<%= Math.round(model.SKILLS_CAP * 100) %>% — the market pays for a scarce skill the project needs, not for a longer list.</p>
+        </fieldset>
+
         <div class="col-12 d-flex gap-2">
           <button class="btn btn-primary" type="submit">Calculate</button>
           <% if (result) { %><a class="btn btn-outline-secondary" href="/rates/calculator">Start again</a><% } %>
@@ -86,7 +108,18 @@
     <div class="row g-3 mb-4">
       <div class="col-lg-8">
         <div class="glass-card h-100"><div class="card-body">
-          <h2 class="h6 text-muted-2 text-uppercase mb-3"><%= result.roleLabel %></h2>
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <h2 class="h6 text-muted-2 text-uppercase mb-0"><%= result.roleLabel %></h2>
+            <%#
+              No "save scenario": a stored scenario is a record of what somebody asked about
+              their own pay. The address IS the scenario — copy it, or print the page to PDF
+              for a negotiation. Both buttons are built from what is already on the page.
+            -%>
+            <div class="d-flex gap-2 d-print-none">
+              <span class="copy-link" data-copy="<%= shareUrl %>"></span>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-print><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Save as PDF</button>
+            </div>
+          </div>
           <div class="row text-center g-3">
             <div class="col-4">
               <p class="text-muted-2 small mb-1">Low</p>
@@ -212,8 +245,8 @@
     <div class="glass-card"><div class="card-body">
       <h2 class="h6 text-muted-2 text-uppercase">What this is</h2>
       <p class="small text-muted-2 mb-0">
-        An editorial model published under our own name: a base rate per role, moved by five
-        documented factors. It is not a survey, it does not know your client, your notice
+        An editorial model published under our own name: a base rate per role, moved by
+        <%= result.factors.length %> documented factors. It is not a survey, it does not know your client, your notice
         period or your negotiating position, and it answers in euros before tax wherever you
         are. Nothing you typed here was stored.
       </p>
