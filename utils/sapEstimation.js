@@ -15,6 +15,8 @@ const {
   COMPLEXITY_MULTIPLIERS,
   INDUSTRY_MULTIPLIERS,
   COMPANY_SIZE_MULTIPLIERS,
+  DATA_MIGRATION_SCOPES,
+  DATA_VOLUMES,
   PHASE_DISTRIBUTION,
   DEFAULT_RESOURCE_ALLOCATION,
   TRAINING_RESOURCE_ID,
@@ -214,6 +216,8 @@ function calculateEstimation(input = {}, config = {}) {
     companySize = '',
     includeTraining = true,
     includeRun = true,
+    dataMigrationScope = 'not-assessed',
+    dataVolume = 'medium',
     otherModules = '',
     otherAddons = '',
     otherIntegrations = ''
@@ -331,6 +335,13 @@ function calculateEstimation(input = {}, config = {}) {
   baseEffort *= companySizeEntry.multiplier;
 
   // --- Step 3: additive effort -------------------------------------------------------
+  // Data migration: a share of the scoped effort as it stands after the multipliers, scaled
+  // by volume. "Not assessed" adds nothing (config/estimation.js).
+  const migrationScopeEntry = DATA_MIGRATION_SCOPES[dataMigrationScope] || DATA_MIGRATION_SCOPES['not-assessed'];
+  const migrationVolumeEntry = DATA_VOLUMES[dataVolume] || DATA_VOLUMES.medium;
+  const dataMigrationDays = Math.round(baseEffort * migrationScopeEntry.share * migrationVolumeEntry.multiplier);
+  baseEffort += dataMigrationDays;
+
   const integrations = Math.max(0, parseInt(numberOfIntegrations, 10) || 0);
   const daysPerIntegration = INTEGRATION_DAYS[integrationComplexity] || INTEGRATION_DAYS.medium;
   baseEffort += integrations * daysPerIntegration;
@@ -456,6 +467,15 @@ function calculateEstimation(input = {}, config = {}) {
     phaseBreakdown: phases,
     resourceAllocation,
     timeline: generateTimeline(phases),
+
+    dataMigration: {
+      scope: DATA_MIGRATION_SCOPES[dataMigrationScope] ? dataMigrationScope : 'not-assessed',
+      name: migrationScopeEntry.name,
+      share: migrationScopeEntry.share,
+      volume: DATA_VOLUMES[dataVolume] ? dataVolume : 'medium',
+      volumeName: migrationVolumeEntry.name,
+      days: dataMigrationDays
+    },
 
     unmapped: {
       modules: unmappedModules,

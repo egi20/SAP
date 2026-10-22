@@ -78,6 +78,15 @@
                 <% }); %>
               <% } %>
 
+              <%# Absent on an estimate saved before data migration was an input: nothing is inferred for it. -%>
+              <% if (estimate.dataMigration && estimate.dataMigration.days > 0) { %>
+                <tr>
+                  <td>Data migration</td>
+                  <td class="text-muted-2 small"><%= estimate.dataMigration.name %>, <%= estimate.dataMigration.volumeName.toLowerCase() %> volume</td>
+                  <td class="text-end"><%= estimate.dataMigration.days %>d</td>
+                </tr>
+              <% } %>
+
               <% estimate.addonBreakdown.forEach(function (a) { %>
                 <tr><td><%= a.name %></td><td class="text-muted-2 small"><%= a.category %></td><td class="text-end"><%= a.days %>d</td></tr>
               <% }); %>
@@ -285,6 +294,38 @@
                   Take the deposit
                 </button>
               </form>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (context) { %>
+        <div class="glass-card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-2">Project context</h2>
+            <ul class="list-unstyled small mb-0">
+              <% if (context.currentSystem) { %>
+                <li class="d-flex justify-content-between gap-2"><span>Current system</span><strong class="text-end"><%= context.currentSystem %></strong></li>
+              <% } %>
+              <% if (context.goLiveDate) { %>
+                <li class="d-flex justify-content-between gap-2"><span>Target go-live</span><strong><%= context.goLiveDate %></strong></li>
+              <% } %>
+              <li class="d-flex justify-content-between gap-2"><span>Data migration</span><strong class="text-end"><%= context.dataMigration %></strong></li>
+            </ul>
+            <% if (context.goLiveTooSoon) { %>
+              <%# Measured from the day the estimate was saved, which is what the timeline was computed against. -%>
+              <div class="alert alert-warning small mt-3 mb-0">
+                The timeline is <%= estimate.projectDurationWeeks %> weeks from the day this estimate was
+                saved, which ends after the target go-live. Either the scope or the date has to move.
+              </div>
+            <% } %>
+            <% if (context.successCriteria) { %>
+              <h3 class="h6 small fw-semibold mt-3 mb-1">Success criteria</h3>
+              <p class="small mb-0 text-prewrap"><%= context.successCriteria %></p>
+            <% } %>
+            <% if (context.constraints) { %>
+              <h3 class="h6 small fw-semibold mt-3 mb-1">Constraints</h3>
+              <p class="small mb-0 text-prewrap"><%= context.constraints %></p>
             <% } %>
           </div>
         </div>

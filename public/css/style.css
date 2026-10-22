@@ -1951,6 +1951,14 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .tax-included li { margin-bottom: 0.35rem; }
 .tax-included i { color: #1d6f4f; margin-right: 0.4rem; }
 .tax-not-for li { margin-bottom: 0.35rem; }
+
+/* SOW generator: the running total and the save button stay in view while the long scope
+   column scrolls. Opaque, because the cards below it scroll underneath. */
+.sow-steps li { margin-bottom: 0.35rem; }
+.text-prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (min-width: 992px) {
+  .sow-summary { position: sticky; top: 5.5rem; z-index: 3; background-color: var(--bg-white); }
+}
 .tax-not-for i { color: #9e2b3d; margin-right: 0.4rem; }
 .tax-icon { color: var(--primary-blue); }
 .tax-step-num {

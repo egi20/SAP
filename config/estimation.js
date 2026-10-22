@@ -160,6 +160,42 @@ const INDUSTRY_MULTIPLIERS = {
   Other: { multiplier: 1.0, description: 'Standard implementation' }
 };
 
+/**
+ * Data migration (2026-10-22, owner's request). Loading legacy data is commonly 15-25% of
+ * an SAP programme and the form said nothing about it. It is ADDITIVE effort — a share of
+ * the scoped effort after the multipliers, scaled by volume — and "Not assessed yet" adds
+ * nothing, so an estimate made without answering is the estimate it always was. Volume
+ * moves the share; it is not a second, separate charge.
+ *
+ * For a brownfield conversion the data comes across in place; the share here is for data
+ * LOADED from somewhere else, and the description says so.
+ */
+const DATA_MIGRATION_SCOPES = {
+  'not-assessed': { name: 'Not assessed yet', share: 0, description: 'Adds nothing; the estimate says the question is open.' },
+  none: { name: 'No legacy data to load', share: 0, description: 'A new entity, or a conversion that brings its data across in place.' },
+  'master-data': { name: 'Master data only', share: 0.08, description: 'Customers, suppliers, materials, assets — no open items.' },
+  'open-items': { name: 'Master data, open items and balances', share: 0.15, description: 'The usual cutover load for a new implementation.' },
+  'full-history': { name: 'Including transaction history', share: 0.25, description: 'Historical documents too — the expensive answer, often a requirement.' }
+};
+
+const DATA_VOLUMES = {
+  low: { name: 'Low — one clean legacy system', multiplier: 0.8 },
+  medium: { name: 'Medium', multiplier: 1.0 },
+  high: { name: 'High — several legacy systems or very large volumes', multiplier: 1.3 }
+};
+
+/**
+ * The client's current system. Context for the document and for whoever reads the quote,
+ * NOT a multiplier: the transition approach above already prices the path from it.
+ */
+const CURRENT_SYSTEMS = {
+  ecc6: 'SAP ECC 6.0',
+  'r3-older': 'Older SAP R/3',
+  'business-one': 'SAP Business One',
+  'other-erp': 'Another ERP (Oracle, Microsoft Dynamics, …)',
+  none: 'No ERP today (spreadsheets, legacy tools)'
+};
+
 const COMPANY_SIZE_MULTIPLIERS = {
   'Small (1-50)': { multiplier: 0.85, userEstimate: 25, description: 'Single entity, fast decisions' },
   'Medium (51-500)': { multiplier: 1.0, userEstimate: 150, description: 'Standard deployment' },
@@ -306,6 +342,14 @@ function estimationProblems() {
     problems.push('greenfield is the baseline and must have a multiplier of exactly 1.0');
   }
 
+  if (DATA_MIGRATION_SCOPES['not-assessed'].share !== 0) {
+    problems.push('"not assessed" data migration must add nothing, or an unanswered question moves the number');
+  }
+  for (const [id, scope] of Object.entries(DATA_MIGRATION_SCOPES)) {
+    if (!(scope.share >= 0 && scope.share <= 0.5)) problems.push(`data migration scope "${id}" has a share outside 0-50%`);
+  }
+  if (DATA_VOLUMES.medium.multiplier !== 1.0) problems.push('medium data volume is the baseline and must be exactly 1.0');
+
   return problems;
 }
 
@@ -342,7 +386,9 @@ function catalogueVersion() {
     PHASE_DISTRIBUTION,
     DEFAULT_RESOURCE_ALLOCATION,
     INTEGRATION_DAYS,
-    UNMAPPED_ITEM_DAYS
+    UNMAPPED_ITEM_DAYS,
+    DATA_MIGRATION_SCOPES,
+    DATA_VOLUMES
   });
 
   return crypto.createHash('sha256').update(material).digest('hex').slice(0, 12);
@@ -355,6 +401,9 @@ module.exports = {
   COMPLEXITY_MULTIPLIERS,
   INDUSTRY_MULTIPLIERS,
   COMPANY_SIZE_MULTIPLIERS,
+  DATA_MIGRATION_SCOPES,
+  DATA_VOLUMES,
+  CURRENT_SYSTEMS,
   PHASE_DISTRIBUTION,
   DEFAULT_RESOURCE_ALLOCATION,
   TRAINING_RESOURCE_ID,
