@@ -23,6 +23,26 @@
  * somebody clicks to make a sparse index look fuller.
  */
 
+const { PLATFORMS, settingKeyFor, problemWith } = require('./social');
+
+/*
+ * The Hub's own social links (owner's request, 2026-10-22, as on dynamicshub.net's
+ * Settings): the accounts change without a deploy, so they are operational. One key per
+ * platform in config/social.js, generated from that list rather than written out, so a
+ * platform added there gets its field here. Each value is host-checked on the way in
+ * (`problemFor`) and again where it is rendered.
+ */
+const SOCIAL_DEFINITIONS = Object.fromEntries(PLATFORMS.map((platform) => [settingKeyFor(platform), {
+  type: 'url',
+  default: '',
+  maxLength: 300,
+  group: 'social',
+  platform: platform.key,
+  icon: platform.icon,
+  label: `${platform.label} URL`,
+  help: `Shown in the social rail, the footer and on the Contact page. Leave empty to use ${platform.env} from the environment, or to hide the icon if that is unset too.`
+}]));
+
 const DEFINITIONS = Object.freeze({
   registration_open: {
     type: 'boolean',
@@ -42,7 +62,8 @@ const DEFINITIONS = Object.freeze({
     default: false,
     label: 'Community is read-only',
     help: 'Existing posts stay visible; new posts and replies are refused. A blunt instrument for a bad day.'
-  }
+  },
+  ...SOCIAL_DEFINITIONS
 });
 
 const KEYS = Object.freeze(Object.keys(DEFINITIONS));
@@ -76,6 +97,18 @@ function coerce(key, raw) {
   return definition.maxLength ? text.slice(0, definition.maxLength) : text;
 }
 
+/**
+ * Why a coerced value cannot be saved, or null. Only a link can be wrong in a way worth
+ * refusing: a boolean is coerced, and text is bounded.
+ */
+function problemFor(key, value) {
+  if (!isValidKey(key)) return null;
+  const definition = DEFINITIONS[key];
+  if (definition.type !== 'url' || !value) return null;
+  const platform = PLATFORMS.find((p) => p.key === definition.platform);
+  return problemWith(platform, value, definition.label);
+}
+
 /** Serialise for storage. One representation, so a read never has to guess. */
 function serialise(key, value) {
   if (!isValidKey(key)) return null;
@@ -100,14 +133,17 @@ function defaults() {
 /** Boot assertion, in the same spirit as the other catalogues. */
 function assertSettingsIntegrity() {
   for (const [key, definition] of Object.entries(DEFINITIONS)) {
-    if (!['boolean', 'text'].includes(definition.type)) {
+    if (!['boolean', 'text', 'url'].includes(definition.type)) {
       throw new Error(`Settings: "${key}" has an unknown type "${definition.type}"`);
     }
     if (definition.type === 'boolean' && typeof definition.default !== 'boolean') {
       throw new Error(`Settings: "${key}" is a boolean with a non-boolean default`);
     }
-    if (definition.type === 'text' && typeof definition.default !== 'string') {
+    if (definition.type !== 'boolean' && typeof definition.default !== 'string') {
       throw new Error(`Settings: "${key}" is text with a non-string default`);
+    }
+    if (definition.type === 'url' && !PLATFORMS.some((p) => p.key === definition.platform)) {
+      throw new Error(`Settings: "${key}" names no platform in config/social.js`);
     }
     if (!definition.label) throw new Error(`Settings: "${key}" has no label`);
   }
@@ -119,6 +155,7 @@ module.exports = {
   KEYS,
   isValidKey,
   coerce,
+  problemFor,
   serialise,
   deserialise,
   defaults,

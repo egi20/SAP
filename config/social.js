@@ -25,18 +25,28 @@ const PLATFORMS = Object.freeze([
   { key: 'youtube', label: 'YouTube', icon: 'bi-youtube', env: 'SOCIAL_YOUTUBE', hosts: ['www.youtube.com', 'youtube.com'] }
 ]);
 
-function problemWith(platform, value) {
+/**
+ * Why a value cannot be this platform's link, or null. `name` is what the message calls
+ * the field: the environment variable at boot, the form label on /admin/settings.
+ */
+function problemWith(platform, value, name = platform.env) {
   let url;
   try {
     url = new URL(value);
   } catch {
-    return `${platform.env} is not a URL`;
+    return `${name} is not a web address`;
   }
-  if (url.protocol !== 'https:') return `${platform.env} must be https`;
+  if (url.protocol !== 'https:') return `${name} must start with https://`;
+  if (url.username || url.password) return `${name} must not carry a user name or password`;
   if (!platform.hosts.includes(url.hostname)) {
-    return `${platform.env} points at ${url.hostname}, not ${platform.label}`;
+    return `${name} points at ${url.hostname}, not ${platform.label}`;
   }
   return null;
+}
+
+/** The settings key that holds a platform's link (config/settings.js declares them). */
+function settingKeyFor(platform) {
+  return `social_${platform.key}`;
 }
 
 function assertSocialIntegrity() {
@@ -56,10 +66,18 @@ function assertSocialIntegrity() {
  * The links to render, in order, plus the support address — which is always present,
  * because unlike a social account it is not optional for a site that invites people to
  * write in.
+ *
+ * `settings` is AppSetting.all(): a link saved on /admin/settings (owner's request,
+ * 2026-10-22, as on dynamicshub.net) wins, and the environment variable is the fallback
+ * for a deployment that configured them before the form existed. Both are host-checked
+ * again here, so a value that slipped past either check is dropped rather than rendered.
  */
-function socialLinks() {
+function socialLinks(settings = {}) {
   const links = PLATFORMS
-    .map((platform) => ({ platform, value: (process.env[platform.env] || '').trim() }))
+    .map((platform) => ({
+      platform,
+      value: String(settings[settingKeyFor(platform)] || '').trim() || (process.env[platform.env] || '').trim()
+    }))
     .filter(({ platform, value }) => value && !problemWith(platform, value))
     .map(({ platform, value }) => ({
       key: platform.key,
@@ -78,4 +96,4 @@ function socialLinks() {
   return links;
 }
 
-module.exports = { PLATFORMS, socialLinks, assertSocialIntegrity };
+module.exports = { PLATFORMS, socialLinks, settingKeyFor, problemWith, assertSocialIntegrity };

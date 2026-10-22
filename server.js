@@ -210,8 +210,6 @@ if (!config.isProduction && config.app.supportEmail === 'support@example.com') {
   console.warn('  SUPPORT_EMAIL is still the example value, and it is printed on /contact');
   console.warn('  and in the footer. Set it in .env. Production refuses to start on it.\n');
 }
-// Read once. These come from the environment and cannot change while the process runs.
-const SOCIAL_LINKS = socialLinks();
 
 const { trustProxy } = require('./config/trustedProxies');
 
@@ -400,7 +398,10 @@ app.use(seoLocals);
  */
 app.use(
   asyncHandler(async (req, res, next) => {
-    res.locals.siteNotice = await AppSetting.get('site_notice');
+    const settings = await AppSetting.all();
+    res.locals.siteNotice = settings.site_notice;
+    // Saved on /admin/settings, falling back to the environment (config/social.js).
+    res.locals.socialLinks = socialLinks(settings);
     next();
   })
 );
@@ -428,7 +429,6 @@ app.use((req, res, next) => {
    */
   res.locals.appBaseUrl = config.app.baseUrl;
   res.locals.assetVersion = ASSET_VERSION;
-  res.locals.socialLinks = SOCIAL_LINKS;
   res.locals.webAnalytics = WEB_ANALYTICS_TAGS;
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;

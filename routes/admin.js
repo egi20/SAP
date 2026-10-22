@@ -25,7 +25,7 @@ const assistantConfig = require('../config/assistant');
 const draftingConfig = require('../config/drafting');
 const { budgetStatus } = require('../utils/aiBudget');
 const { formatMinor } = require('../config/payments');
-const { DEFINITIONS: SETTING_DEFINITIONS } = require('../config/settings');
+const { DEFINITIONS: SETTING_DEFINITIONS, KEYS: SETTING_KEYS, coerce: coerceSetting, problemFor: settingProblem } = require('../config/settings');
 const { PAYOUT_METHODS, MIN_PAYOUT_MINOR, DEFAULT_RATE_BPS } = require('../config/referrals');
 const { PRODUCT_LINES } = require('../config/sapProducts');
 const { singleImage } = require('../middleware/fileUpload');
@@ -1425,7 +1425,8 @@ router.get(
     return res.render('admin/settings', {
       title: 'Settings',
       definitions: SETTING_DEFINITIONS,
-      values: await AppSetting.all()
+      values: await AppSetting.all(),
+      errors: []
     });
   })
 );
@@ -1445,6 +1446,21 @@ router.post(
   isSuperadmin,
   writeLimiter,
   asyncHandler(async (req, res) => {
+    // A link to the wrong host is refused and the form re-renders with what was typed:
+    // saving the rest and dropping it would leave a stale icon nobody noticed was kept.
+    const errors = SETTING_KEYS
+      .map((key) => ({ key, msg: settingProblem(key, coerceSetting(key, req.body[key])) }))
+      .filter((e) => e.msg);
+    if (errors.length) {
+      const typed = {};
+      SETTING_KEYS.forEach((key) => { typed[key] = coerceSetting(key, req.body[key]); });
+      return res.status(422).render('admin/settings', {
+        title: 'Settings',
+        definitions: SETTING_DEFINITIONS,
+        values: typed,
+        errors
+      });
+    }
     await AppSetting.setMany(req.body);
     req.flash('success', 'Settings saved. They take effect within a minute on every instance.');
     return res.redirect('/admin/settings');

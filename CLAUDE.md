@@ -64,10 +64,13 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   redirect counts as alive and its destination is opened too. A dead link survives in a
   chrome partial because nobody who works on the site ever clicks it — the menu is the
   first thing a visitor tries.
-- **The Hub's own social accounts live in `config/social.js`**, one per environment
-  variable, host-pinned and asserted at boot, and an account that is not configured is not
-  rendered. The footer and the fixed rail read the same list, or the two drift the moment
-  an account is added.
+- **The Hub's own social accounts live in `config/social.js`**, host-pinned, and an account
+  that is not configured is not rendered. The footer, the fixed rail and the Contact page
+  read the same list, or they drift the moment an account is added. Since 2026-10-22 (the
+  owner's request, as on dynamicshub.net) each one is a `url` setting on `/admin/settings`,
+  declared from `PLATFORMS` and host-checked on save by `problemFor` — a wrong host is
+  refused and the form re-renders; the environment variable is the fallback when the field
+  is empty, and is still asserted at boot.
 - **The server refuses a database the code has outgrown.** `npm start` migrates first;
   `npm run dev` does not, and the failure that produces is the worst-shaped one available —
   every page touching a new column answers 500 with `Unknown column 'j.admin_hidden_at'`,

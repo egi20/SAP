@@ -18,7 +18,21 @@
           <form method="post" action="/admin/settings">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-            <% Object.entries(definitions).forEach(function ([key, def]) { %>
+            <%
+              const fieldError = function (key) {
+                const e = errors.find(function (x) { return x.key === key; });
+                return e ? e.msg : null;
+              };
+              const general = Object.entries(definitions).filter(function ([, def]) { return !def.group; });
+              const social = Object.entries(definitions).filter(function ([, def]) { return def.group === 'social'; });
+            %>
+            <% if (errors.length) { %>
+              <div class="alert alert-danger" role="alert">
+                <ul class="mb-0"><% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %></ul>
+              </div>
+            <% } %>
+
+            <% general.forEach(function ([key, def]) { %>
               <div class="mb-4">
                 <% if (def.type === 'boolean') { %>
                   <div class="form-check form-switch">
@@ -34,6 +48,26 @@
                 <p class="form-text mb-0"><%= def.help %></p>
               </div>
             <% }) %>
+
+            <% if (social.length) { %>
+              <hr class="my-4">
+              <h2 class="h5 card-heading"><i class="bi bi-share me-2" aria-hidden="true"></i>Social links</h2>
+              <p class="small text-muted-2">
+                The Hub's own accounts, shown in the social rail, the footer and on the Contact
+                page. Leave a field empty to hide that icon — unless the same account is set in
+                the environment, which is used when the field here is empty. The email icon
+                always uses the support address.
+              </p>
+              <% social.forEach(function ([key, def]) { const err = fieldError(key); %>
+                <div class="mb-3">
+                  <label class="form-label" for="<%= key %>"><i class="bi <%= def.icon %> me-1" aria-hidden="true"></i><%= def.label %></label>
+                  <input class="form-control<%= err ? ' is-invalid' : '' %>" type="url" inputmode="url" id="<%= key %>" name="<%= key %>"
+                         value="<%= values[key] %>" maxlength="<%= def.maxLength %>" placeholder="https://…"
+                         <% if (err) { %>aria-invalid="true" aria-describedby="<%= key %>-error"<% } %>>
+                  <% if (err) { %><div class="invalid-feedback" id="<%= key %>-error"><%= err %></div><% } %>
+                </div>
+              <% }) %>
+            <% } %>
 
             <button class="btn btn-primary" type="submit">Save settings</button>
           </form>
