@@ -1111,6 +1111,20 @@ a tool, so it joined Services. `/community` keeps its categories, its author pic
 sort — which the feed has none of — so it is one click from the feed's own heading and
 from the footer, reachable without being a second front door competing with the first.
 
+**"SAP news of the day" leads the first page of the feed** (owner, 2026-10-22). It is READ
+from SAP's newsroom feed (`services/sapNews.js`, `SAP_NEWS_FEED_URL`, default
+`https://news.sap.com/feed/`), never written here: a news card the Hub typed would be a second
+newsroom nobody owns. Rules: the page never waits on SAP — a render reads the cache, and a stale
+or empty cache starts a background refresh (also once at boot, never in tests); a failed refresh
+keeps the last good copy; only a process that has never read the feed shows `config/sapNews.js`'s
+short, sourced, asserted archive, and the card then says "From our SAP news archive", never
+"today". Links are host-pinned to sap.com over https (an item pointing elsewhere is dropped);
+tags are stripped and entities decoded in the service and the template escapes the rest, so no
+HTML from somebody else's feed reaches the front page. One pick a day, rotating through the ten
+newest by the server's UTC date, so everybody sees the same one; the others are a carousel
+(`public/js/news.js`, a list of links without scripting), each with its source, "Read more" and a
+plain LinkedIn share link. A refresh failure is one `SAP news:` line in the log.
+
 **`services/feed.js` adds no filter of its own, for the same reason `services/search.js`
 does not.** Both sources go through the same `browse` their own list pages call, so a draft
 advert and a hidden post are invisible on the front page without anything in the feed

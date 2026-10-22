@@ -2322,3 +2322,38 @@ body.has-cookie-notice { padding-bottom: 7rem; }
   .arena-topic, .arena-topic-glow, .quiz-step-in { animation: none; }
   .arena-topic, .arena-topic-icon, .arena-topic-cta, .quiz-progress-bar span { transition: none; }
 }
+
+/* ------------------------------------------------- SAP news of the day (home feed) */
+.sap-news { position: relative; padding: 2px; border-radius: calc(var(--radius-lg) + 2px); background: linear-gradient(120deg, #0070f2, #7858ff, #0899a7, #0070f2); background-size: 300% 300%; animation: arena-sky 12s ease-in-out infinite; box-shadow: 0 14px 34px -18px rgba(0, 38, 91, .5); }
+.sap-news-inner { border-radius: var(--radius-lg); background: #fff; padding: 1.25rem 1.4rem 1.1rem; }
+.sap-news-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+.sap-news-badge { display: inline-flex; align-items: center; gap: .45rem; font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--primary-navy); background: rgba(0, 100, 217, .08); padding: .3rem .7rem; border-radius: 99px; }
+.sap-news-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0261b; box-shadow: 0 0 0 0 rgba(224, 38, 27, .6); animation: sap-news-live 1.8s ease-out infinite; }
+@keyframes sap-news-live { 0% { box-shadow: 0 0 0 0 rgba(224, 38, 27, .55); } 100% { box-shadow: 0 0 0 9px rgba(224, 38, 27, 0); } }
+.sap-news-controls { display: inline-flex; align-items: center; gap: .4rem; }
+.sap-news-nav { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-color); background: #fff; color: var(--primary-navy); display: grid; place-items: center; transition: background .15s ease, border-color .15s ease; }
+.sap-news-nav:hover { border-color: var(--primary-blue); background: rgba(0, 100, 217, .06); }
+.sap-news-count { color: var(--text-light); font-variant-numeric: tabular-nums; min-width: 2.6rem; text-align: center; }
+.sap-news-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; font-size: .78rem; margin-bottom: .4rem; }
+.sap-news-new { font-weight: 800; color: #fff; background: #e0261b; padding: .1rem .5rem; border-radius: 99px; }
+.sap-news-chip { font-weight: 700; color: #5232d4; background: rgba(120, 88, 255, .1); padding: .1rem .55rem; border-radius: 99px; }
+.sap-news-source { color: var(--text-light); }
+.sap-news-title { font-size: 1.2rem; font-weight: 800; line-height: 1.3; margin-bottom: .45rem; }
+.sap-news-title a { color: var(--primary-navy); text-decoration: none; }
+.sap-news-title a:hover { color: var(--primary-blue); text-decoration: underline; }
+.sap-news-summary { color: var(--text-medium); font-size: .93rem; margin-bottom: .8rem; }
+.sap-news-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.sap-news-read { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .88rem; padding: .45rem 1rem; border-radius: 99px; color: #fff; background: var(--primary-blue); text-decoration: none; }
+.sap-news-read:hover { color: #fff; background: var(--primary-navy); }
+.sap-news-share { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; font-size: .88rem; padding: .45rem .9rem; border-radius: 99px; color: #0a66c2; border: 1px solid rgba(10, 102, 194, .35); text-decoration: none; }
+.sap-news-share:hover { color: #004182; background: rgba(10, 102, 194, .06); }
+.sap-news-slide.is-entering { animation: sap-news-in .35s ease-out both; }
+@keyframes sap-news-in { from { opacity: 0; transform: translateX(14px); } }
+.sap-news-dots { display: flex; justify-content: center; gap: .35rem; margin-top: .9rem; }
+.sap-news-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 99px; background: var(--border-color); transition: width .2s ease, background .2s ease; }
+.sap-news-dots button.on { width: 22px; background: var(--primary-blue); }
+.sap-news-list { margin-top: .8rem; padding-left: 1.1rem; }
+@media (prefers-reduced-motion: reduce) {
+  .sap-news, .sap-news-dot, .sap-news-slide.is-entering { animation: none; }
+  .sap-news-dots button, .sap-news-nav { transition: none; }
+}

@@ -1,0 +1,63 @@
+<%
+  /*
+   * "SAP news of the day" — the first card in the home feed (services/sapNews.js).
+   *
+   * Every slide names its source and links to the article; the Hub writes none of the text.
+   * Slide one is today's pick. The others are the rest of the newsroom's newest items: with
+   * scripting they become a carousel, without it they are a list of links underneath.
+   *
+   * Over the fallback the card says "From our archive", never "today" — those items are
+   * dated and they are not the day's news.
+   */
+  const slides = [news.today].concat(news.more);
+  const fmt = function (iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  };
+%>
+<section class="sap-news mb-4" data-news aria-labelledby="sapNewsHeading">
+  <div class="sap-news-inner">
+    <header class="sap-news-head">
+      <span class="sap-news-badge">
+        <% if (news.live) { %><span class="sap-news-dot" aria-hidden="true"></span><% } %>
+        <i class="bi bi-newspaper" aria-hidden="true"></i>
+        <span id="sapNewsHeading"><%= news.live ? 'SAP news of the day' : 'From our SAP news archive' %></span>
+      </span>
+      <div class="sap-news-controls" data-news-controls hidden>
+        <button type="button" class="sap-news-nav" data-news-prev aria-label="Previous headline"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <span class="sap-news-count small" data-news-count aria-live="polite"></span>
+        <button type="button" class="sap-news-nav" data-news-next aria-label="Next headline"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <% slides.forEach(function (item, i) {
+         const shareText = item.title + ' — ' + item.link + ' (via SAP Hub) #SAP';
+    %>
+    <article class="sap-news-slide" data-news-slide <%= i === 0 ? '' : 'hidden' %>>
+      <div class="sap-news-meta">
+        <% if (i === 0 && news.isNew) { %><span class="sap-news-new">New</span><% } %>
+        <% if (item.category) { %><span class="sap-news-chip"><%= item.category %></span><% } %>
+        <span class="sap-news-source"><i class="bi bi-patch-check" aria-hidden="true"></i> <%= item.source %><% if (item.date) { %> · <time datetime="<%= item.date %>"><%= fmt(item.date) %></time><% } %></span>
+      </div>
+      <h2 class="sap-news-title"><a href="<%= item.link %>" target="_blank" rel="noopener nofollow"><%= item.title %></a></h2>
+      <% if (item.summary) { %><p class="sap-news-summary"><%= item.summary %></p><% } %>
+      <div class="sap-news-actions">
+        <a class="sap-news-read" href="<%= item.link %>" target="_blank" rel="noopener nofollow">Read more on <%= item.source %> <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
+        <a class="sap-news-share" href="https://www.linkedin.com/feed/?shareActive=true&amp;text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener"><i class="bi bi-linkedin" aria-hidden="true"></i> Share<span class="visually-hidden"> on LinkedIn (opens in a new tab)</span></a>
+      </div>
+    </article>
+    <% }); %>
+
+    <% if (news.more.length) { %>
+    <div class="sap-news-dots" data-news-dots hidden aria-hidden="true">
+      <% slides.forEach(function (item, i) { %><button type="button" tabindex="-1" class="<%= i === 0 ? 'on' : '' %>" data-news-dot="<%= i %>"></button><% }); %>
+    </div>
+    <noscript>
+      <ul class="sap-news-list small mb-0">
+        <% news.more.forEach(function (item) { %><li><a href="<%= item.link %>" target="_blank" rel="noopener nofollow"><%= item.title %></a></li><% }); %>
+      </ul>
+    </noscript>
+    <% } %>
+  </div>
+</section>
+<script src="/js/news.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
