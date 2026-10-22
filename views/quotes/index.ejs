@@ -56,7 +56,7 @@
           <tr>
             <th>Reference</th><th>Client</th><th>Project</th><th>Approach</th>
             <th class="text-end">Days</th><th class="text-end">Budget</th><th class="text-end">Weeks</th>
-            <th>Status</th><th>Created</th>
+            <th>Status</th><th>Created</th><th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -71,6 +71,7 @@
               <td class="text-end"><%= q.duration_weeks %></td>
               <td><span class="badge-hub text-capitalize"><%= q.status %></span></td>
               <td><%= new Date(q.created_at).toLocaleDateString('en-GB') %></td>
+              <td><a class="small text-nowrap" href="/quotes/new?from=<%= q.reference %>">Duplicate</a></td>
             </tr>
           <% }); %>
         </tbody>

@@ -452,7 +452,7 @@ maybe()('the SOW generator form', () => {
     expect(page.text).toContain('SAP ECC 6.0');
     expect(page.text).toContain('Month-end close in three days.');
     // A go-live in the past cannot fit any timeline.
-    expect(page.text).toContain('ends after the target go-live');
+    expect(page.text).toContain('at the earliest — after the target');
   });
 
   test('a new estimate can start from a previous one, and only from the author\'s own', async () => {
@@ -516,6 +516,35 @@ maybe()('the SOW generator form', () => {
       ['sow@example.test']
     );
     expect(after).toBe(before);
+  });
+
+  test('the preview explains its days and warns when the go-live cannot be met', async () => {
+    const form = await author.get('/quotes/new');
+    const res = await author
+      .post('/quotes/preview')
+      .set('X-CSRF-Token', csrfFrom(form.text))
+      .type('form')
+      .send({ ...BASE, modules: ['fi-ap', 'fi-ar', 'fi-aa'], go_live_date: '2020-01-01', hypercare_duration: '8' });
+    expect(res.body.effortSteps.reduce((sum, step) => sum + step.days, 0)).toBe(res.body.totalManDays);
+    expect(res.body.effortSteps.map((step) => step.id)).toEqual(expect.arrayContaining(['scope', 'boundaries', 'hypercare', 'contingency']));
+    expect(res.body.hypercare).toMatchObject({ included: true, weeks: 8 });
+    expect(res.body.goLiveTooSoon).toBe(true);
+    expect(res.body.earliestGoLive).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(res.body.dataMigrationScope).toBe('not-assessed');
+
+    const later = await author
+      .post('/quotes/preview')
+      .set('X-CSRF-Token', csrfFrom(form.text))
+      .type('form')
+      .send({ ...BASE, go_live_date: '2099-01-01' });
+    expect(later.body.goLiveTooSoon).toBe(false);
+  });
+
+  test('an estimate can be duplicated from its own page and from the list', async () => {
+    const page = await author.get(`/quotes/${reference}`);
+    expect(page.text).toContain(`href="/quotes/new?from=${reference}"`);
+    const list = await author.get('/quotes');
+    expect(list.text).toContain(`href="/quotes/new?from=${reference}"`);
   });
 
   test('the preview with nothing ticked says so rather than pricing an empty programme', async () => {

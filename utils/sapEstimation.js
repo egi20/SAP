@@ -17,6 +17,8 @@ const {
   COMPANY_SIZE_MULTIPLIERS,
   DATA_MIGRATION_SCOPES,
   DATA_VOLUMES,
+  HYPERCARE_DURATIONS,
+  HYPERCARE_TEAM_SIZE,
   PHASE_DISTRIBUTION,
   DEFAULT_RESOURCE_ALLOCATION,
   TRAINING_RESOURCE_ID,
@@ -218,6 +220,7 @@ function calculateEstimation(input = {}, config = {}) {
     includeRun = true,
     dataMigrationScope = 'not-assessed',
     dataVolume = 'medium',
+    hypercareDuration = 'standard',
     otherModules = '',
     otherAddons = '',
     otherIntegrations = ''
@@ -293,6 +296,10 @@ function calculateEstimation(input = {}, config = {}) {
 
   if (baseEffort === 0) baseEffort = MINIMUM_BASE_EFFORT_DAYS;
 
+  // What the scope came to before any multiplier, kept for the effort steps below.
+  const scopeDays = baseEffort - crossModule.days - addonBreakdown.reduce((sum, a) => sum + a.days, 0);
+  const preMultiplierEffort = baseEffort;
+
   // --- Step 2: multipliers -----------------------------------------------------------
   // The transition approach first, because it is the one a reader looks for.
   const transitionEntry = transitionApproaches[transitionApproach] || transitionApproaches.greenfield;
@@ -357,6 +364,17 @@ function calculateEstimation(input = {}, config = {}) {
     unmappedIntegrations * daysPerIntegration;
   baseEffort += unmappedEffort;
 
+  /*
+   * Hypercare as a staffed window. With `standard` this adds nothing and the Run phase keeps
+   * its share of the total, exactly as before the choice existed. With a length in weeks it
+   * is that window's effort, and the Run phase below is held to exactly those days and weeks
+   * instead of a share — counted once, inside the base effort, under the same contingency.
+   */
+  const hypercareEntry = HYPERCARE_DURATIONS[hypercareDuration] || HYPERCARE_DURATIONS.standard;
+  const hypercareWeeks = includeRun && hypercareEntry.weeks ? hypercareEntry.weeks : null;
+  const hypercareDays = hypercareWeeks ? hypercareWeeks * HYPERCARE_TEAM_SIZE * WORKING_DAYS_PER_WEEK : 0;
+  baseEffort += hypercareDays;
+
   const totalBaseEffort = Math.round(baseEffort);
 
   // --- Step 4: contingency -----------------------------------------------------------
@@ -366,8 +384,9 @@ function calculateEstimation(input = {}, config = {}) {
   // --- Step 5: phases ----------------------------------------------------------------
   // Percentages are finalised first (an excluded phase zeroed, the slack redistributed
   // into realize), and only then are days apportioned — so the phases sum exactly.
+  // A fixed hypercare window takes the Run phase out of the share and gives it its own days.
   const phases = Object.entries(phaseDistribution).map(([id, phase]) => {
-    const percentage = id === 'run' && !includeRun ? 0 : phase.percentage;
+    const percentage = id === 'run' && (!includeRun || hypercareWeeks) ? 0 : phase.percentage;
     return { id, name: phase.name, description: phase.description, percentage, days: 0 };
   });
 
@@ -377,9 +396,13 @@ function calculateEstimation(input = {}, config = {}) {
     realize.percentage += 100 - declaredPercentage;
   }
 
-  const phaseDays = apportionDays(totalEffort, phases.map((p) => p.percentage));
+  const phaseDays = apportionDays(totalEffort - hypercareDays, phases.map((p) => p.percentage));
   phases.forEach((phase, index) => {
     phase.days = phaseDays[index];
+    if (phase.id === 'run' && hypercareWeeks) {
+      phase.days = hypercareDays;
+      phase.fixedWeeks = hypercareWeeks;
+    }
   });
 
   // --- Step 6: resources -------------------------------------------------------------
@@ -419,7 +442,7 @@ function calculateEstimation(input = {}, config = {}) {
   const implementationBudget = resourceAllocation.reduce((sum, r) => sum + r.totalCost, 0);
 
   // --- Step 7: duration and rate -----------------------------------------------------
-  const projectDurationWeeks = computeProjectDurationWeeks(phases.map((p) => p.days));
+  const projectDurationWeeks = generateTimeline(phases).reduce((sum, t) => sum + t.durationWeeks, 0) || 1;
   const averageDailyRate = Math.round(implementationBudget / totalEffort);
 
   /*
@@ -453,8 +476,41 @@ function calculateEstimation(input = {}, config = {}) {
       included: Boolean(includeRun) && runPhaseDays > 0,
       days: runPhaseDays,
       // Indicative, and inside totalBudget rather than added to it.
-      cost: runPhaseDays * averageDailyRate
+      cost: runPhaseDays * averageDailyRate,
+      weeks: hypercareWeeks,
+      teamSize: hypercareWeeks ? HYPERCARE_TEAM_SIZE : null,
+      duration: HYPERCARE_DURATIONS[hypercareDuration] ? hypercareDuration : 'standard'
     },
+
+    /*
+     * Where the total comes from, in the order the engine built it. Every step but one is a
+     * figure the engine added; `factors` is what the multipliers made of the scope, taken as
+     * the difference so the steps sum EXACTLY to the total (reconciliationProblems checks).
+     * This is what the live summary prints, so "3 modules of 80 days" reading as 110 days
+     * says why rather than looking like an error.
+     */
+    effortSteps: (() => {
+      const additive = [
+        ['scope', 'Modules and platform foundation', Math.round(scopeDays)],
+        ['boundaries', 'Boundaries to modules not ticked', Math.round(crossModule.days)],
+        ['addons', 'Add-ons', addonBreakdown.reduce((sum, a) => sum + a.days, 0)],
+        ['dataMigration', 'Data migration', dataMigrationDays],
+        ['integrations', 'Integrations', integrations * daysPerIntegration],
+        ['unmapped', 'Unmapped scope', unmappedEffort],
+        ['hypercare', `Hypercare, ${hypercareWeeks || 0} weeks × ${HYPERCARE_TEAM_SIZE} people`, hypercareDays]
+      ];
+      const additiveSum = additive.reduce((sum, a) => sum + a[2], 0);
+      const steps = additive.map(([id, label, days]) => ({ id, label, days }));
+      steps.splice(3, 0, {
+        id: 'factors',
+        label: 'Approach, size and complexity factors',
+        days: totalBaseEffort - additiveSum,
+        // Unrounded, for anybody checking: the scope before and after the multipliers.
+        detail: { before: Math.round(preMultiplierEffort) }
+      });
+      steps.push({ id: 'contingency', label: `Contingency (${contingencyPercentage}%)`, days: contingencyDays });
+      return steps.filter((step) => step.days !== 0);
+    })(),
 
     projectDurationWeeks,
     projectDurationMonths: Math.max(1, Math.round(projectDurationWeeks / 4.33)),
@@ -526,7 +582,8 @@ function generateTimeline(phases) {
 
   for (const phase of phases) {
     if (phase.days <= 0) continue;
-    const weeks = Math.max(1, Math.ceil(phase.days / AVERAGE_TEAM_SIZE / WORKING_DAYS_PER_WEEK));
+    // A staffed hypercare window lasts the weeks it was given, not its days over the team.
+    const weeks = phase.fixedWeeks || Math.max(1, Math.ceil(phase.days / AVERAGE_TEAM_SIZE / WORKING_DAYS_PER_WEEK));
     timeline.push({
       phase: phase.name,
       phaseId: phase.id,
@@ -577,6 +634,14 @@ function reconciliationProblems(estimate) {
       `total budget ${estimate.totalBudget} differs from the implementation budget `
         + `${estimate.implementationBudget} — something is being counted outside the resource lines`
     );
+  }
+
+  // Absent on estimates saved before the steps existed; those are checked as they were.
+  if (Array.isArray(estimate.effortSteps)) {
+    const stepSum = estimate.effortSteps.reduce((sum, step) => sum + step.days, 0);
+    if (stepSum !== estimate.totalManDays) {
+      problems.push(`effort steps sum to ${stepSum}, but the total is ${estimate.totalManDays}`);
+    }
   }
 
   const timelineWeeks = estimate.timeline.reduce((sum, t) => sum + t.durationWeeks, 0);

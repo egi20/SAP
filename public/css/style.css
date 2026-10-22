@@ -1957,7 +1957,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .sow-steps li { margin-bottom: 0.35rem; }
 .text-prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (min-width: 992px) {
-  .sow-summary { position: sticky; top: 5.5rem; z-index: 3; background-color: var(--bg-white); }
+  /* Held inside the viewport: a sticky box taller than the screen hides its own button. */
+  .sow-summary { position: sticky; top: 5.5rem; z-index: 3; background-color: var(--bg-white); max-height: calc(100vh - 6.5rem); overflow-y: auto; }
 }
 .tax-not-for i { color: #9e2b3d; margin-right: 0.4rem; }
 .tax-icon { color: var(--primary-blue); }

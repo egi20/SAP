@@ -52,6 +52,11 @@
             <li class="mb-1"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i><%= d.label %> <span class="text-muted-2">(.<%= d.extension %>)</span></li>
           <% }); %>
         </ul>
+        <% if (recent && recent.length && !startedFrom) { %>
+          <a class="btn btn-outline-primary btn-sm mb-2" href="/quotes/new?from=<%= recent[0].reference %>">
+            <i class="bi bi-copy me-1" aria-hidden="true"></i>Use my last estimate (<%= recent[0].reference %>)
+          </a>
+        <% } %>
         <% if (recent && recent.length) { %>
           <%# A new quote can start from one of the author's own, copied into this form; nothing is changed on the old one. -%>
           <form method="get" action="/quotes/new" class="d-flex gap-2 align-items-end">
@@ -65,6 +70,9 @@
             </div>
             <button class="btn btn-outline-primary btn-sm" type="submit">Use</button>
           </form>
+        <% } %>
+        <% if (!recent || !recent.length) { %>
+          <p class="small text-muted-2 mb-0">Once you have saved an estimate, the next one can start from a copy of it here.</p>
         <% } %>
         <% if (startedFrom) { %>
           <p class="small text-muted-2 mt-2 mb-0">
@@ -296,13 +304,31 @@
             <h2 class="h6 mb-2">Estimate so far</h2>
             <div data-preview-body>
               <p class="small text-muted-2 mb-3" data-preview-empty>Tick a module to see the effort and the budget. The full breakdown appears once it is saved.</p>
-              <dl class="row small mb-3 d-none" data-preview-figures>
-                <dt class="col-6 fw-normal text-muted-2">Modules</dt><dd class="col-6 text-end mb-1" data-preview="modules">—</dd>
-                <dt class="col-6 fw-normal text-muted-2">Effort</dt><dd class="col-6 text-end mb-1" data-preview="days">—</dd>
-                <dt class="col-6 fw-normal text-muted-2">Duration</dt><dd class="col-6 text-end mb-1" data-preview="months">—</dd>
-                <dt class="col-6 fw-normal text-muted-2">Data migration</dt><dd class="col-6 text-end mb-1" data-preview="migration">—</dd>
-                <dt class="col-6 fw-semibold">Budget</dt><dd class="col-6 text-end mb-0 fw-semibold" data-preview="budget">—</dd>
-              </dl>
+              <div class="d-none" data-preview-figures>
+                <dl class="row small mb-2">
+                  <dt class="col-6 fw-normal text-muted-2">Modules</dt><dd class="col-6 text-end mb-1" data-preview="modules">—</dd>
+                  <dt class="col-6 fw-normal text-muted-2">Effort</dt><dd class="col-6 text-end mb-1" data-preview="days">—</dd>
+                  <dt class="col-6 fw-normal text-muted-2">Duration</dt><dd class="col-6 text-end mb-1" data-preview="months">—</dd>
+                  <dt class="col-6 fw-normal text-muted-2">Hypercare</dt><dd class="col-6 text-end mb-1" data-preview="hypercare">—</dd>
+                  <dt class="col-6 fw-normal text-muted-2">Data migration</dt>
+                  <dd class="col-6 text-end mb-1">
+                    <span data-preview="migration">—</span>
+                    <a class="d-none" href="#data_migration_scope" data-preview-migration-link>Choose a migration scope&nbsp;&uarr;</a>
+                  </dd>
+                  <dt class="col-6 fw-semibold">Budget</dt><dd class="col-6 text-end mb-0 fw-semibold" data-preview="budget">—</dd>
+                </dl>
+                <%#
+                  Where the days come from, step by step, as the engine built them. Without it,
+                  three modules of 80 days reading as 110 looks like an error rather than the
+                  boundaries and the contingency it is.
+                -%>
+                <details class="small mb-2 sow-steps-detail" open>
+                  <summary class="text-muted-2">How the days add up</summary>
+                  <ul class="list-unstyled mb-0 mt-1" data-preview-steps></ul>
+                </details>
+                <div class="alert alert-warning small py-2 px-3 mb-2 d-none" data-preview-golive role="status"></div>
+                <p class="small text-muted-2 mb-2 d-none" data-preview-earliest></p>
+              </div>
             </div>
             <button class="btn btn-primary w-100" type="submit">Calculate and save</button>
           </div>
@@ -385,6 +411,18 @@
                      <%= values.include_run === 'on' ? 'checked' : '' %>>
               <label class="form-check-label" for="include_run">Include hypercare (Run)</label>
               <div class="form-text">Inside the total, never added on top of it.</div>
+            </div>
+
+            <div class="mb-3" data-hypercare-length>
+              <label class="form-label" for="hypercare_duration">Hypercare length</label>
+              <select class="form-select" id="hypercare_duration" name="hypercare_duration">
+                <% Object.entries(hypercareDurations).forEach(function (entry) { %>
+                  <option value="<%= entry[0] %>" <%= (values.hypercare_duration || 'standard') === entry[0] ? 'selected' : '' %>>
+                    <%= entry[1].weeks ? entry[1].name : 'Standard — ' + runSharePercent + '% of the effort' %>
+                  </option>
+                <% }); %>
+              </select>
+              <div class="form-text">A length in weeks is staffed by <%= hypercareTeamSize %> people for that many weeks after go-live.</div>
             </div>
           </div>
         </div>

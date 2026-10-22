@@ -56,6 +56,44 @@
     if (el) el.textContent = text;
   }
 
+  var stepsList = box && box.querySelector('[data-preview-steps]');
+  var migrationLink = box && box.querySelector('[data-preview-migration-link]');
+  var goLiveBox = box && box.querySelector('[data-preview-golive]');
+  var earliestLine = box && box.querySelector('[data-preview-earliest]');
+
+  function monthYear(iso) {
+    return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function dayMonthYear(iso) {
+    return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  // The steps come from the engine and sum to the total there; this only lays them out.
+  function renderSteps(steps, total) {
+    stepsList.textContent = '';
+    steps.forEach(function (step, i) {
+      var li = document.createElement('li');
+      li.className = 'd-flex justify-content-between gap-2';
+      var label = document.createElement('span');
+      label.className = 'text-muted-2';
+      label.textContent = step.label;
+      var days = document.createElement('span');
+      days.className = 'text-nowrap';
+      days.textContent = (i === 0 ? '' : step.days < 0 ? '− ' : '+ ') + Math.abs(step.days) + 'd';
+      li.appendChild(label);
+      li.appendChild(days);
+      stepsList.appendChild(li);
+    });
+    var sum = document.createElement('li');
+    sum.className = 'd-flex justify-content-between gap-2 border-top mt-1 pt-1 fw-semibold';
+    sum.innerHTML = '<span>Total</span>';
+    var t = document.createElement('span');
+    t.textContent = total + 'd';
+    sum.appendChild(t);
+    stepsList.appendChild(sum);
+  }
+
   function money(n, currency) {
     return (currency === 'EUR' ? '€' : currency + ' ') + Math.round(n).toLocaleString('en');
   }
@@ -79,8 +117,24 @@
         set('modules', String(data.modules));
         set('days', data.totalManDays + ' days');
         set('months', data.durationMonths + (data.durationMonths === 1 ? ' month' : ' months'));
-        set('migration', data.dataMigrationDays ? data.dataMigrationDays + ' days' : 'Not costed');
+        var unassessed = data.dataMigrationScope === 'not-assessed';
+        set('migration', unassessed ? '' : data.dataMigrationDays ? data.dataMigrationDays + ' days' : 'None');
+        migrationLink.classList.toggle('d-none', !unassessed);
+        set('hypercare', !data.hypercare.included ? 'Not included'
+          : data.hypercare.weeks ? data.hypercare.weeks + ' weeks · ' + data.hypercare.days + ' days'
+            : data.hypercare.days + ' days');
         set('budget', money(data.totalBudget, data.currency));
+        renderSteps(data.effortSteps, data.totalManDays);
+
+        var months = data.durationMonths + (data.durationMonths === 1 ? ' month' : ' months');
+        if (data.goLiveTooSoon) {
+          goLiveBox.textContent = 'Timeline needs ~' + months + ' (' + data.durationWeeks + ' weeks) — go-live at the earliest '
+            + monthYear(data.earliestGoLive) + ', if work starts today. The target of '
+            + dayMonthYear(data.goLiveDate) + ' is earlier: reduce the scope or move the date.';
+        }
+        goLiveBox.classList.toggle('d-none', !data.goLiveTooSoon);
+        earliestLine.textContent = 'If work starts today, the earliest go-live is ' + monthYear(data.earliestGoLive) + '.';
+        earliestLine.classList.toggle('d-none', Boolean(data.goLiveTooSoon));
       })
       .catch(function () { /* the saved estimate is the answer; a missed preview is not an error */ });
   }
@@ -91,12 +145,31 @@
     timer = setTimeout(preview, 300);
   }
 
-  form.addEventListener('change', function () { updateCounts(); schedule(); });
+  // The hypercare length only means something while hypercare is included.
+  var includeRun = document.getElementById('include_run');
+  var lengthField = form.querySelector('[data-hypercare-length]');
+  function toggleLength() {
+    if (includeRun && lengthField) lengthField.classList.toggle('d-none', !includeRun.checked);
+  }
+
+  // "Choose a migration scope" scrolls to the field and puts the cursor in it.
+  if (migrationLink) {
+    migrationLink.addEventListener('click', function (e) {
+      var field = document.getElementById('data_migration_scope');
+      if (!field) return;
+      e.preventDefault();
+      field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      field.focus({ preventScroll: true });
+    });
+  }
+
+  form.addEventListener('change', function () { updateCounts(); toggleLength(); schedule(); });
   form.addEventListener('input', function (e) {
     if (e.target === search) return;
     if (e.target.type === 'number' || e.target.tagName === 'TEXTAREA') schedule();
   });
 
   updateCounts();
+  toggleLength();
   preview();
 })();

@@ -21,6 +21,9 @@ const {
   DATA_MIGRATION_SCOPES,
   DATA_VOLUMES,
   CURRENT_SYSTEMS,
+  HYPERCARE_DURATIONS,
+  HYPERCARE_TEAM_SIZE,
+  PHASE_DISTRIBUTION,
   catalogueVersion
 } = require('../config/estimation');
 const { PRODUCT_LINES, isModule, lineByValue } = require('../config/sapProducts');
@@ -55,6 +58,9 @@ function catalogueLocals() {
     dataMigrationScopes: DATA_MIGRATION_SCOPES,
     dataVolumes: DATA_VOLUMES,
     currentSystems: CURRENT_SYSTEMS,
+    hypercareDurations: HYPERCARE_DURATIONS,
+    hypercareTeamSize: HYPERCARE_TEAM_SIZE,
+    runSharePercent: PHASE_DISTRIBUTION.run.percentage,
     sowDocuments: DOCUMENT_KINDS
   };
 }
@@ -89,22 +95,26 @@ function contextFrom(form) {
  * that is the date the timeline was computed against, and measuring from today would turn a
  * plan that fitted when it was sent into one that "does not fit" by the passage of time.
  */
+/** The day a programme of `weeks` weeks ends if it starts on `from` (UTC). */
+function earliestGoLive(from, weeks) {
+  const end = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  end.setUTCDate(end.getUTCDate() + weeks * 7);
+  return end;
+}
+
 function contextForDisplay(quote) {
   const inputs = quote.inputs || {};
   const c = inputs.projectContext;
   if (!c) return null;
   const scope = DATA_MIGRATION_SCOPES[inputs.dataMigrationScope] || DATA_MIGRATION_SCOPES['not-assessed'];
   const weeks = (quote.estimate && quote.estimate.projectDurationWeeks) || 0;
-  let goLiveTooSoon = false;
-  if (c.goLiveDate) {
-    const end = new Date(quote.created_at);
-    end.setUTCDate(end.getUTCDate() + weeks * 7);
-    goLiveTooSoon = new Date(`${c.goLiveDate}T00:00:00Z`) < end;
-  }
+  const earliest = earliestGoLive(new Date(quote.created_at), weeks);
+  const goLiveTooSoon = Boolean(c.goLiveDate) && new Date(`${c.goLiveDate}T00:00:00Z`) < earliest;
   return {
     currentSystem: CURRENT_SYSTEMS[c.currentSystem] || '',
     goLiveDate: c.goLiveDate || '',
     goLiveTooSoon,
+    earliestGoLive: earliest.toISOString().slice(0, 10),
     dataMigration: scope.name,
     successCriteria: c.successCriteria || '',
     constraints: c.constraints || ''
@@ -141,6 +151,7 @@ function valuesFromQuote(quote) {
     include_run: i.includeRun ? 'on' : '',
     data_migration_scope: i.dataMigrationScope || 'not-assessed',
     data_volume: i.dataVolume || 'medium',
+    hypercare_duration: i.hypercareDuration || 'standard',
     current_system: c.currentSystem || '',
     go_live_date: c.goLiveDate || '',
     success_criteria: c.successCriteria || '',
@@ -184,6 +195,9 @@ function inputsFrom(form) {
     includeRun: form.include_run === 'on',
     dataMigrationScope: DATA_MIGRATION_SCOPES[form.data_migration_scope] ? form.data_migration_scope : 'not-assessed',
     dataVolume: DATA_VOLUMES[form.data_volume] ? form.data_volume : 'medium',
+    hypercareDuration: Object.prototype.hasOwnProperty.call(HYPERCARE_DURATIONS, form.hypercare_duration)
+      ? form.hypercare_duration
+      : 'standard',
     projectContext: contextFrom(form),
     otherModules: String(form.other_modules || '').slice(0, 1000),
     otherAddons: String(form.other_addons || '').slice(0, 1000),
@@ -256,7 +270,8 @@ router.get(
         clean_core_level: 'moderate',
         contingency_percentage: 15,
         data_migration_scope: 'not-assessed',
-        data_volume: 'medium'
+        data_volume: 'medium',
+        hypercare_duration: 'standard'
       },
       errors: []
     });
@@ -299,6 +314,9 @@ router.post(
       contingencyPercentage: Math.max(0, Math.min(50, parseInt(req.body.contingency_percentage, 10) || 15)),
       currency: 'EUR'
     });
+    // If work started today: the same arithmetic the quote page uses, from the saved date.
+    const goLive = inputs.projectContext.goLiveDate;
+    const earliest = earliestGoLive(new Date(), estimate.projectDurationWeeks);
     return res.json({
       success: true,
       empty: false,
@@ -306,8 +324,15 @@ router.post(
       totalManDays: estimate.totalManDays,
       totalBudget: estimate.totalBudget,
       currency: estimate.currency,
+      durationWeeks: estimate.projectDurationWeeks,
       durationMonths: estimate.projectDurationMonths,
-      dataMigrationDays: estimate.dataMigration.days
+      dataMigrationDays: estimate.dataMigration.days,
+      dataMigrationScope: estimate.dataMigration.scope,
+      effortSteps: estimate.effortSteps.map(({ id, label, days }) => ({ id, label, days })),
+      hypercare: { included: estimate.runPhase.included, days: estimate.runPhase.days, weeks: estimate.runPhase.weeks },
+      earliestGoLive: earliest.toISOString().slice(0, 10),
+      goLiveDate: goLive || null,
+      goLiveTooSoon: Boolean(goLive) && new Date(`${goLive}T00:00:00Z`) < earliest
     });
   })
 );

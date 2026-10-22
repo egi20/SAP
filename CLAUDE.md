@@ -202,6 +202,22 @@ fits is measured from the day the estimate was SAVED, because that is the date i
 was computed against — measured from today, a plan that fitted when it was sent would stop
 fitting by the passage of time.
 
+**The live summary says where its days come from.** `effortSteps` on every estimate lists
+the scope, the boundaries to unticked modules, the factors, data migration, integrations,
+hypercare and contingency in the order the engine added them, and sums EXACTLY to the total
+— `factors` is the remainder, so it cannot drift, and `reconciliationProblems()` checks the
+sum. Three modules of 80 days reading as 110 looked like an error until the 16 days of
+boundaries and the 14 of contingency were printed under it. The preview also answers the
+earliest go-live if work started today and whether the target date is earlier; the quote
+page answers the same question from the day it was saved.
+
+**Hypercare length is a staffed window or the anchor share** (`HYPERCARE_DURATIONS`,
+2026-10-22). `standard` keeps the Run phase at its share of PHASE_DISTRIBUTION, so old
+estimates price as before. A length in weeks is weeks × `HYPERCARE_TEAM_SIZE` people × five
+days, added to the base effort under the same contingency; the Run phase is then held to
+exactly those days and its `fixedWeeks` on the timeline, and the other phases share the
+rest. Hypercare is still counted once, inside the total.
+
 **"Start from a previous estimate" copies into the form and changes nothing.** `?from=` reads
 only one of the signed-in author's own quotes; anybody else's reference opens a blank form.
 Saving creates a new quote with a new reference — the old one is what was said to a client
