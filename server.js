@@ -153,6 +153,8 @@ assertDashboardIntegrity();
 onboarding.assertOnboardingIntegrity();
 // And the SAP news fallback: shown when the newsroom feed has never been read, so it must link to SAP.
 assertSapNewsIntegrity();
+// And the learning catalogue: its links leave the site, so each must be an SAP host over https.
+require('./config/learning').assertLearningIntegrity();
 const WEB_ANALYTICS_CSP = webAnalytics.cspAdditions();
 const WEB_ANALYTICS_TAGS = webAnalytics.publicTags();
 
@@ -471,6 +473,8 @@ app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/dashboard', require('./routes/dashboard'));
 app.use('/profile', require('./routes/profile'));
+// Learning paths and certification practice first: the profile router's /:id would answer for them.
+app.use('/consultants', require('./routes/learning'));
 app.use('/consultants', require('./routes/consultants'));
 app.use('/companies', require('./routes/companies'));
 app.use('/jobs', require('./routes/jobs'));

@@ -2357,3 +2357,12 @@ body.has-cookie-notice { padding-bottom: 7rem; }
   .sap-news, .sap-news-dot, .sap-news-slide.is-entering { animation: none; }
   .sap-news-dots button, .sap-news-nav { transition: none; }
 }
+
+/* Learning paths and certification practice */
+.cert-topics { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+.cert-topics span { font-size: .74rem; font-weight: 600; padding: .15rem .55rem; border-radius: 99px; color: var(--t2, var(--primary-navy)); background: rgba(0, 38, 91, .05); }
+.cert-code { color: var(--t2); letter-spacing: .03em; }
+.cert-progress { width: 100%; text-align: left; }
+.learning-certs li { padding: .45rem 0; border-bottom: 1px solid var(--border-color); }
+.learning-certs li:last-child { border-bottom: 0; }
+.learning-certs a { text-decoration: none; }

@@ -1,0 +1,51 @@
+<%- include('../partials/layout-start') %>
+
+<%#
+  /consultants/certifications — practice for SAP certification exams, as dynamicshub.net's
+  Certification Practice. The questions are ORIGINAL; the page says so, and a test keeps it.
+%>
+<header class="arena-hero">
+  <div class="container position-relative">
+    <span class="arena-eyebrow"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Practice, not the exam</span>
+    <h1 class="arena-title">Certification Practice</h1>
+    <p class="arena-lead mb-3">Train for SAP certification exams with <%= setSize %> questions a session, marked on the server with an explanation for every answer. Repeat as often as you like.</p>
+    <a class="btn btn-light btn-sm rounded-pill px-3" href="/consultants/learning"><i class="bi bi-mortarboard me-1" aria-hidden="true"></i>Learning paths</a>
+  </div>
+</header>
+
+<section class="glass-section pb-5 pt-4">
+<div class="container">
+  <%- include('../partials/flash') %>
+
+  <div class="alert alert-info d-flex gap-2 align-items-start mb-4" role="note">
+    <i class="bi bi-info-circle mt-1" aria-hidden="true"></i>
+    <div>These are original practice questions written against each exam's topic areas — not real exam questions, which belong to SAP. Use them to find the gaps, then study them on SAP Learning.</div>
+  </div>
+
+  <div class="row g-4 arena-grid">
+    <% certs.forEach(function (c, i) { const p = progress[c.code]; %>
+    <div class="col-lg-4 col-md-6">
+      <article class="arena-card arena-tone-<%= [10, 11, 3, 5, 2, 13][i % 6] %> cert-card">
+        <div class="arena-icon"><i class="bi bi-patch-check" aria-hidden="true"></i></div>
+        <p class="font-monospace small fw-semibold mb-1 cert-code"><%= c.code %></p>
+        <h2 class="arena-name"><%= c.label %></h2>
+        <p class="arena-meta"><span><i class="bi bi-award" aria-hidden="true"></i> <%= c.tier %></span><span><i class="bi bi-tag" aria-hidden="true"></i> <%= c.area %></span></p>
+        <div class="cert-topics mb-3">
+          <% c.topics.forEach(function (t) { %><span><%= t %></span><% }); %>
+        </div>
+        <% if (p) { %>
+          <div class="cert-progress mb-3" aria-label="Your best score <%= p.bestPct %> percent">
+            <div class="d-flex justify-content-between small mb-1"><span>Best <strong><%= p.bestPct %>%</strong></span><span class="text-muted-2">Last <%= p.last %> · <%= p.attempts %> session<%= p.attempts === 1 ? '' : 's' %></span></div>
+            <div class="quiz-progress-bar"><span style="width: <%= p.bestPct %>%"></span></div>
+          </div>
+        <% } %>
+        <a class="arena-cta" href="/consultants/certifications/<%= c.code %>/practice"><i class="bi bi-play-fill me-1" aria-hidden="true"></i><%= currentUser ? (p ? 'Practise again' : 'Start practice') : 'Sign in to practise' %></a>
+        <a class="small mt-2" href="<%= c.studyUrl %>" target="_blank" rel="noopener">Study on SAP Learning <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
+      </article>
+    </div>
+    <% }); %>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

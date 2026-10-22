@@ -29,7 +29,10 @@ const TABS = Object.freeze([
       { icon: 'bi-file-earmark-richtext', tone: 'icon-violet', title: 'CV Generator', text: 'A Word CV built from your profile, ordered for a specific advert.', href: '/cv-generator', cta: 'Generate' },
       { icon: 'bi-send', tone: 'icon-blue', title: 'My Applications', text: 'Where each application stands with the company.', href: '/dashboard/applications', cta: 'View Applications' },
       { icon: 'bi-cash-coin', tone: 'icon-success', title: 'Rate Benchmark', text: 'What your role is worth, factor by factor.', href: '/rates/calculator', cta: 'Benchmark' },
-      { icon: 'bi-calculator', tone: 'icon-amber', title: 'Tax Optimization', text: 'An indicative view of a structure for contractors.', href: '/tax', cta: 'Calculate Savings' }
+      { icon: 'bi-calculator', tone: 'icon-amber', title: 'Tax Optimization', text: 'An indicative view of a structure for contractors.', href: '/tax', cta: 'Calculate Savings' },
+      { icon: 'bi-mortarboard', tone: 'icon-blue', title: 'Learning Paths', text: 'Official SAP learning journeys for consultants.', href: '/consultants/learning', cta: 'Start Learning' },
+      { icon: 'bi-patch-check', tone: 'icon-violet', title: 'Certification Practice', text: 'Original practice questions for SAP exams, marked with explanations.', href: '/consultants/certifications', cta: 'Practise' },
+      { icon: 'bi-trophy', tone: 'icon-success', title: 'Challenges', text: 'Daily SAP quizzes and games that earn points.', href: '/games/challenges', cta: 'Play Today' }
     ]
   },
   {

@@ -1669,6 +1669,24 @@ the bank says so. Banks grow forward only (`since`/`retired`), for the reason `a
 gives. The word-search boot assertion builds sixty days of grids and fails if a word does
 not fit.
 
+## Learning paths and certification practice
+
+**`/consultants/learning` and `/consultants/certifications`, at dynamicshub.net's addresses**
+(owner, 2026-10-22). `routes/learning.js` is mounted in FRONT of `routes/consultants.js`, whose
+`/:id` would otherwise answer for them. Everything lives in `config/learning.js`, asserted at
+boot: **every link is an SAP host over https, and every learning-journey URL is one a search
+returned by name** — SAP renames journeys, a guessed slug is a 404 on the first click, and a
+journey whose address could not be confirmed is left out rather than guessed. **Practice
+questions are ORIGINAL**, written against the exam's topic areas; real exam questions are SAP's,
+and a bank that reproduced them would be a dump with this site's name on it — the page says so
+and a test keeps the sentence. A certification is a catalogue STEM from
+`config/certifications.js`. A session is eight random questions with shuffled options, handed to
+the page without answers; the form posts the option TEXT (so a reshuffle cannot change what was
+chosen) and `gradePractice` grades only ids from that exam's bank, at most one session's worth.
+Practice pays no points and ranks nobody — it can be repeated, which is what practice is for —
+so `cert_practice_attempts` (migration 038) feeds only the member's own best/last/attempts, and
+closing an account deletes it.
+
 ## Auth and roles
 
 `middleware/auth.js` answers a failed guard differently depending on the request:

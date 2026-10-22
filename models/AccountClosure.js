@@ -59,6 +59,7 @@ const REMOVED = Object.freeze([
   'Your consultant profile — headline, rate, availability, skills, certifications, work history and delivery history.',
   'Your company profile and logo.',
   'Your photograph, your LinkedIn confirmation, your saved roles and your notifications.',
+  'Your certification practice scores.',
   'Any tax optimisation application you sent while signed in, and the record of when you opened that page.'
 ]);
 
@@ -264,6 +265,8 @@ class AccountClosure {
         'tax_applications',
         // When they opened the tax page: the same subject, so the same rule.
         'tax_interest_views',
+        // Your own practice scores: nobody else reads them, so nothing argues for keeping them.
+        'cert_practice_attempts',
         'email_verifications',
         'password_reset_tokens'
       ];

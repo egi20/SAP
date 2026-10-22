@@ -1,0 +1,64 @@
+<%- include('../partials/layout-start') %>
+
+<%#
+  /consultants/learning — learning paths on learning.sap.com, as dynamicshub.net's Learning
+  Materials page sends people to Microsoft Learn. Every link is to SAP; config/learning.js
+  says why each is one that was confirmed to exist.
+%>
+<header class="arena-hero">
+  <div class="container position-relative">
+    <span class="arena-eyebrow"><i class="bi bi-mortarboard me-1" aria-hidden="true"></i>Free on SAP Learning</span>
+    <h1 class="arena-title">Learning Paths</h1>
+    <p class="arena-lead mb-3">Official SAP learning journeys, picked for consultants on SAP projects — and practice for the certifications they lead to.</p>
+    <a class="btn btn-light btn-sm rounded-pill px-3" href="/consultants/certifications"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>Certification practice</a>
+  </div>
+</header>
+
+<section class="glass-section pb-5 pt-4">
+<div class="container">
+  <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+    <h2 class="arena-section mb-0"><i class="bi bi-signpost-2 me-2" aria-hidden="true"></i>Learning journeys</h2>
+    <span class="small text-muted-2">Opens learning.sap.com in a new tab</span>
+  </div>
+  <div class="row g-4 arena-grid mb-5">
+    <% learningPaths.forEach(function (p, i) { %>
+    <div class="col-lg-4 col-md-6">
+      <article class="arena-card arena-tone-<%= (i % 9) + 1 %> learning-card">
+        <div class="arena-icon"><i class="bi <%= p.icon %>" aria-hidden="true"></i></div>
+        <p class="arena-meta mb-2"><span><i class="bi bi-tag" aria-hidden="true"></i> <%= p.area %></span><span><i class="bi bi-bar-chart" aria-hidden="true"></i> <%= p.level %></span></p>
+        <h3 class="arena-name"><%= p.title %></h3>
+        <p class="arena-blurb"><%= p.description %></p>
+        <a class="arena-cta" href="<%= p.url %>" target="_blank" rel="noopener">Start learning <i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
+      </article>
+    </div>
+    <% }); %>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card h-100"><div class="card-body p-4">
+        <h2 class="h5 mb-1"><i class="bi bi-patch-check me-2" aria-hidden="true"></i>Practise for a certification</h2>
+        <p class="small text-muted-2 mb-3">Original questions on each exam's topics, marked on the server, as often as you like.</p>
+        <ul class="list-unstyled mb-3 learning-certs">
+          <% certs.forEach(function (c) { %>
+            <li><a href="/consultants/certifications/<%= c.code %>/practice"><span class="font-monospace fw-semibold"><%= c.code %></span> <%= c.label %></a> <span class="badge-hub muted ms-1"><%= c.tier %></span></li>
+          <% }); %>
+        </ul>
+        <a class="btn btn-primary btn-sm rounded-pill px-3" href="/consultants/certifications">All certification practice <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </div></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="glass-card h-100"><div class="card-body p-4">
+        <h2 class="h5 mb-3"><i class="bi bi-book me-2" aria-hidden="true"></i>Resources</h2>
+        <div class="row g-2 small arena-resources">
+          <% resources.forEach(function (r, i) { %>
+            <div class="col-12"><a class="arena-tone-<%= [3, 7, 4, 5, 6, 8][i % 6] %>" href="<%= r.url %>" target="_blank" rel="noopener"><i class="bi <%= r.icon %> me-2" aria-hidden="true"></i><%= r.title %><span class="visually-hidden"> (opens in a new tab)</span></a></div>
+          <% }); %>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

@@ -104,6 +104,12 @@ const handWritten = [
   page('Games', '/games/challenges', { name: 'Challenges page lists every game', contains: ['Daily Challenges', 'href="/challenges"', "Today's Rankings"] }),
   page('Games', '/games/challenges', { name: 'Challenges page, signed in', role: 'consultant', contains: ['played today'] }),
 
+  // ------------------------------------------------------------- learning
+  page('Learning', '/consultants/learning', { name: 'Learning paths', contains: ['learning.sap.com/learning-journeys/'] }),
+  page('Learning', '/consultants/certifications', { name: 'Certification practice', contains: ['not real exam questions'] }),
+  { name: 'Certification practice needs an account', category: 'Learning', path: '/consultants/certifications/C_TS4FI/practice', status: 302, redirect: '/auth/login' },
+  page('Learning', '/consultants/certifications/C_TS4FI/practice', { name: 'Certification practice session', role: 'consultant', contains: ['data-mcq-step'] }),
+
   // ---------------------------------------------------------------- not found
   { name: 'Unknown page is a 404', category: 'Not found', path: '/no-such-page-regression', status: 404, contains: ['Page not found'] },
   { name: 'Unknown rate role is a 404, never a redirect', category: 'Not found', path: '/rates/not-a-role', status: 404 },

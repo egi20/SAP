@@ -72,6 +72,12 @@ because the stored breakdown is what was said to a client on a date.
 - `/community` — questions, discussions, articles and wins, with votes and accepted
   answers. Posting, replying and having an answer accepted earn points and levels.
 - `/community/new` — write a post.
+- `/consultants/learning` — learning paths: official SAP learning journeys on learning.sap.com,
+  picked for consultants, plus links to SAP Help, SAP Community and other SAP resources.
+- `/consultants/certifications` — certification practice for six SAP exams (Financial and
+  Management Accounting, Sourcing & Procurement, Sales, SAP Activate, ABAP Cloud). Original
+  questions — not real exam questions — eight a session, marked with explanations, as often as
+  you like. Needs an account; it pays no points and shows your best and last score.
 - `/games/challenges` — Daily Challenges: every game on one page. The SAP quiz (five questions a
   day, at `/challenges`), a streak, code match, ABAP output, bug hunter, word search and
   project scenarios are scored — once a day, marked on the server, up to 2 points each —

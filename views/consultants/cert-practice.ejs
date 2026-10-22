@@ -1,0 +1,82 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-patch-check',
+  heading: cert.label,
+  sub: cert.code + ' · ' + cert.tier + ' · practice session'
+}) %>
+<div class="arena-band arena-tone-10" aria-hidden="true"></div>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('../partials/flash') %>
+  <p class="small mb-3"><a href="/consultants/certifications"><i class="bi bi-arrow-left"></i> All certification practice</a></p>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+    <% if (graded) { const pct = Math.round(100 * graded.score / graded.total); %>
+      <div class="glass-card mb-4"><div class="card-body p-4 text-center">
+        <div class="display-5 fw-semibold mb-1"><%= graded.score %> / <%= graded.total %></div>
+        <p class="text-muted-2 mb-3"><%= pct %>% this session. Read the explanations below, then try a new set — each one draws different questions.</p>
+        <a class="btn btn-primary rounded-pill px-4" href="/consultants/certifications/<%= cert.code %>/practice"><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>New session</a>
+      </div></div>
+      <% graded.results.forEach(function (r, i) { %>
+        <div class="glass-card mb-3"><div class="card-body p-4">
+          <div class="d-flex gap-2 align-items-start">
+            <i class="bi <%= r.correct ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger' %> flex-shrink-0 mt-1"></i>
+            <div>
+              <h2 class="h6 mb-1"><%= i + 1 %>. <%= r.prompt %></h2>
+              <p class="small mb-1"><strong>Answer:</strong> <%= r.answer %></p>
+              <% if (!r.correct) { %><p class="small text-muted-2 mb-1">You chose: <%= r.chosen || 'nothing' %></p><% } %>
+              <p class="small text-muted-2 mb-0"><%= r.explain %></p>
+            </div>
+          </div>
+        </div></div>
+      <% }); %>
+    <% } else { %>
+      <form method="post" action="/consultants/certifications/<%= cert.code %>/practice" class="arena-tone-10">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="quiz-stepper-nav mb-3" data-stepper-nav hidden>
+          <div class="d-flex justify-content-between small mb-1"><span data-stepper-count></span><span class="text-muted-2">Choose an answer to move on</span></div>
+          <div class="quiz-progress-bar"><span data-stepper-bar></span></div>
+        </div>
+        <% questions.forEach(function (item, i) { %>
+          <div class="glass-card mb-3" data-mcq-step><div class="card-body p-4">
+            <fieldset>
+              <legend class="h6 mb-2"><%= i + 1 %>. <%= item.prompt %></legend>
+              <% item.options.forEach(function (option, index) { %>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="radio" required name="answers[<%= item.id %>]" value="<%= option %>" id="c<%= i %>o<%= index %>">
+                  <label class="form-check-label" for="c<%= i %>o<%= index %>"><%= option %></label>
+                </div>
+              <% }); %>
+            </fieldset>
+          </div></div>
+        <% }); %>
+        <div class="d-flex gap-2 mt-3" data-stepper-buttons hidden>
+          <button class="btn btn-outline-secondary" type="button" data-stepper-back>Back</button>
+          <button class="btn btn-primary ms-auto" type="button" data-stepper-next disabled>Next</button>
+        </div>
+        <button class="btn btn-primary btn-lg w-100 mt-3" type="submit" data-stepper-submit>Check my answers</button>
+        <p class="small text-muted-2 text-center mt-3 mb-0">This page does not know the answers — they are marked on the server.</p>
+      </form>
+    <% } %>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card mb-3"><div class="card-body">
+        <h2 class="h6 mb-2">Topics in this practice</h2>
+        <div class="cert-topics mb-0"><% cert.topics.forEach(function (t) { %><span><%= t %></span><% }); %></div>
+      </div></div>
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h6 mb-2">Study the real thing</h2>
+        <p class="small text-muted-2 mb-2">Practice finds the gaps; SAP Learning fills them.</p>
+        <a class="small" href="<%= cert.studyUrl %>" target="_blank" rel="noopener">Open on SAP Learning <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
+      </div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<script src="/js/games.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
+<%- include('../partials/layout-end') %>
