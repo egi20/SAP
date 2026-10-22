@@ -168,3 +168,29 @@ describe('what the model must not become', () => {
       .forEach((word) => expect(keys).not.toContain(word));
   });
 });
+
+describe('industry and in-demand skills (2026-10-22)', () => {
+  it('leaves the anchor alone when neither is chosen', () => {
+    const r = benchmark({ role: ROLE_SLUGS[0] });
+    expect(r.factors.find((f) => f.key === 'industry').multiplier).toBe(1);
+    expect(r.factors.find((f) => f.key === 'skills').multiplier).toBe(1);
+  });
+
+  it('moves the figure by the industry and the summed, capped skills, and still reconciles', () => {
+    const role = ROLE_SLUGS[0];
+    const plain = benchmark({ role });
+    const finance = benchmark({ role, industry: 'finance' });
+    expect(finance.raw).toBeCloseTo(plain.raw * 1.15, 6);
+    const all = benchmark({ role, skills: model.SKILLS.map((s) => s.key) });
+    expect(all.factors.find((f) => f.key === 'skills').multiplier).toBe(1 + model.SKILLS_CAP);
+    const one = benchmark({ role, skills: 'btp' });
+    expect(one.input.skills).toEqual(['btp']);
+    [finance, all, one].forEach((r) => expect(benchmarkProblems(r)).toEqual([]));
+  });
+
+  it('ignores a skill or an industry it does not know', () => {
+    const r = normaliseInput({ role: ROLE_SLUGS[0], industry: 'casino', skills: ['btp', '<script>'] });
+    expect(r.industry.key).toBe('general');
+    expect(r.skills).toEqual(['btp']);
+  });
+});

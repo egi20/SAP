@@ -2016,7 +2016,12 @@ sources in three sections, never one number. Advert figures carry no floor (they
 already public) but leave out any advert whose company HID its rate and any figure outside
 `config/rateBounds.js`, and say how many. The reference's "Now keep more of it" take-home
 teaser and its saved scenarios are NOT here: the first is the "no tax, no saving" rule
-above, the second stores what somebody asked about their own pay.
+above, the second stores what somebody asked about their own pay. The address IS the scenario:
+the calculator's "Copy link" copies the normalised answers on `appBaseUrl`, and "Save as PDF"
+prints the page. Two more factors arrived on 2026-10-22 (owner's request): client industry
+and in-demand skills, both anchored at 1.0, skills summed and capped at `SKILLS_CAP`.
+"Staff augmentation" is still not a pricing model — see `CONTRACT_TYPES`. An advert whose
+role slug the taxonomy no longer knows is labelled "Other role" and not linked.
 
 `RATE_MIN_SAMPLE` is configurable, but lowering it below 3 to make a sparse index look
 fuller defeats the point of having it. It is an environment variable and not a setting,

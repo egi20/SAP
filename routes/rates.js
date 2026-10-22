@@ -90,6 +90,10 @@ router.get(
         roles: group.roles.map((role) => ({ ...role, base: baseDayRate(role.value) }))
       })),
       countries,
+      // The community filter offers only countries somebody has contributed from (and the
+      // one already chosen); the benchmark form keeps the full list, which picks a region.
+      dataCountries: countries.filter((c) => c.code === filters.country || byCountry.some((r) => r.country === c.code)),
+      isRateRole: isRole,
       // The editorial baseline is shown clearly labelled as editorial, never blended
       // into the contributed figures — mixing the two would make the index unfalsifiable.
       curatedBaseline: filters.role ? baseDayRate(filters.role) : null
@@ -120,7 +124,9 @@ router.get(
       country: req.query.country,
       region: req.query.region,
       workMode: req.query.work_mode,
-      contractType: req.query.contract_type
+      contractType: req.query.contract_type,
+      industry: req.query.industry,
+      skills: req.query.skills
     });
 
     /*
@@ -145,8 +151,28 @@ router.get(
       })
       : null;
 
+    /*
+     * The link the "Copy link" button copies: the NORMALISED answers on the canonical host,
+     * never location.href, which would carry whatever the reader arrived with.
+     */
+    let shareUrl = null;
+    if (result) {
+      const q = new URLSearchParams({
+        role: result.role,
+        years: String(result.input.years),
+        certifications: String(result.input.certifications),
+        work_mode: result.input.workMode,
+        contract_type: result.input.contractType,
+        industry: result.input.industry
+      });
+      if (result.input.country) q.set('country', result.input.country);
+      result.input.skills.forEach((s) => q.append('skills', s));
+      shareUrl = `${config.app.baseUrl}/rates/calculator?${q.toString()}`;
+    }
+
     res.render('rates/calculator', {
       title: 'Benchmark your day rate',
+      shareUrl,
       result,
       community,
       minSample: MIN_SAMPLE,

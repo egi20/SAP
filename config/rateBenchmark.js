@@ -131,6 +131,42 @@ const CONTRACT_TYPES = Object.freeze([
 ]);
 
 /**
+ * The client's industry (owner's request, 2026-10-22, as dynamicshub.net's calculator has).
+ * Regulated and asset-heavy industries pay more for the same SAP role, because the project
+ * carries validation, audit and downtime risk the consultant has to work inside. "Other or
+ * not sure" is the anchor, so leaving the field alone changes nothing.
+ */
+const INDUSTRIES = Object.freeze([
+  { key: 'general', label: 'Other or not sure', multiplier: 1.00 },
+  { key: 'finance', label: 'Finance & banking', multiplier: 1.15 },
+  { key: 'pharma', label: 'Pharma & life sciences', multiplier: 1.12 },
+  { key: 'energy', label: 'Energy & utilities', multiplier: 1.10 },
+  { key: 'automotive', label: 'Automotive & manufacturing', multiplier: 1.05 },
+  { key: 'retail', label: 'Retail & consumer goods', multiplier: 1.00 },
+  { key: 'public', label: 'Public sector', multiplier: 0.92 }
+]);
+
+/**
+ * In-demand SAP skills on top of the role (owner's request, 2026-10-22). Each one adds its
+ * premium, and the TOTAL is capped: the market pays for a scarce skill the project needs,
+ * not for a longer list, which is the same argument as the certification bands.
+ */
+const SKILLS = Object.freeze([
+  { key: 's4-conversion', label: 'S/4HANA conversion (brownfield)', premium: 0.06 },
+  { key: 'btp', label: 'SAP BTP', premium: 0.05 },
+  { key: 'ai', label: 'SAP Business AI / Joule', premium: 0.05 },
+  { key: 'integration', label: 'Integration Suite / CPI', premium: 0.04 },
+  { key: 'hana-analytics', label: 'HANA modelling & analytics', premium: 0.03 }
+]);
+const SKILLS_CAP = 0.10;
+
+/** The skills multiplier: 1 + the sum of the chosen premiums, never above 1 + the cap. */
+function skillsMultiplier(keys) {
+  const total = SKILLS.filter((s) => keys.includes(s.key)).reduce((acc, s) => acc + s.premium, 0);
+  return Number((1 + Math.min(total, SKILLS_CAP)).toFixed(4));
+}
+
+/**
  * The spread around the recommended figure. A single number is a negotiating position
  * nobody can use; a range is what somebody actually needs walking into the conversation.
  * It is a fixed proportion and not a statistic, and the page says so.
@@ -205,8 +241,16 @@ function assertBenchmarkIntegrity() {
     ['region', regionByKey(DEFAULT_REGION)],
     ['work mode', WORK_MODES.find((m) => m.key === 'hybrid')],
     ['certifications', CERTIFICATION_BANDS.find((b) => b.key === 'none')],
-    ['contract type', CONTRACT_TYPES.find((c) => c.key === 'time-and-materials')]
+    ['contract type', CONTRACT_TYPES.find((c) => c.key === 'time-and-materials')],
+    ['industry', INDUSTRIES.find((i) => i.key === 'general')]
   ];
+  if (skillsMultiplier([]) !== 1) problems.push('no skills must be a multiplier of 1');
+  SKILLS.forEach((s) => {
+    if (!(s.premium > 0 && s.premium <= SKILLS_CAP)) problems.push(`skill ${s.key} has a premium outside (0, cap]`);
+  });
+  INDUSTRIES.forEach((i) => {
+    if (!(i.multiplier > 0)) problems.push(`industry ${i.key} has no usable multiplier`);
+  });
   anchors.forEach(([name, entry]) => {
     if (!entry) problems.push(`${name} has no anchor entry`);
     else if (entry.multiplier !== 1) problems.push(`the ${name} anchor is ${entry.multiplier}, not 1`);
@@ -253,6 +297,10 @@ module.exports = {
   WORK_MODES,
   CERTIFICATION_BANDS,
   CONTRACT_TYPES,
+  INDUSTRIES,
+  SKILLS,
+  SKILLS_CAP,
+  skillsMultiplier,
   SPREAD_BELOW,
   SPREAD_ABOVE,
   BILLABLE_DAYS_PER_MONTH,

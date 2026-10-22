@@ -1,6 +1,7 @@
 <%- include('../partials/layout-start') %>
 
 <%- include('../partials/page-header', { icon: 'bi-graph-up',
+  label: 'Rate & Salary Index',
   heading: 'Rate & Salary Index',
   sub: 'Benchmark your day rate with our published model, and explore what SAP consultants report and what open adverts offer.'
 }) %>
@@ -17,6 +18,17 @@
 <%
   const fmt = function (v) { return v === null || v === undefined ? '—' : '€' + Number(v).toLocaleString('en-GB'); };
   const unitFor = filters.engagementType === 'contract' ? '/day' : '/year';
+  const ordinal = function (n) { var s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+  // Anybody signed out (the form's guard takes them through sign-in) or any consultant.
+  const canContribute = !currentUser || currentUser.isConsultant;
+  /*
+   * A role slug the taxonomy no longer knows (an advert stored under an old one) still has
+   * a bar, so it gets a label instead of an empty one — and no link, because /rates/:role
+   * answers 404 for it.
+   */
+  const roleRow = function (slug) {
+    return { label: roleLabel(slug) || 'Other role', href: isRateRole(slug) ? '/rates/' + slug : null };
+  };
   const keep = function (extra) {
     const q = [];
     if (filters.role) q.push('role=' + encodeURIComponent(filters.role));
@@ -92,6 +104,22 @@
               <% model.CONTRACT_TYPES.forEach(function (c) { %><option value="<%= c.key %>" <%= c.key === 'time-and-materials' ? 'selected' : '' %>><%= c.label %></option><% }); %>
             </select>
           </div>
+          <div class="mb-3">
+            <label class="form-label" for="b-industry">Client industry</label>
+            <select class="form-select" id="b-industry" name="industry">
+              <% model.INDUSTRIES.forEach(function (i) { %><option value="<%= i.key %>"><%= i.label %><%= i.multiplier !== 1 ? ' (' + (i.multiplier > 1 ? '+' : '−') + Math.round(Math.abs(i.multiplier - 1) * 100) + '%)' : '' %></option><% }); %>
+            </select>
+          </div>
+          <fieldset class="mb-3">
+            <legend class="form-label fs-6 mb-1">In-demand skills</legend>
+            <div class="d-flex flex-wrap gap-1">
+              <% model.SKILLS.forEach(function (sk) { %>
+                <input type="checkbox" class="btn-check" name="skills" id="b-sk-<%= sk.key %>" value="<%= sk.key %>" autocomplete="off">
+                <label class="btn btn-outline-primary btn-sm" for="b-sk-<%= sk.key %>"><%= sk.label %> +<%= Math.round(sk.premium * 100) %>%</label>
+              <% }); %>
+            </div>
+            <p class="form-text mb-0">Added together, capped at +<%= Math.round(model.SKILLS_CAP * 100) %>%.</p>
+          </fieldset>
           <button class="btn btn-primary w-100" type="submit"><i class="bi bi-calculator me-1"></i>Calculate my rate</button>
         </form>
       </div></div>
@@ -101,11 +129,50 @@
       <div class="glass-card mb-4"><div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
           <h2 class="h5 mb-0"><i class="bi bi-graph-up me-2"></i>Market rate trends</h2>
-          <span class="small text-muted-2"><%= filters.role ? roleLabel(filters.role) : 'All roles' %> · <%= filters.engagementType === 'contract' ? 'day rate' : 'annual salary' %></span>
+          <%# The same filters as the community index below, so the line and the table answer one question. -%>
+          <form method="get" action="/rates" class="d-flex gap-1 align-items-center">
+            <% if (filters.seniority) { %><input type="hidden" name="seniority" value="<%= filters.seniority %>"><% } %>
+            <% if (filters.country) { %><input type="hidden" name="country" value="<%= filters.country %>"><% } %>
+            <label class="visually-hidden" for="t-role">Role</label>
+            <select class="form-select form-select-sm" id="t-role" name="role">
+              <option value="">All roles</option>
+              <% roleCategories.forEach(function (cat) { %>
+                <optgroup label="<%= cat.category %>">
+                  <% cat.roles.forEach(function (r) { %><option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option><% }); %>
+                </optgroup>
+              <% }); %>
+            </select>
+            <label class="visually-hidden" for="t-type">Type</label>
+            <select class="form-select form-select-sm" id="t-type" name="engagement_type">
+              <option value="contract" <%= filters.engagementType === 'contract' ? 'selected' : '' %>>Day rate</option>
+              <option value="permanent" <%= filters.engagementType === 'permanent' ? 'selected' : '' %>>Salary</option>
+            </select>
+            <button class="btn btn-sm btn-primary" type="submit">Go</button>
+          </form>
         </div>
-        <%- include('./partials/month-line', { points: trend, color: '#0064d9', label: 'Median contributed rate' }) %>
+        <%- include('./partials/month-line', { points: trend, color: '#0064d9', label: 'Median contributed rate', showCounts: true }) %>
+        <%
+          /* A month below the floor says how close it is, rather than leaving a blank chart. */
+          const thisMonth = trend[trend.length - 1];
+        %>
+        <%
+          /* The months before anybody contributed are empty because the index did not exist yet, and the page says so. */
+          const firstWithData = trend.find(function (p) { return p.contributors > 0; });
+        %>
+        <% if (firstWithData && firstWithData !== trend[0]) { %>
+          <p class="small text-muted-2 mt-2 mb-0"><i class="bi bi-flag me-1" aria-hidden="true"></i>
+            The index started collecting in <%= new Date(firstWithData.period + '-01T00:00:00Z').toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) %>; the months before it are empty because nobody had contributed yet.
+          </p>
+        <% } %>
+        <% if (thisMonth && thisMonth.suppressed) { %>
+          <p class="small mt-2 mb-0"><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+            Collecting data for <%= new Date(thisMonth.period + '-01T00:00:00Z').toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' }) %>:
+            <strong><%= Math.max(0, minSample - thisMonth.contributors) %> more contributor<%= minSample - thisMonth.contributors === 1 ? '' : 's' %></strong> needed before it is published.
+            <% if (currentUser && currentUser.isConsultant) { %><a href="/rates/submit">Add yours</a><% } %>
+          </p>
+        <% } %>
         <p class="small text-muted-2 mt-2 mb-0">
-          Median of what members report, by month. A month with fewer than <%= minSample %> people is a gap in the line, not a zero.
+          Median of what members report, by month; the small number under each month is how many people it rests on. A month with fewer than <%= minSample %> people is a gap in the line, not a zero.
           <% if (adverts[filters.engagementType].summary.adverts) { %>Open adverts are charted below, separately.<% } %>
         </p>
       </div></div>
@@ -113,10 +180,33 @@
       <div class="glass-card"><div class="card-body">
         <h2 class="h5 mb-3"><i class="bi bi-bar-chart me-2"></i>Rates by role</h2>
         <%- include('./partials/hbars', {
-          rows: byRole.map(function (r) { return { label: roleLabel(r.role), value: r.suppressed ? null : r.median, note: r.suppressed ? r.contributors + ' so far — not published' : r.contributors + ' people', href: '/rates/' + r.role }; }),
+          rows: byRole.map(function (r) {
+            return Object.assign(roleRow(r.role), {
+              value: r.suppressed ? null : r.median,
+              note: r.suppressed ? r.contributors + ' so far — not published' : r.contributors + ' people',
+              // A bucket short of the floor is an invitation, not just a gap.
+              cta: r.suppressed && canContribute ? { href: '/rates/submit', text: 'Be the ' + ordinal(r.contributors + 1) + ' — add yours' } : null
+            });
+          }),
           color: '#0064d9', unit: unitFor, empty: 'Nobody has contributed a rate for this view yet.'
         }) %>
       </div></div>
+
+      <%#
+        The one call to action the index depends on: with a handful of contributors, every
+        bucket is a few people from being published. Signed out goes through sign-in to the
+        form (the guard sends them back); a company account cannot contribute, so it is not
+        offered a button that would refuse it.
+      -%>
+      <% if (canContribute) { %>
+        <div class="glass-card mt-4 rate-cta"><div class="card-body d-sm-flex align-items-center justify-content-between gap-3">
+          <div>
+            <h2 class="h5 card-heading mb-1"><i class="bi bi-people me-2" aria-hidden="true"></i>Help build the index</h2>
+            <p class="small text-muted-2 mb-sm-0">Add your day rate or salary anonymously. It is never shown with your name, and a figure is published only once <%= minSample %> people share the same bucket.</p>
+          </div>
+          <a class="btn btn-primary flex-shrink-0" href="/rates/submit"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add your figure</a>
+        </div></div>
+      <% } %>
     </div>
   </div>
 
@@ -164,7 +254,8 @@
         <label class="form-label small mb-1" for="r-country">Country</label>
         <select class="form-select form-select-sm" id="r-country" name="country">
           <option value="">All countries</option>
-          <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
+          <%# Only countries somebody has contributed from: the full list offers 250 empty answers. -%>
+          <% dataCountries.forEach(function (c) { %><option value="<%= c.code %>" <%= filters.country === c.code ? 'selected' : '' %>><%= c.name %></option><% }); %>
         </select>
       </div>
       <div class="col-md-1"><button class="btn btn-primary btn-sm w-100" type="submit">Go</button></div>
@@ -200,7 +291,7 @@
         ? bySeniority.map(function (r) { return Object.assign({ label: optionLabel(r.seniority) }, r); })
         : tab === 'country'
           ? byCountry.map(function (r) { return Object.assign({ label: countryName(r.country) || r.country }, r); })
-          : byRole.map(function (r) { return Object.assign({ label: roleLabel(r.role), href: '/rates/' + r.role }, r); });
+          : byRole.map(function (r) { return Object.assign(roleRow(r.role), r); });
     %>
     <% if (!tableRows.length || tableRows.every(function (r) { return !r.contributors; })) { %>
       <div class="empty-state"><i class="bi bi-bar-chart"></i>No contributions in this view yet.</div>
@@ -258,7 +349,7 @@
           <div class="col-lg-6">
             <h3 class="h6"><i class="bi bi-bar-chart me-1"></i>By role</h3>
             <%- include('./partials/hbars', {
-              rows: a.byRole.map(function (r) { return { label: roleLabel(r.key), value: r.median, note: r.adverts + ' advert' + (r.adverts === 1 ? '' : 's'), href: '/rates/' + r.key }; }),
+              rows: a.byRole.map(function (r) { return Object.assign(roleRow(r.key), { value: r.median, note: r.adverts + ' advert' + (r.adverts === 1 ? '' : 's') }); }),
               color: sec[4], unit: sec[3], empty: 'No role yet.'
             }) %>
           </div>
@@ -295,7 +386,7 @@
         <% group.roles.forEach(function (r) { %>
           <div class="col-sm-6 col-lg-4">
             <a class="role-rate-link d-flex justify-content-between align-items-center gap-2" href="/rates/<%= r.value %>">
-              <span><%= r.label %></span><span class="text-muted-2 flex-shrink-0"><%= r.base %></span>
+              <span class="role-rate-name"><%= r.label %></span><span class="text-muted-2 flex-shrink-0">€<%= r.base %> <i class="bi bi-chevron-right small" aria-hidden="true"></i></span>
             </a>
           </div>
         <% }) %>
@@ -317,7 +408,7 @@
           <p class="mb-0">
             Each figure means one person: a <strong>senior</strong> consultant (six to nine years), on
             <strong>time and materials</strong>, <strong>hybrid</strong>, in the reference region, no certifications
-            counted, euros before tax. The calculator moves away from that point by five published multipliers and
+            counted, any industry, euros before tax. The calculator moves away from that point by seven published multipliers and
             prints each one, so any figure can be checked by hand.
           </p>
         </div>
@@ -344,4 +435,23 @@
 </div>
 </section>
 
+<%
+  /*
+   * Dataset structured data: what the index measures and where it comes from, in the
+   * same words the methodology uses. No figure is put in it — the published numbers move
+   * monthly and live on the page, under the floor that decides whether they appear at all.
+   */
+  const datasetLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: 'SAP consultant day rate and salary index',
+    description: 'Day rates and salaries SAP consultants report, by role, seniority and country, published only for buckets of at least ' + minSample + ' people, alongside an editorial benchmark model and the ranges open SAP Hub job adverts offer.',
+    url: appBaseUrl + '/rates',
+    creator: { '@type': 'Organization', name: appName, url: appBaseUrl },
+    keywords: ['SAP consultant day rate', 'SAP salary', 'SAP FICO day rate', 'S/4HANA consultant rate', 'freelance SAP rates'],
+    temporalCoverage: trend.length ? trend[0].period + '/' + trend[trend.length - 1].period : undefined,
+    variableMeasured: ['Median day rate (EUR)', 'Median annual salary (EUR)', 'Interquartile range', 'Number of contributors']
+  };
+%>
+<script type="application/ld+json"><%- jsonForScript(datasetLd) %></script>
 <%- include('../partials/layout-end') %>
