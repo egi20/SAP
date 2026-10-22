@@ -70,14 +70,21 @@ const derived = [
   ...GAMES.filter((g) => g.scored).map((g) => page('Games', `/games/${g.key}`, {
     name: `Games: ${g.key} as a consultant`, role: 'consultant'
   })),
-  // Every tile on the dashboard a QA account of that role sees. A tile pointing at a route
-  // that was never built is a dead button on the most-visited page a member has.
-  ...TABS.filter((t) => QA_ROLES.includes(t.key)).flatMap((t) => t.tiles
-    .filter((tile) => tile.href.startsWith('/') && !tile.href.startsWith('//'))
-    .map((tile) => ({
-      name: `Dashboard tile (${t.key}): ${tile.title}`, category: 'Dashboard tiles', path: tile.href.split('#')[0],
-      status: [200, 302], notContains: [SERVER_ERROR], role: t.key
-    })))
+  // Every tile on every dashboard tab a QA account of that role sees — including the
+  // Sales Agent tab, which every account has. Visibility is asked of the catalogue's own
+  // `visible`, the rule the dashboard renders with, so the cases follow the screen. A tile
+  // pointing at a route that was never built is a dead button on the most-visited page a
+  // member has.
+  ...QA_ROLES.flatMap((role) => TABS
+    .filter((t) => t.visible({ isConsultant: role === 'consultant', isCompany: role === 'company' }))
+    // A tab every account sees is tested once, as the first QA role, not once per role.
+    .filter((t) => role === QA_ROLES[0] || !t.visible({}))
+    .flatMap((t) => t.tiles
+      .filter((tile) => tile.href.startsWith('/') && !tile.href.startsWith('//'))
+      .map((tile) => ({
+        name: `Dashboard tile (${t.label}): ${tile.title}`, category: 'Dashboard tiles', path: tile.href.split('#')[0],
+        status: [200, 302], notContains: [SERVER_ERROR], role
+      }))))
 ];
 
 const signedOutGuard = (path) => ({
@@ -120,6 +127,9 @@ const handWritten = [
   page('Signed-in pages', '/profile/consultant', { name: 'Consultant profile form', role: 'consultant' }),
   page('Signed-in pages', '/profile/settings', { name: 'Consultant settings', role: 'consultant' }),
   page('Signed-in pages', '/messages', { name: 'Consultant inbox', role: 'consultant' }),
+  // The Sales Agent tab is on every account's dashboard; it opens on its own ?tab= link.
+  page('Signed-in pages', '/dashboard?tab=agent', { name: 'Sales Agent tab', role: 'consultant', contains: ['Agent Dashboard', 'My Leads'] }),
+  page('Signed-in pages', '/referrals', { name: 'Sales Agent dashboard', role: 'consultant' }),
   page('Signed-in pages', '/dashboard', { name: 'Company dashboard', role: 'company', contains: ['Company'] }),
   page('Signed-in pages', '/jobs/new', { name: 'Company: post a job', role: 'company' }),
   page('Signed-in pages', '/applications', { name: 'Company pipeline', role: 'company' })
