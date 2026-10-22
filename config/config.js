@@ -132,7 +132,7 @@ const config = {
      * dynamicshub.net's "Dynamo". One name in one place: the widget and the prompt read
      * this, so the two can never introduce it differently.
      */
-    name: (process.env.ASSISTANT_NAME || 'Saphire').trim().slice(0, 40) || 'Saphire'
+    name: (process.env.ASSISTANT_NAME || 'Asap').trim().slice(0, 40) || 'Asap'
   },
   rates: {
     // Privacy floor: never publish an aggregate derived from fewer than this many
