@@ -110,6 +110,11 @@ maybe()('pages the menus added', () => {
     expect(visitor.status).toBe(200);
     expect(visitor.text).toContain('Use DH Dedupe');
     expect(visitor.text).toContain('Sign in to use the quick check');
+    // The missing-address note is for an administrator; a visitor sees a plain "Coming soon".
+    if (!require('../../config/dedupe').DH_DEDUPE.url) {
+      expect(visitor.text).toContain('Coming soon');
+      expect(visitor.text).not.toContain('DH_DEDUPE_URL');
+    }
     expect(visitor.text).not.toContain('name="list"');
 
     await promisePool.query('UPDATE users SET dedupe_access = 0 WHERE id = ?', [userId]);

@@ -44,7 +44,8 @@
             The link to <%= dhDedupe.name %> appears once <code>DH_DEDUPE_URL</code> is set on the server.
           </div>
         <% } else { %>
-          <a class="btn btn-outline-primary w-100" href="/contact">Ask us about <%= dhDedupe.name %></a>
+          <%# Not a link to nowhere: the address is not set yet, and the button says so. -%>
+          <button class="btn btn-outline-primary w-100" type="button" disabled>Coming soon</button>
         <% } %>
       </div>
     </div>
@@ -82,13 +83,24 @@
       <div class="glass-card mb-4"><div class="card-body">
         <form method="post" action="/dedupe">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <label class="form-label fw-semibold" for="dedupeList">One person per line</label>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
+            <label class="form-label fw-semibold mb-0" for="dedupeList">One person per line</label>
+            <%#
+              A slot: dedupe.js builds "Open a CSV file" and the drop zone. The file is read in
+              the browser and put into this box; it is never uploaded on its own, so nothing
+              about it is stored any more than a pasted list is.
+            -%>
+            <span data-dedupe-file></span>
+          </div>
+          <div class="dedupe-columns d-none mb-2" data-dedupe-columns></div>
           <textarea class="form-control font-monospace" id="dedupeList" name="list" rows="10"
                     spellcheck="false" autocomplete="off"
                     placeholder="Anna Müller, anna.mueller@example.com&#10;Muller, Anna &lt;ANNA.MUELLER@example.com&gt;&#10;John Smith"><%= input %></textarea>
           <p class="form-text">
             Two lines with the same name and different addresses are kept apart: they are
-            probably two people, and merging them is the mistake this check exists to avoid.
+            probably two people. Lines that may be the same person — a name with no address next
+            to one with, or a near-identical spelling — are listed under "Possible matches" for
+            you to check, and never merged.
           </p>
           <button class="btn btn-primary" type="submit"><i class="bi bi-layers me-1"></i> Find duplicates</button>
         </form>
@@ -104,27 +116,38 @@
             </div>
           <% } %>
           <div class="row g-3 mb-3">
-            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.total %></div><div class="label"><%= result.total === 1 ? 'Line' : 'Lines' %></div></div></div>
-            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.unique %></div><div class="label"><%= result.unique === 1 ? 'Person' : 'People' %></div></div></div>
-            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.total - result.unique %></div><div class="label"><%= result.total - result.unique === 1 ? 'Duplicate' : 'Duplicates' %></div></div></div>
+            <div class="col-6 col-md-3"><div class="stat-tile"><div class="value"><%= result.total %></div><div class="label"><%= result.total === 1 ? 'Line' : 'Lines' %></div></div></div>
+            <div class="col-6 col-md-3"><div class="stat-tile"><div class="value"><%= result.unique %></div><div class="label"><%= result.unique === 1 ? 'Person' : 'People' %></div></div></div>
+            <div class="col-6 col-md-3"><div class="stat-tile"><div class="value"><%= result.total - result.unique %></div><div class="label"><%= result.total - result.unique === 1 ? 'Duplicate' : 'Duplicates' %></div></div></div>
+            <div class="col-6 col-md-3"><div class="stat-tile"><div class="value"><%= result.possible.length %></div><div class="label">To check</div></div></div>
           </div>
 
           <% if (!result.groups.length) { %>
-            <p class="text-muted-2"><i class="bi bi-check-circle me-1"></i>No duplicates found.</p>
+            <p class="text-muted-2"><i class="bi bi-check-circle me-1"></i><%= result.possible.length ? 'No certain duplicates — check the possible matches below.' : 'No duplicates found.' %></p>
           <% } else { %>
             <% result.groups.forEach(function (group) { %>
               <div class="border rounded-3 p-3 mb-2">
                 <div class="small text-muted-2 mb-1">
                   Same <%= group.reason === 'email' ? 'email address' : 'name' %>:
-                  <span class="fw-semibold text-break"><%= group.key %></span>
+                  <span class="fw-semibold text-break"><%= group.label %></span>
                 </div>
-                <ul class="list-unstyled small mb-0">
-                  <% group.entries.forEach(function (entry) { %>
-                    <li class="text-break"><span class="text-muted-2">line <%= entry.line %>:</span> <%= entry.raw %></li>
-                  <% }); %>
-                </ul>
+                <%- include('../partials/dedupe-lines', { entries: group.entries }) %>
               </div>
             <% }); %>
+          <% } %>
+
+          <% if (result.possible.length) { %>
+            <%# Flagged, never merged: a person decides, and the clean list keeps every line until they do. -%>
+            <h3 class="h6 mt-4 mb-2">Possible matches — check</h3>
+            <% result.possible.forEach(function (p) { %>
+              <div class="border border-warning-subtle rounded-3 p-3 mb-2 dedupe-possible">
+                <div class="small text-muted-2 mb-1">
+                  <%= p.reason === 'similar-name' ? 'Similar names' : 'Same name, but only some lines have an email' %> — may be one person
+                </div>
+                <%- include('../partials/dedupe-lines', { entries: p.entries }) %>
+              </div>
+            <% }); %>
+            <% if (result.possibleCapped) { %><p class="small text-muted-2">Only the first 200 are listed.</p><% } %>
           <% } %>
 
           <%# The list to take away: read-only, selectable without scripting, copied by main.js. -%>
@@ -132,8 +155,13 @@
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
             <h3 class="h6 mb-0">Clean list — one line per person</h3>
             <%# A slot: main.js builds the button, because it needs scripting to do anything. -%>
-            <span class="copy-field" data-copy-target="dedupeClean" data-copy-label="Copy clean list"></span>
+            <span class="d-flex gap-2">
+              <span class="copy-field" data-copy-target="dedupeClean" data-copy-label="Copy clean list"></span>
+              <span data-dedupe-download="dedupeCsv"></span>
+            </span>
           </div>
+          <%# The same people as name,email rows for the download; built on the server, cells escaped there. -%>
+          <textarea class="d-none" id="dedupeCsv" aria-hidden="true" tabindex="-1" readonly><%= result.csv %></textarea>
           <label class="visually-hidden" for="dedupeClean">Clean list</label>
           <textarea class="form-control font-monospace small" id="dedupeClean" rows="<%= Math.min(12, Math.max(3, result.clean.length)) %>" readonly><%= cleanText %></textarea>
         </div></div>
@@ -166,4 +194,5 @@
   </div></div>
 </div>
 </section>
+<% if (canUseTool) { %><script src="/js/dedupe.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script><% } %>
 <%- include('../partials/layout-end') %>

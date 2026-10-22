@@ -1966,6 +1966,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .cv-facts li { display: flex; gap: 0.6rem; margin-bottom: 0.6rem; }
 .cv-facts i { color: var(--primary-blue); font-size: 1.1rem; line-height: 1.4; }
 .cv-need li { margin-bottom: 0.25rem; }
+.dedupe-drop { outline: 2px dashed var(--primary-blue); outline-offset: 2px; }
+.dedupe-line { text-decoration: underline dotted; }
 
 /* The example CV drawn as a page: A4's width at 96 dpi, A4's proportions as a minimum
    height, paper margins and a shadow, so it reads as the Word document it downloads as. */

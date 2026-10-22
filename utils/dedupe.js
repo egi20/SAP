@@ -19,6 +19,11 @@
  * A line with an email is never matched to another line on name alone: two people called
  * John Smith with different addresses are two people, and merging them is the error this
  * tool exists to prevent rather than to make.
+ *
+ * POSSIBLE matches are flagged, never merged (2026-10-22): a line with no email whose name
+ * equals, or nearly equals (Jaro-Winkler ≥ POSSIBLE_THRESHOLD), the name on another line.
+ * "John Smith" beside "John Smith, john@a.example", "Jon Smith" beside "John Smith". A
+ * person decides; the clean list keeps both until they do.
  */
 
 const MAX_LINES = 2000;
@@ -31,12 +36,24 @@ function normaliseEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+const POSSIBLE_THRESHOLD = 0.92;
+const MAX_POSSIBLE = 200;
+
+/*
+ * German spelling first, so "Müller" and "Mueller" are one key (DACH lists write both).
+ * Only the umlauts and ß are folded — NOT "ue" back to "u": that would also make "Michael"
+ * and "Michal" one key, and an exact key must never invent an equality. "Muller" against
+ * "Mueller" is therefore a POSSIBLE match, which is what it is.
+ */
+const GERMAN = { ä: 'ae', ö: 'oe', ü: 'ue', Ä: 'Ae', Ö: 'Oe', Ü: 'Ue', ß: 'ss', ẞ: 'SS' };
+
 /**
  * Case, accents, punctuation and word order removed. Sorting the words is what makes
  * "Smith, John" and "John Smith" the same key.
  */
 function normaliseName(value) {
   return String(value || '')
+    .replace(/[äöüÄÖÜßẞ]/g, (c) => GERMAN[c])
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
@@ -47,18 +64,116 @@ function normaliseName(value) {
     .join(' ');
 }
 
-/** One pasted line → { line, raw, email, name }. */
+/** One pasted line → { line, raw, email, name, display }. */
 function parseLine(raw, lineNumber) {
   const text = String(raw).trim();
   const found = text.match(EMAIL_RE);
   const email = found ? normaliseEmail(found[0]) : '';
-  const nameText = found ? text.replace(found[0], ' ') : text;
+  const nameText = (found ? text.replace(found[0], ' ') : text).replace(/[<>]/g, ' ');
   return {
     line: lineNumber,
     raw: text,
     email,
-    name: normaliseName(nameText.replace(/[<>]/g, ' '))
+    name: normaliseName(nameText),
+    // The name as it was written, for the screen: "John Smith", never the key "john smith".
+    display: nameText.replace(/[,;]+\s*$/, '').replace(/^\s*[,;]+/, '').replace(/\s+/g, ' ').trim()
   };
+}
+
+/** Jaro-Winkler similarity, 0..1. Prefix-weighted, which suits names. */
+function jaroWinkler(a, b) {
+  if (a === b) return 1;
+  if (!a || !b) return 0;
+  const range = Math.max(0, Math.floor(Math.max(a.length, b.length) / 2) - 1);
+  const aHit = new Array(a.length).fill(false);
+  const bHit = new Array(b.length).fill(false);
+  let matches = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    const lo = Math.max(0, i - range);
+    const hi = Math.min(i + range + 1, b.length);
+    for (let j = lo; j < hi; j += 1) {
+      if (!bHit[j] && a[i] === b[j]) { aHit[i] = true; bHit[j] = true; matches += 1; break; }
+    }
+  }
+  if (!matches) return 0;
+  let k = 0;
+  let transpositions = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    if (!aHit[i]) continue;
+    while (!bHit[k]) k += 1;
+    if (a[i] !== b[k]) transpositions += 1;
+    k += 1;
+  }
+  const m = matches;
+  const jaro = (m / a.length + m / b.length + (m - transpositions / 2) / m) / 3;
+  let prefix = 0;
+  while (prefix < 4 && a[prefix] && a[prefix] === b[prefix]) prefix += 1;
+  return jaro + prefix * 0.1 * (1 - jaro);
+}
+
+/**
+ * Clusters of groups that may be one person. Two groups are linked when at least one has no
+ * email and the names are equal or close; linked groups are joined (union-find), so "John
+ * Smith", two John Smiths with different addresses and "Jon Smith" are ONE box to check, not
+ * six pairs saying the same thing. Candidates are found through a shared word, so a list of
+ * two thousand is not two million comparisons — a typo in one word leaves the other in common.
+ */
+function possibleMatches(people) {
+  const parent = people.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const similar = new Set();
+
+  const byWord = new Map();
+  people.forEach((p, index) => {
+    for (const word of new Set(p.name.split(' ').filter(Boolean))) {
+      if (!byWord.has(word)) byWord.set(word, []);
+      byWord.get(word).push(index);
+    }
+  });
+  const seen = new Set();
+  let comparisons = 0;
+  for (const indexes of byWord.values()) {
+    for (let x = 0; x < indexes.length; x += 1) {
+      for (let y = x + 1; y < indexes.length; y += 1) {
+        const i = indexes[x];
+        const j = indexes[y];
+        const pairKey = i < j ? `${i}:${j}` : `${j}:${i}`;
+        if (seen.has(pairKey)) continue;
+        seen.add(pairKey);
+        if (people[i].email && people[j].email) continue;
+        // A bound on work, not on results: a list where one word is on every line (a
+        // company name) would otherwise compare everything with everything.
+        comparisons += 1;
+        if (comparisons > 200000) break;
+        const score = jaroWinkler(people[i].name, people[j].name);
+        if (score < POSSIBLE_THRESHOLD) continue;
+        if (people[i].name !== people[j].name) similar.add(i).add(j);
+        parent[find(i)] = find(j);
+      }
+    }
+  }
+
+  const clusters = new Map();
+  people.forEach((p, i) => {
+    const root = find(i);
+    if (!clusters.has(root)) clusters.set(root, []);
+    clusters.get(root).push(i);
+  });
+  const out = [...clusters.values()]
+    .filter((members) => members.length > 1)
+    .map((members) => ({
+      reason: members.some((i) => similar.has(i)) ? 'similar-name' : 'same-name-one-email',
+      entries: members.flatMap((i) => people[i].entries).sort((p, q) => p.line - q.line)
+    }))
+    .sort((p, q) => p.entries[0].line - q.entries[0].line);
+  return { pairs: out.slice(0, MAX_POSSIBLE), capped: out.length > MAX_POSSIBLE };
+}
+
+/** RFC 4180 cell, and never a formula: a leading = + - @ is what a spreadsheet would run. */
+function csvCell(value) {
+  let text = String(value == null ? '' : value);
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 /**
@@ -89,15 +204,43 @@ function findDuplicates(input) {
       reason = 'name';
     }
     if (!key) return;
-    if (!byKey.has(key)) byKey.set(key, { reason, key: key.slice(key.indexOf(':') + 1), entries: [] });
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        reason,
+        key: key.slice(key.indexOf(':') + 1),
+        // Shown on screen: the address, or the name as first WRITTEN rather than its key.
+        label: reason === 'email' ? r.email : (r.display || r.name),
+        email: r.email,
+        name: r.name,
+        display: r.display,
+        entries: []
+      });
+    }
     byKey.get(key).entries.push({ line: r.line, raw: r.raw });
   });
 
-  const groups = [...byKey.values()].filter((g) => g.entries.length > 1);
+  const people = [...byKey.values()];
+  const groups = people.filter((g) => g.entries.length > 1)
+    .map(({ reason, key, label, entries }) => ({ reason, key, label, entries }));
+  const possible = possibleMatches(people.filter((p) => p.name));
   // One line per person, as it was first written, in the order the list gave them: the
-  // list somebody takes away. Nothing is merged into it — the first spelling is kept as typed.
-  const clean = [...byKey.values()].map((g) => g.entries[0].raw);
-  return { total: records.length, unique: byKey.size, groups, clean, truncated };
+  // list somebody takes away. Nothing is merged into it — the first spelling is kept as typed,
+  // and a POSSIBLE match stays two lines until a person decides.
+  const clean = people.map((g) => g.entries[0].raw);
+  const csv = ['name,email', ...people.map((g) => `${csvCell(g.display)},${csvCell(g.email)}`)].join('\r\n');
+  return {
+    total: records.length,
+    unique: byKey.size,
+    groups,
+    possible: possible.pairs,
+    possibleCapped: possible.capped,
+    clean,
+    csv,
+    truncated
+  };
 }
 
-module.exports = { findDuplicates, normaliseName, normaliseEmail, MAX_LINES, MAX_CHARS };
+module.exports = {
+  findDuplicates, normaliseName, normaliseEmail, jaroWinkler, csvCell,
+  MAX_LINES, MAX_CHARS, POSSIBLE_THRESHOLD
+};

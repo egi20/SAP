@@ -761,8 +761,18 @@ asserted at boot as https on dynamicshub.net; unset, the card has no button and 
 administrator is told why, because a guessed address is a 404 nobody here would notice. Below
 it, the per-person check: the form renders only for an account with the switch, and the POST
 keeps `hasDedupeAccess`. Results are stat cards (lines · people · duplicates) and a clean list,
-one line per person as first written, copied by a `main.js`-built button. Fuzzy matching,
-uploads and more keys were proposed and NOT built: that is the master-data product's job.
+one line per person as first written, copied by a `main.js`-built button, and a CSV of it
+built on the server (`csvCell` refuses a leading `= + - @`: a spreadsheet runs those).
+**Possible matches are FLAGGED, never merged** (the same day, owner's request): a line with
+no email whose name equals, or by Jaro-Winkler ≥ 0.92 nearly equals, another line's name.
+Linked lines are joined into one box (union-find), candidates come from a shared word so two
+thousand lines are not two million comparisons, and the clean list keeps every line until a
+person decides. German spelling is folded into the key (ü→ue, ö→oe, ä→ae, ß→ss) but never
+"ue" back to "u", which would make Michael and Michal one exact key — Muller/Mueller is a
+POSSIBLE match, which is what it is. A CSV file is read in the browser into the box
+(`public/js/dedupe.js`, column picker included) and sent only as pasted text; Excel is not
+read, the page says to save it as CSV. Groups show the name as written, not its key. More
+keys (phone, VAT) remain the master-data product's job.
 
 **Admin › Automated Tests runs the regression library against this process, as
 dynamicshub.net's Admin › Tests does** (owner's request, 2026-10-22; migration 034). The

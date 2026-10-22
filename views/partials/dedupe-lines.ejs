@@ -1,0 +1,11 @@
+<%#
+  The lines of one group. Each line number links to the pasted box, and dedupe.js selects
+  that line in it; without scripting the link still takes the reader to the box.
+-%>
+<ul class="list-unstyled small mb-0">
+  <% entries.forEach(function (entry) { %>
+    <li class="text-break">
+      <a class="text-muted-2 dedupe-line" href="#dedupeList" data-line="<%= entry.line %>">line <%= entry.line %></a>: <%= entry.raw %>
+    </li>
+  <% }); %>
+</ul>
