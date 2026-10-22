@@ -223,6 +223,14 @@ h4 { font-size: 1.5rem; }
 h5 { font-size: 1.25rem; }
 h6 { font-size: 1rem; }
 
+/*
+ * A heading given a size class (<h2 class="h5">) loses the rule above: Bootstrap's
+ * `.h5 { font-weight: 500; color: var(--bs-heading-color) }` outranks a bare `h2` on
+ * specificity, so the card title comes out grey and medium. `.card-heading` puts the
+ * heading's own weight and colour back where a card title should read as one.
+ */
+.card-heading { color: var(--primary-navy); font-weight: 700; }
+
 a {
   color: var(--primary-blue);
   text-decoration: none;

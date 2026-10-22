@@ -20,9 +20,9 @@
 <section class="glass-section pb-5">
 <div class="container">
   <div class="row g-4">
-    <div class="col-lg-7 d-flex flex-column">
-      <div class="glass-card flex-grow-1"><div class="card-body">
-        <h2 class="h5 fw-semibold">Send us a message</h2>
+    <div class="col-lg-7">
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h5 card-heading">Send us a message</h2>
         <% if (errors.length) { %>
           <div class="alert alert-danger">
             <ul class="mb-0">
@@ -45,9 +45,9 @@
       </div></div>
     </div>
 
-    <aside class="col-lg-5 d-flex flex-column">
+    <aside class="col-lg-5">
       <div class="glass-card mb-4"><div class="card-body">
-        <h2 class="h5 fw-semibold">Contact information</h2>
+        <h2 class="h5 card-heading">Contact information</h2>
         <ul class="list-unstyled mb-0 contact-info">
           <li class="d-flex gap-3 mb-3">
             <span class="icon-tile icon-navyblue flex-shrink-0"><i class="bi bi-envelope" aria-hidden="true"></i></span>
@@ -78,7 +78,7 @@
 
       <% if (followLinks.length) { %>
         <div class="glass-card mb-4"><div class="card-body">
-          <h2 class="h5 fw-semibold">Follow us</h2>
+          <h2 class="h5 card-heading">Follow us</h2>
           <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
             <% followLinks.forEach(function (link) { %>
               <li>
@@ -91,9 +91,8 @@
         </div></div>
       <% } %>
 
-      <%# flex-grow: the last card ends level with the form, whatever the two hold. -%>
-      <div class="glass-card flex-grow-1"><div class="card-body">
-        <h2 class="h5 fw-semibold">Before you write</h2>
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h5 card-heading">Before you write</h2>
         <p class="mb-0 small text-muted-2">
           Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
           built is explained on <a href="/rates">the index itself</a>, and what the estimator
@@ -111,7 +110,7 @@
     column down to the bottom of the form.
   -%>
   <div class="glass-card mt-4"><div class="card-body">
-    <h2 class="h5 fw-semibold">What to tell us</h2>
+    <h2 class="h5 card-heading">What to tell us</h2>
     <ul class="mb-0 small">
           <li><strong>A payment or an invoice</strong> — the payment reference from
               <a href="/payments/history">your payments page</a>. It starts with <code>PAY-</code>.</li>
@@ -128,7 +127,7 @@
     <%# Signed-out only: a member has an account, and offering them one is noise. -%>
     <div class="glass-card mt-4"><div class="card-body d-md-flex align-items-center justify-content-between gap-3">
       <div>
-        <h2 class="h5 fw-semibold mb-1">New to SAP Hub?</h2>
+        <h2 class="h5 card-heading mb-1">New to SAP Hub?</h2>
         <p class="mb-md-0 text-muted-2">Create a free account to find SAP roles, hire consultants and join the community.</p>
       </div>
       <a class="btn btn-primary flex-shrink-0" href="/auth/register">Create account</a>
