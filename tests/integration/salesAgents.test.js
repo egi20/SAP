@@ -103,6 +103,21 @@ maybe()('sales agents', () => {
     expect(page.text).toContain('No agent link');
   });
 
+  it("the agent sees their link and who came through it on the dashboard, without email addresses", async () => {
+    const agentUser = await User.findByEmail(AGENT);
+    const { code } = await SalesAgent.findByUserId(agentUser.id);
+    const me = await signIn(AGENT);
+    const res = await me.get('/dashboard?tab=agent');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(`/s/${code}`);
+    expect(res.text).toContain('Came from your link');
+    expect(res.text).toContain('Agent Visitor');
+    expect(res.text).not.toContain(`agents-visitor-${run}@example.test`);
+    // Somebody who is not an agent gets the tab without the section.
+    const other = await signIn(SUPER);
+    expect((await other.get('/dashboard?tab=agent')).text).not.toContain('Your sign-up link');
+  });
+
   it('a paused agent credits nothing and an unknown code still reaches sign-up', async () => {
     const otherUser = await User.findByEmail(OTHER);
     const { code } = await SalesAgent.findByUserId(otherUser.id);

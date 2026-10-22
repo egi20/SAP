@@ -16,9 +16,13 @@ const { requireIdParam } = require('../utils/ids');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
 const { matchScore } = require('../utils/jobMatcher');
 const Referral = require('../models/Referral');
+const SalesAgent = require('../models/SalesAgent');
+const config = require('../config/config');
 const { tabsFor } = require('../config/dashboard');
 
 const router = express.Router();
+
+const AGENT_LIST_CAP = 500;
 
 router.use(isAuthenticated);
 
@@ -75,13 +79,28 @@ router.get(
      */
     const tabs = tabsFor(user);
     const activeTab = tabs.find((t) => t.key === req.query.tab) || tabs[0];
-    const referrer = await Referral.findByUserId(user.id);
+    const [referrer, agentStats] = await Promise.all([
+      Referral.findByUserId(user.id),
+      SalesAgent.statsFor(user.id)
+    ]);
+
+    /*
+     * A sales agent's own link and who came through it, on the Sales Agent tab — the view
+     * dynamicshub.net gives its agents. Fetched only for that tab. The list is capped, and
+     * the page says so when it is a slice; the count beside it is the full COUNT.
+     */
+    let salesAgent = null;
+    if (agentStats && activeTab.key === 'agent') {
+      const people = (await SalesAgent.peopleFor([user.id], { perAgent: AGENT_LIST_CAP }))[user.id] || [];
+      salesAgent = { ...agentStats, link: `${config.app.baseUrl}/s/${agentStats.code}`, people, cap: AGENT_LIST_CAP };
+    }
 
     const badges = [
       user.isConsultant && 'Consultant',
       user.isCompany && 'Company',
       user.isRecruiter && 'Agency',
-      referrer && 'Sales Agent',
+      agentStats && 'Sales Agent',
+      referrer && 'Referrer',
       user.isSuperadmin ? 'Superadmin' : user.isAdmin && 'Admin'
     ].filter(Boolean);
 
@@ -93,7 +112,8 @@ router.get(
       company,
       tabs,
       activeTab,
-      badges
+      badges,
+      salesAgent
     });
   })
 );
