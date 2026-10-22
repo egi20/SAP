@@ -1,0 +1,25 @@
+<%#
+  Horizontal bars, one per row, drawn as HTML so long role names wrap on a phone.
+  Locals: rows [{ label, value|null, note, href }], color, unit, empty.
+  A row with no value is listed with its note and no bar: a suppressed bucket keeps its
+  place and its count, it just does not publish a number.
+%>
+<% const peak = Math.max.apply(null, rows.map(function (r) { return r.value || 0; }).concat([1])); %>
+<% if (!rows.length) { %>
+  <div class="rate-chart-empty"><i class="bi bi-bar-chart"></i><span><%= empty %></span></div>
+<% } else { %>
+  <ul class="list-unstyled rate-hbars mb-0">
+    <% rows.forEach(function (r) { %>
+      <li>
+        <div class="d-flex justify-content-between gap-2 small">
+          <span class="text-truncate"><% if (r.href) { %><a href="<%= r.href %>"><%= r.label %></a><% } else { %><%= r.label %><% } %></span>
+          <span class="text-nowrap"><%= r.value === null ? '' : '€' + Number(r.value).toLocaleString('en-GB') + (unit ? ' ' + unit : '') %> <span class="text-muted-2"><%= r.note %></span></span>
+        </div>
+        <svg width="100%" height="8" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 8">
+          <rect x="0" y="0" width="100" height="8" rx="4" fill="#eef2f7"></rect>
+          <% if (r.value !== null) { %><rect x="0" y="0" width="<%= Math.max(1, (100 * r.value / peak)).toFixed(1) %>" height="8" rx="4" fill="<%= color %>"></rect><% } %>
+        </svg>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>

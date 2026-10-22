@@ -1,271 +1,346 @@
 <%- include('../partials/layout-start') %>
 
 <%- include('../partials/page-header', { icon: 'bi-graph-up',
-  heading: 'SAP day rate index',
-  sub: 'Built from figures contributed by consultants, one per person per month.'
+  heading: 'Rate & Salary Index',
+  sub: 'Benchmark your day rate with our published model, and explore what SAP consultants report and what open adverts offer.'
 }) %>
+
+<%#
+  Laid out like dynamicshub.net/consultants/rate-calculator (2026-10-22): benchmark and
+  market charts first, the community index with its tabs, what adverts offer (contract and
+  permanent), the per-role links, then the methodology.
+
+  THREE SOURCES, THREE SECTIONS, NEVER ONE NUMBER: the editorial model (the calculator and
+  the per-role baseline), what members report (contributed, behind the people floor),
+  and what open adverts offer. Each says which it is.
+%>
+<%
+  const fmt = function (v) { return v === null || v === undefined ? '—' : '€' + Number(v).toLocaleString('en-GB'); };
+  const unitFor = filters.engagementType === 'contract' ? '/day' : '/year';
+  const keep = function (extra) {
+    const q = [];
+    if (filters.role) q.push('role=' + encodeURIComponent(filters.role));
+    if (filters.seniority) q.push('seniority=' + filters.seniority);
+    if (filters.engagementType !== 'contract') q.push('engagement_type=' + filters.engagementType);
+    if (filters.country) q.push('country=' + filters.country);
+    if (extra) q.push(extra);
+    return '/rates' + (q.length ? '?' + q.join('&') : '');
+  };
+%>
 
 <section class="glass-section pb-5">
 <div class="container">
   <%- include('../partials/flash') %>
 
-  <div class="alert alert-light border d-flex gap-2 align-items-start">
-    <i class="bi bi-shield-check mt-1"></i>
-    <div class="small mb-0">
-      <strong>How this stays honest.</strong> Every figure counts one person, not one submission.
-      Any bucket with fewer than <%= minSample %> contributors is not published — the contributor count
-      is shown, the numbers are not. Months below the threshold appear as gaps in the trend rather
-      than as zeroes, because drawing a line through missing data invents it.
+  <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+    <span class="badge-hub fs-6 px-3 py-2"><i class="bi bi-people me-1"></i><%= contributors %> consultant<%= contributors === 1 ? '' : 's' %> with rate data</span>
+    <% if (!summary.suppressed) { %>
+      <span class="badge-hub fs-6 px-3 py-2"><i class="bi bi-currency-euro me-1"></i><%= fmt(summary.median) %> median <%= unitFor %></span>
+    <% } else { %>
+      <span class="badge-hub muted fs-6 px-3 py-2">Figures unlock once <%= minSample %> people have shared a rate</span>
+    <% } %>
+    <span class="badge-hub fs-6 px-3 py-2"><i class="bi bi-briefcase me-1"></i><%= adverts.contract.summary.adverts + adverts.permanent.summary.adverts %> open adverts with a rate</span>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <%# Benchmark my rate — the published model. Submits to /rates/calculator, a GET, so the answer is a link. %>
+    <div class="col-lg-5">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5 mb-1"><i class="bi bi-calculator me-2"></i>Benchmark my rate</h2>
+        <p class="small text-muted-2 mb-3">Our published model, with every multiplier printed beside the answer.</p>
+        <form method="get" action="/rates/calculator">
+          <div class="mb-3">
+            <label class="form-label" for="b-role">Primary role</label>
+            <select class="form-select" id="b-role" name="role" required>
+              <option value="">Choose a role…</option>
+              <% roleCategories.forEach(function (cat) { %>
+                <optgroup label="<%= cat.category %>">
+                  <% cat.roles.forEach(function (r) { %><option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option><% }); %>
+                </optgroup>
+              <% }); %>
+            </select>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="b-years">Years of SAP experience</label>
+              <input class="form-control" id="b-years" name="years" type="number" min="0" max="50" value="6">
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="b-certs">SAP certifications</label>
+              <input class="form-control" id="b-certs" name="certifications" type="number" min="0" max="20" value="0">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="b-country">Where you work from</label>
+            <select class="form-select" id="b-country" name="country">
+              <option value="">Not sure / elsewhere</option>
+              <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <span class="form-label d-block">Work arrangement</span>
+            <div class="btn-group w-100" role="group" aria-label="Work arrangement">
+              <% model.WORK_MODES.forEach(function (m, i) { %>
+                <input type="radio" class="btn-check" name="work_mode" id="b-wm-<%= m.key %>" value="<%= m.key %>" <%= m.key === 'hybrid' ? 'checked' : '' %>>
+                <label class="btn btn-outline-primary btn-sm" for="b-wm-<%= m.key %>"><%= m.label %></label>
+              <% }); %>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="b-contract">Pricing model</label>
+            <select class="form-select" id="b-contract" name="contract_type">
+              <% model.CONTRACT_TYPES.forEach(function (c) { %><option value="<%= c.key %>" <%= c.key === 'time-and-materials' ? 'selected' : '' %>><%= c.label %></option><% }); %>
+            </select>
+          </div>
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-calculator me-1"></i>Calculate my rate</button>
+        </form>
+      </div></div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="glass-card mb-4"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+          <h2 class="h5 mb-0"><i class="bi bi-graph-up me-2"></i>Market rate trends</h2>
+          <span class="small text-muted-2"><%= filters.role ? roleLabel(filters.role) : 'All roles' %> · <%= filters.engagementType === 'contract' ? 'day rate' : 'annual salary' %></span>
+        </div>
+        <%- include('./partials/month-line', { points: trend, color: '#0064d9', label: 'Median contributed rate' }) %>
+        <p class="small text-muted-2 mt-2 mb-0">
+          Median of what members report, by month. A month with fewer than <%= minSample %> people is a gap in the line, not a zero.
+          <% if (adverts[filters.engagementType].summary.adverts) { %>Open adverts are charted below, separately.<% } %>
+        </p>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h5 mb-3"><i class="bi bi-bar-chart me-2"></i>Rates by role</h2>
+        <%- include('./partials/hbars', {
+          rows: byRole.map(function (r) { return { label: roleLabel(r.role), value: r.suppressed ? null : r.median, note: r.suppressed ? r.contributors + ' so far — not published' : r.contributors + ' people', href: '/rates/' + r.role }; }),
+          color: '#0064d9', unit: unitFor, empty: 'Nobody has contributed a rate for this view yet.'
+        }) %>
+      </div></div>
     </div>
   </div>
 
-  <form class="glass-card p-3 mb-4" method="get" action="/rates">
-    <div class="row g-2 align-items-end">
+  <%# Community rate index: what members report, with the filters and the floor. %>
+  <div class="glass-card mb-4" id="community"><div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <div>
+        <h2 class="h5 mb-1"><i class="bi bi-people me-2"></i>Community rate index</h2>
+        <p class="small text-muted-2 mb-0">One figure per person per month, last 12 months. Any bucket with fewer than <%= minSample %> people shows its count and no numbers.</p>
+      </div>
+      <% if (currentUser && currentUser.isConsultant) { %>
+        <a class="btn btn-primary btn-sm" href="/rates/submit"><i class="bi bi-plus-lg me-1"></i>Contribute your rate</a>
+      <% } else if (!currentUser) { %>
+        <a class="btn btn-primary btn-sm" href="/auth/register">Create a consultant account to contribute</a>
+      <% } %>
+    </div>
+
+    <form method="get" action="/rates#community" class="row g-2 align-items-end mb-3">
       <div class="col-md-4">
-        <label class="form-label" for="r-role">Role</label>
-        <select class="form-select" id="r-role" name="role">
+        <label class="form-label small mb-1" for="r-role">Role</label>
+        <select class="form-select form-select-sm" id="r-role" name="role">
           <option value="">All roles</option>
           <% roleCategories.forEach(function (cat) { %>
             <optgroup label="<%= cat.category %>">
-              <% cat.roles.forEach(function (r) { %>
-                <option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option>
-              <% }); %>
+              <% cat.roles.forEach(function (r) { %><option value="<%= r.value %>" <%= filters.role === r.value ? 'selected' : '' %>><%= r.label %></option><% }); %>
             </optgroup>
           <% }); %>
         </select>
       </div>
-      <div class="col-md-2">
-        <label class="form-label" for="r-seniority">Seniority</label>
-        <select class="form-select" id="r-seniority" name="seniority">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="r-seniority">Seniority</label>
+        <select class="form-select form-select-sm" id="r-seniority" name="seniority">
           <option value="">All</option>
-          <% ['junior','mid','senior','lead'].forEach(function (s) { %>
-            <option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= optionLabel(s) %></option>
-          <% }); %>
+          <% ['junior','mid','senior','lead'].forEach(function (s) { %><option value="<%= s %>" <%= filters.seniority === s ? 'selected' : '' %>><%= optionLabel(s) %></option><% }); %>
         </select>
       </div>
-      <div class="col-md-2">
-        <label class="form-label" for="r-engagement">Type</label>
-        <select class="form-select" id="r-engagement" name="engagement_type">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="r-engagement">Type</label>
+        <select class="form-select form-select-sm" id="r-engagement" name="engagement_type">
           <option value="contract" <%= filters.engagementType === 'contract' ? 'selected' : '' %>>Contract</option>
           <option value="permanent" <%= filters.engagementType === 'permanent' ? 'selected' : '' %>>Permanent</option>
         </select>
       </div>
       <div class="col-md-3">
-        <label class="form-label" for="r-country">Country</label>
-        <select class="form-select" id="r-country" name="country">
+        <label class="form-label small mb-1" for="r-country">Country</label>
+        <select class="form-select form-select-sm" id="r-country" name="country">
           <option value="">All countries</option>
           <%- include('../partials/country-options', { countries: countries, selected: filters.country }) %>
         </select>
       </div>
-      <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">Go</button></div>
-    </div>
-  </form>
+      <div class="col-md-1"><button class="btn btn-primary btn-sm w-100" type="submit">Go</button></div>
+    </form>
 
-  <div class="row g-3 mb-4">
-    <div class="col-md-8">
-      <div class="glass-card h-100">
-        <div class="card-body">
-          <h2 class="h6 text-muted-2 text-uppercase">
-            <%= filters.role ? roleLabel(filters.role) : 'All roles' %><%= filters.seniority ? ' · ' + filters.seniority : '' %>
-          </h2>
-          <% if (summary.suppressed) { %>
-            <p class="rate-figure suppressed mb-1">Not published</p>
-            <p class="text-muted-2 mb-0">
-              <%= summary.contributors %> contributor<%= summary.contributors === 1 ? '' : 's' %> so far.
-              At least <%= minSample %> are needed before this bucket is shown.
-            </p>
-          <% } else { %>
-            <p class="mb-1">
-              <span class="rate-figure"><%= summary.median %></span>
-              <span class="text-muted-2">EUR <%= filters.engagementType === 'contract' ? 'per day' : 'per year' %> (median)</span>
-            </p>
-            <p class="text-muted-2 mb-0">
-              25th–75th percentile: <strong><%= summary.p25 %></strong>–<strong><%= summary.p75 %></strong> ·
-              range <%= summary.min %>–<%= summary.max %> ·
-              <%= summary.contributors %> contributors
-            </p>
-          <% } %>
+    <div class="row g-3 text-center">
+      <% if (summary.suppressed) { %>
+        <div class="col-12">
+          <p class="rate-figure suppressed mb-1">Not published</p>
+          <p class="text-muted-2 mb-0"><%= summary.contributors %> contributor<%= summary.contributors === 1 ? '' : 's' %> so far. At least <%= minSample %> are needed before this bucket is shown.</p>
         </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="glass-card h-100">
-        <div class="card-body">
-          <h2 class="h6 text-muted-2 text-uppercase">Editorial baseline</h2>
-          <% if (curatedBaseline) { %>
-            <p class="mb-1"><span class="rate-figure"><%= curatedBaseline %></span> <span class="text-muted-2">EUR/day</span></p>
-            <p class="small text-muted-2 mb-0">
-              Our own published starting point for this role. Shown separately and never blended
-              into the contributed figures. <a href="#baseline-method">How it is set</a>.
-            </p>
-          <% } else { %>
-            <p class="small text-muted-2 mb-0">Choose a role to see the editorial baseline.</p>
-          <% } %>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <%#
-    The baseline is a judgement, and the page says so in full rather than in a tooltip. A
-    figure with no stated basis on a page that is otherwise strict about where its numbers
-    come from is the one number on it that cannot be argued with — which is backwards.
-  %>
-  <details class="glass-card mb-4" id="baseline-method"><summary class="card-body py-3 fw-semibold">How the editorial baseline is set</summary>
-    <div class="card-body pt-0 small">
-      <p>
-        The baseline is an <strong>editorial judgement by the SAP Hub team</strong>, not a
-        measurement. It is not calculated from a survey, from adverts scraped off other
-        sites, or from the contributions on this page. It exists because on day one nobody has
-        contributed anything, and "we cannot tell you" is not a usable answer to "what is this
-        role worth".
-      </p>
-      <p>
-        Each figure means one specific person: a <strong>senior</strong> consultant (six to nine
-        years), on <strong>time and materials</strong>, working <strong>hybrid</strong>, in the
-        reference region, with no certifications counted, in euros before tax. The
-        <a href="/rates/calculator">calculator</a> moves away from that point by five published
-        multipliers and prints each one, so any figure it gives can be checked by hand.
-      </p>
-      <p class="mb-0">
-        Where the contributed figures disagree with the baseline, believe the contributed figures
-        — they are what people actually said they are paid. The baseline is shown beside them so
-        the disagreement is visible, never mixed in to hide it.
-      </p>
-    </div>
-  </details>
-
-  <% if (filters.role && trend.length) { %>
-    <div class="glass-card mb-4">
-      <div class="card-body">
-        <h2 class="h6 mb-3">Last 12 months</h2>
-        <%
-          const values = trend.filter(function (t) { return t.value !== null; }).map(function (t) { return t.value; });
-          const peak = values.length ? Math.max.apply(null, values) : 1;
-        %>
-        <div class="trend" role="img" aria-label="Median rate by month; months with too few contributors are shown as gaps">
-          <% trend.forEach(function (t) { %>
-            <% if (t.value === null) { %>
-              <div class="bar gap" style="height:100%" title="<%= t.period %>: not enough contributors"></div>
-            <% } else { %>
-              <div class="bar" style="height:<%= Math.max(4, Math.round((t.value / peak) * 100)) %>%"
-                   title="<%= t.period %>: <%= t.value %> EUR (<%= t.contributors %> contributors)"></div>
-            <% } %>
-          <% }); %>
-        </div>
-        <div class="trend-labels mt-1">
-          <% trend.forEach(function (t) { %><span><%= t.period.slice(5) %></span><% }); %>
-        </div>
-        <p class="small text-muted-2 mt-2 mb-0">Hatched columns are months with fewer than <%= minSample %> contributors.</p>
-      </div>
-    </div>
-  <% } %>
-
-  <% if (filters.role && bySeniority.length) { %>
-    <div class="glass-card mb-4">
-      <div class="card-body">
-        <h2 class="h6 mb-3">By seniority — <%= roleLabel(filters.role) %></h2>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead><tr><th>Seniority</th><th class="text-end">Median</th><th class="text-end">P25</th><th class="text-end">P75</th><th class="text-end">Contributors</th></tr></thead>
-            <tbody>
-              <% bySeniority.forEach(function (row) { %>
-                <tr>
-                  <td class="text-capitalize"><%= row.seniority %></td>
-                  <% if (row.suppressed) { %>
-                    <td colspan="3" class="text-end suppressed">Not enough data</td>
-                  <% } else { %>
-                    <td class="text-end"><strong><%= row.median %></strong></td>
-                    <td class="text-end"><%= row.p25 %></td>
-                    <td class="text-end"><%= row.p75 %></td>
-                  <% } %>
-                  <td class="text-end"><%= row.contributors %></td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  <% } %>
-
-  <div class="glass-card mb-4">
-    <div class="card-body">
-      <h2 class="h6 mb-3">All roles</h2>
-      <% if (byRole.length === 0) { %>
-        <div class="empty-state"><i class="bi bi-bar-chart"></i>No contributions yet.</div>
       <% } else { %>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead><tr><th>Role</th><th class="text-end">Median</th><th class="text-end">P25–P75</th><th class="text-end">Contributors</th></tr></thead>
-            <tbody>
-              <% byRole.forEach(function (row) { %>
-                <tr>
-                  <td><a href="/rates/<%= row.role %>"><%= roleLabel(row.role) %></a></td>
-                  <% if (row.suppressed) { %>
-                    <td colspan="2" class="text-end suppressed">Not enough data</td>
-                  <% } else { %>
-                    <td class="text-end"><strong><%= row.median %></strong></td>
-                    <td class="text-end"><%= row.p25 %>–<%= row.p75 %></td>
-                  <% } %>
-                  <td class="text-end"><%= row.contributors %></td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        </div>
+        <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(summary.median) %></p><p class="small text-muted-2 mb-0">Median <%= unitFor %></p></div>
+        <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(summary.p25) %>–<%= fmt(summary.p75).slice(1) %></p><p class="small text-muted-2 mb-0">25th–75th percentile</p></div>
+        <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(summary.min) %>–<%= fmt(summary.max).slice(1) %></p><p class="small text-muted-2 mb-0">Range</p></div>
+        <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= summary.contributors %></p><p class="small text-muted-2 mb-0">People</p></div>
       <% } %>
     </div>
-  </div>
+    <% if (curatedBaseline) { %>
+      <p class="small text-muted-2 mt-3 mb-0"><i class="bi bi-bookmark me-1"></i>Our editorial baseline for <%= roleLabel(filters.role) %> is <strong><%= fmt(curatedBaseline) %>/day</strong> — shown beside the members' figures, never mixed into them. <a href="#methodology">How it is set</a>.</p>
+    <% } %>
+  </div></div>
 
-  <%#
-    Every role, with its published base rate, whether or not anybody has contributed to it.
-    The contributed table above can be empty for months on a new install, and an index whose
-    only navigation is a table of what people happened to fill in leaves most of the site
-    unreachable — and looks broken while it does.
-  %>
-  <div class="glass-card mb-4">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-          <h2 class="h6 mb-1">Day rates by role</h2>
-          <p class="small text-muted-2 mb-0">
-            Our published benchmark for a consultant with six to nine years, before any
-            adjustment for region, certifications or contract type. EUR per day.
+  <%# By role / seniority / country. Tabs are LINKS (?tab=), so they work without scripting and can be bookmarked. %>
+  <div class="glass-card mb-4" id="breakdown"><div class="card-body">
+    <ul class="nav nav-tabs mb-3">
+      <% [['role', 'By role', 'bi-person-badge'], ['seniority', 'By seniority', 'bi-ladder'], ['country', 'By country', 'bi-globe']].forEach(function (t) { %>
+        <li class="nav-item"><a class="nav-link <%= tab === t[0] ? 'active' : '' %>" <%- tab === t[0] ? 'aria-current="page"' : '' %> href="<%= keep('tab=' + t[0]) %>#breakdown"><i class="bi <%= t[2] %> me-1"></i><%= t[1] %></a></li>
+      <% }); %>
+    </ul>
+    <%
+      const tableRows = tab === 'seniority'
+        ? bySeniority.map(function (r) { return Object.assign({ label: optionLabel(r.seniority) }, r); })
+        : tab === 'country'
+          ? byCountry.map(function (r) { return Object.assign({ label: countryName(r.country) || r.country }, r); })
+          : byRole.map(function (r) { return Object.assign({ label: roleLabel(r.role), href: '/rates/' + r.role }, r); });
+    %>
+    <% if (!tableRows.length || tableRows.every(function (r) { return !r.contributors; })) { %>
+      <div class="empty-state"><i class="bi bi-bar-chart"></i>No contributions in this view yet.</div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr>
+            <th><%= tab === 'seniority' ? 'Seniority' : tab === 'country' ? 'Country' : 'Role' %></th>
+            <th class="text-end">People</th><th class="text-end">Min</th><th class="text-end">Median</th><th class="text-end">P25–P75</th><th class="text-end">Max</th>
+          </tr></thead>
+          <tbody>
+            <% tableRows.forEach(function (r) { %>
+              <tr>
+                <td><% if (r.href) { %><a href="<%= r.href %>"><%= r.label %></a><% } else { %><%= r.label %><% } %></td>
+                <td class="text-end"><%= r.contributors %></td>
+                <% if (r.suppressed) { %>
+                  <td colspan="4" class="text-end suppressed">Not enough data</td>
+                <% } else { %>
+                  <td class="text-end"><%= fmt(r.min) %></td>
+                  <td class="text-end"><strong><%= fmt(r.median) %></strong></td>
+                  <td class="text-end"><%= fmt(r.p25) %>–<%= fmt(r.p75).slice(1) %></td>
+                  <td class="text-end"><%= fmt(r.max) %></td>
+                <% } %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div></div>
+
+  <%# What open adverts offer: contract day rates, then permanent salaries. Not contributed, not floored, not blended. %>
+  <% [['contract', 'Daily rate budgets (contract adverts)', 'bi-calendar-day', '/day', '#0f9d8a'], ['permanent', 'Annual salaries (permanent adverts)', 'bi-briefcase', '/year', '#d97706']].forEach(function (sec) { const a = adverts[sec[0]]; %>
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h5 mb-1"><i class="bi <%= sec[2] %> me-2"></i><%= sec[1] %></h2>
+      <p class="small text-muted-2 mb-3">
+        What companies offer on SAP Hub's open adverts that show a rate — a midpoint of each advert's range.
+        Adverts that hide their rate are not counted.
+        <% if (a.outOfBounds) { %><%= a.outOfBounds %> advert<%= a.outOfBounds === 1 ? '' : 's' %> outside the plausible range left out.<% } %>
+      </p>
+      <% if (!a.summary.adverts) { %>
+        <div class="rate-chart-empty"><i class="bi <%= sec[2] %>"></i><span>No open <%= sec[0] %> advert shows a <%= sec[0] === 'contract' ? 'day rate' : 'salary' %> yet. <a href="/jobs?engagement_type=<%= sec[0] %>">Browse adverts</a></span></div>
+      <% } else { %>
+        <div class="row g-3 text-center mb-3">
+          <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= a.summary.adverts %></p><p class="small text-muted-2 mb-0">Adverts</p></div>
+          <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(a.summary.median) %></p><p class="small text-muted-2 mb-0">Median offer <%= sec[3] %></p></div>
+          <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(a.summary.avgMin) %>–<%= fmt(a.summary.avgMax).slice(1) %></p><p class="small text-muted-2 mb-0">Average range</p></div>
+          <div class="col-6 col-md-3"><p class="stat-value mb-0"><%= fmt(a.summary.low) %>–<%= fmt(a.summary.high).slice(1) %></p><p class="small text-muted-2 mb-0">Lowest–highest</p></div>
+        </div>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <h3 class="h6"><i class="bi bi-graph-up me-1"></i>Median offer by month published</h3>
+            <%- include('./partials/month-line', { points: a.byMonth, color: sec[4], label: 'Median advertised ' + (sec[0] === 'contract' ? 'day rate' : 'salary') }) %>
+          </div>
+          <div class="col-lg-6">
+            <h3 class="h6"><i class="bi bi-bar-chart me-1"></i>By role</h3>
+            <%- include('./partials/hbars', {
+              rows: a.byRole.map(function (r) { return { label: roleLabel(r.key), value: r.median, note: r.adverts + ' advert' + (r.adverts === 1 ? '' : 's'), href: '/rates/' + r.key }; }),
+              color: sec[4], unit: sec[3], empty: 'No role yet.'
+            }) %>
+          </div>
+          <% if (sec[0] === 'permanent') { %>
+            <div class="col-12">
+              <h3 class="h6"><i class="bi bi-ladder me-1"></i>By seniority</h3>
+              <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Seniority</th><th class="text-end">Adverts</th><th class="text-end">Average min</th><th class="text-end">Average max</th><th class="text-end">Median</th></tr></thead>
+                <tbody>
+                  <% a.bySeniority.forEach(function (r) { %>
+                    <tr><td><%= optionLabel(r.key) %></td><td class="text-end"><%= r.adverts %></td><td class="text-end"><%= fmt(r.avgMin) %></td><td class="text-end"><%= fmt(r.avgMax) %></td><td class="text-end"><strong><%= fmt(r.median) %></strong></td></tr>
+                  <% }); %>
+                </tbody>
+              </table></div>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+    </div></div>
+  <% }); %>
+
+  <%# Every role with its published base rate, whether or not anybody has contributed — the navigation into /rates/:role. %>
+  <div class="glass-card mb-4"><div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
+      <div>
+        <h2 class="h5 mb-1"><i class="bi bi-signpost-split me-2"></i>Rate benchmarks by role</h2>
+        <p class="small text-muted-2 mb-0">Our published benchmark for a consultant with six to nine years, before any adjustment. EUR per day.</p>
+      </div>
+      <a class="btn btn-outline-primary btn-sm" href="/rates/calculator">Open the full calculator</a>
+    </div>
+    <% roleIndex.forEach(function (group) { %>
+      <h3 class="h6 text-muted-2 text-uppercase mt-3"><%= group.category %></h3>
+      <div class="row g-2">
+        <% group.roles.forEach(function (r) { %>
+          <div class="col-sm-6 col-lg-4">
+            <a class="role-rate-link d-flex justify-content-between align-items-center gap-2" href="/rates/<%= r.value %>">
+              <span><%= r.label %></span><span class="text-muted-2 flex-shrink-0"><%= r.base %></span>
+            </a>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div></div>
+
+  <details class="glass-card" id="methodology">
+    <summary class="card-body py-3 fw-semibold"><i class="bi bi-mortarboard me-2"></i>Methodology &amp; data quality</summary>
+    <div class="card-body pt-0 small">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <h3 class="h6"><i class="bi bi-calculator me-1"></i>The benchmark and the baseline</h3>
+          <p>
+            The baseline is an <strong>editorial judgement by the SAP Hub team</strong>, not a measurement — not a
+            survey, not adverts scraped off other sites, and not the contributions on this page. It exists because
+            on day one nobody has contributed anything, and "we cannot tell you" is not a usable answer.
+          </p>
+          <p class="mb-0">
+            Each figure means one person: a <strong>senior</strong> consultant (six to nine years), on
+            <strong>time and materials</strong>, <strong>hybrid</strong>, in the reference region, no certifications
+            counted, euros before tax. The calculator moves away from that point by five published multipliers and
+            prints each one, so any figure can be checked by hand.
           </p>
         </div>
-        <a class="btn btn-primary btn-sm" href="/rates/calculator">Benchmark your rate</a>
-      </div>
-      <% roleIndex.forEach(function (group) { %>
-        <h3 class="h6 text-muted-2 text-uppercase mt-3"><%= group.category %></h3>
-        <div class="row g-2">
-          <% group.roles.forEach(function (r) { %>
-            <div class="col-sm-6 col-lg-4">
-              <a class="role-rate-link d-flex justify-content-between align-items-center gap-2"
-                 href="/rates/<%= r.value %>">
-                <span><%= r.label %></span>
-                <span class="text-muted-2 flex-shrink-0"><%= r.base %></span>
-              </a>
-            </div>
-          <% }) %>
+        <div class="col-md-6">
+          <h3 class="h6"><i class="bi bi-database me-1"></i>Sources and how they stay honest</h3>
+          <ul class="mb-0 ps-3">
+            <li><strong>Members' figures</strong> count people, not submissions — one per person per month. Below <%= minSample %> people a bucket shows its count and no numbers, and a month is a gap rather than a zero.</li>
+            <li><strong>Advert figures</strong> are the ranges companies print on open adverts here, converted to euros. They are what is offered, not what is paid, and are never mixed into the members' figures.</li>
+            <li>Where members and the baseline disagree, believe the members — they are what people actually said they are paid.</li>
+          </ul>
         </div>
-      <% }) %>
-    </div>
-  </div>
-
-  <div class="glass-card">
-    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-      <div>
-        <h2 class="h6 mb-1">Add your figure</h2>
-        <p class="small text-muted-2 mb-0"><%= contributors %> people have contributed so far.</p>
+        <div class="col-12">
+          <h3 class="h6"><i class="bi bi-arrow-left-right me-1"></i>Contract day rate and permanent salary</h3>
+          <p class="mb-0">
+            A day rate is not a salary divided by 365. The calculator uses <strong><%= model.BILLABLE_DAYS_PER_MONTH %></strong>
+            billable days a month and <strong><%= model.BILLABLE_DAYS_PER_YEAR %></strong> a year, and its permanent-salary
+            equivalent is what a comparable role costs an <em>employer</em> — lower than a year of billing, because holiday,
+            sickness and the weeks between projects are paid. All figures are before tax.
+          </p>
+        </div>
       </div>
-      <% if (currentUser && currentUser.isConsultant) { %>
-        <a class="btn btn-primary" href="/rates/submit">Contribute your rate</a>
-      <% } else if (!currentUser) { %>
-        <a class="btn btn-primary" href="/auth/register">Create a consultant account</a>
-      <% } %>
     </div>
-  </div>
+  </details>
 </div>
 </section>
 

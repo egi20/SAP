@@ -4,6 +4,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 
 const RateSubmission = require('../models/RateSubmission');
+const Job = require('../models/Job');
+const { advertRates } = require('../utils/advertRates');
 const Points = require('../models/Points');
 const { isAuthenticated, isConsultant, isEmailVerified } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
@@ -40,12 +42,24 @@ router.get(
       country: /^[A-Z]{2}$/.test(req.query.country || '') ? req.query.country : ''
     };
 
-    const [summary, byRole, bySeniority, trend, contributors] = await Promise.all([
+    /*
+     * Laid out like dynamicshub.net's Rate & Salary Index (2026-10-22): the benchmark and
+     * the market charts first, then the community index with its by-role / seniority /
+     * country tabs, then what open adverts offer, contract and permanent, then the
+     * per-role links and the methodology. Three sources, three sections, never blended.
+     */
+    const TABS = ['role', 'seniority', 'country'];
+    const tab = TABS.includes(req.query.tab) ? req.query.tab : 'role';
+
+    const [summary, byRole, bySeniority, byCountry, trend, contributors, contractRows, permanentRows] = await Promise.all([
       RateSubmission.summary(filters),
       RateSubmission.byRole(filters),
-      filters.role ? RateSubmission.bySeniority(filters) : Promise.resolve([]),
-      filters.role ? RateSubmission.trend(filters) : Promise.resolve([]),
-      RateSubmission.totalContributors()
+      RateSubmission.bySeniority(filters),
+      RateSubmission.byCountry(filters),
+      RateSubmission.trend(filters),
+      RateSubmission.totalContributors(),
+      Job.advertisedRateRows('contract'),
+      Job.advertisedRateRows('permanent')
     ]);
 
     res.render('rates/index', {
@@ -54,8 +68,15 @@ router.get(
       summary,
       byRole,
       bySeniority,
+      byCountry,
       trend,
       contributors,
+      tab,
+      adverts: {
+        contract: advertRates(contractRows, 'contract', RateSubmission.toEur),
+        permanent: advertRates(permanentRows, 'permanent', RateSubmission.toEur)
+      },
+      model: benchmarkModel,
       minSample: MIN_SAMPLE,
       roleCategories: ROLE_CATEGORIES,
       /*
