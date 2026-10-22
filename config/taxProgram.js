@@ -24,10 +24,22 @@
  * place, so they are changed in one place when they change.
  */
 
+const { LEGAL_ENTITY } = require('./legalEntity');
+
+/*
+ * 2026-10-22: the claims copied from dynamicshub.net that are only true of Dynamics Hub
+ * came out — "€20K+ average annual savings", "€20,000-€30,000/year" and "dozens of SAP
+ * consultants already using this structure" are that site's figures, and SAP Hub has no
+ * clients of its own on this programme yet. What stays is what the programme itself
+ * promises (no setup fees, the treaties, the onboarding time), and the entity is named as
+ * what it is: SAP Hub is operated by the legal entity in config/legalEntity.js. Put a
+ * figure back only when SAP Hub's own clients produce it.
+ */
 const TAX_PROGRAM = Object.freeze({
   entityName: 'SAP Hub',
+  operatorName: LEGAL_ENTITY.name,
   stats: Object.freeze([
-    Object.freeze({ value: '€20K+', label: 'Avg. Annual Savings' }),
+    Object.freeze({ value: '€0', label: 'Setup Fees' }),
     Object.freeze({ value: '40+', label: 'Tax Treaties' }),
     Object.freeze({ value: '2-4', label: 'Weeks Onboarding' })
   ]),

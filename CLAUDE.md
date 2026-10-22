@@ -2265,6 +2265,10 @@ this project held from its first commit. What keeps it honest is now the job of 
   in one place. `TAX_SUCCESS_STORIES` is empty and the section does not render until it
   holds real people who agreed to it — the reference's four are Dynamics 365 consultants,
   and republished as SAP consultants they would be invented testimonials.
+  The same goes for the reference's FIGURES (2026-10-22): "€20K+ average annual savings",
+  "€20,000-€30,000/year" and "dozens of SAP consultants" were Dynamics Hub's and came out;
+  the trust card names the operator from `config/legalEntity.js`. A test fails if they
+  return. The "Indicative only" line sits directly under the saving it qualifies.
 
 **An application is the most sensitive row in the database** — a named person's salary,
 take-home and tax rate. So `tax_applications` has no IP column, the queue at

@@ -56,6 +56,21 @@ describe('config/taxProgram estimate()', () => {
   it('every result on the page is labelled indicative', () => {
     const view = fs.readFileSync(path.join(__dirname, '..', '..', 'views', 'legal', 'tax.ejs'), 'utf8');
     expect(view).toContain('Indicative only. Does not include personal income tax');
+    // Beside the saving it qualifies, not in small print below the list.
+    const saving = view.indexOf('id="taxSavingBox"');
+    const caveat = view.indexOf('Indicative only.');
+    expect(caveat).toBeGreaterThan(saving);
+    expect(caveat).toBeLessThan(view.indexOf("What's Included"));
+  });
+
+  it('claims nothing that is only true of Dynamics Hub', () => {
+    const view = fs.readFileSync(path.join(__dirname, '..', '..', 'views', 'legal', 'tax.ejs'), 'utf8');
+    const config = fs.readFileSync(path.join(__dirname, '..', '..', 'config', 'taxProgram.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    [view, config].forEach((text) => {
+      expect(text).not.toMatch(/dozens of SAP consultants/i);
+      expect(text).not.toMatch(/€20K\+|€20,000-€30,000/);
+    });
   });
 
   it('passes its own boot assertion, and publishes no invented stories', () => {

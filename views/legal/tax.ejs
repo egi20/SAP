@@ -11,8 +11,8 @@
     <div class="container">
       <div class="row align-items-center g-5">
         <div class="col-lg-6">
-          <h1 class="tax-hero-title">Maximize Your Take-Home Pay<br>Without Changing Your Work</h1>
-          <p class="tax-hero-lead">Keep your clients. Keep your location. Increase your take-home pay by €20,000-€30,000/year by moving your employment to our Albania entity.</p>
+          <h1 class="tax-hero-title">Maximize Your Take&#8209;Home Pay <br class="d-none d-lg-inline">Without Changing Your Work</h1>
+          <p class="tax-hero-lead">Keep your clients. Keep your location. See how much more you could take home by moving your employment to our Albanian entity.</p>
           <div class="row g-3 mt-2">
             <% TAX_PROGRAM.stats.forEach(function (s) { %>
               <div class="col-4"><div class="tax-stat">
@@ -76,6 +76,19 @@
                 <div>That's <span data-out="percent"></span>% more take-home pay!</div>
                 <div class="fw-semibold mt-1">Annual savings: <span data-out="annual"></span></div>
               </div>
+              <%#
+                Beside the figure, not under the list: the saving is BEFORE any income tax owed
+                where the person lives, and in a high-tax country that tax can take much of it.
+                A caveat in small print below the fold is one nobody reads before applying.
+              -%>
+              <div class="alert alert-info tax-caveat d-flex gap-2 mt-2 mb-0" role="note">
+                <i class="bi bi-info-circle-fill flex-shrink-0" aria-hidden="true"></i>
+                <div class="small">
+                  <strong>Indicative only. Does not include personal income tax you may owe in your country of tax residence.</strong>
+                  If you live in a high-tax country, that tax can take a large part of this saving.
+                  Check with a tax advisor where you live before you apply.
+                </div>
+              </div>
               <div id="taxNoSaving" class="alert alert-warning mt-3 d-none">
                 Based on these figures this structure would not increase your take-home pay.
                 <a href="/contact">Talk to us</a> if your situation is different.
@@ -92,8 +105,7 @@
                   <li><i class="bi bi-check-circle-fill"></i> Keep all your current clients</li>
                 </ul>
               </div>
-              <p class="small text-muted-2 mb-3">Indicative only. Does not include personal income tax you may owe in your country of tax residence.</p>
-              <div id="taxResultActions" class="d-flex gap-2">
+              <div id="taxResultActions" class="d-flex gap-2 mt-3">
                 <a href="#apply" class="btn btn-primary flex-fill">Apply to Join</a>
                 <a href="/contact" class="btn btn-outline-primary flex-fill">Schedule Consultation</a>
               </div>
@@ -244,15 +256,15 @@
       <div class="row g-4 text-center">
         <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
           <i class="bi bi-patch-check fs-2 tax-icon"></i><h3 class="h5 mt-2">Registered Entity</h3>
-          <p class="mb-0"><%= TAX_PROGRAM.entityName %> is a legally registered company in Albania's tech park</p>
+          <p class="mb-0"><%= TAX_PROGRAM.entityName %> is operated by <%= TAX_PROGRAM.operatorName %>, a legally registered company in Albania's tech park</p>
         </div></div></div>
         <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
           <i class="bi bi-person-badge fs-2 tax-icon"></i><h3 class="h5 mt-2">Certified Accountants</h3>
           <p class="mb-0">Our tax and legal team includes certified professionals in Albania and EU</p>
         </div></div></div>
         <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
-          <i class="bi bi-people fs-2 tax-icon"></i><h3 class="h5 mt-2">Active Consultants</h3>
-          <p class="mb-0">Join dozens of SAP consultants already using this structure</p>
+          <i class="bi bi-unlock fs-2 tax-icon"></i><h3 class="h5 mt-2">No Lock-in</h3>
+          <p class="mb-0">No setup fees, and you can return to your own company with the notice in your contract</p>
         </div></div></div>
       </div>
     </div>

@@ -1909,7 +1909,10 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
    the badges already use.
    ========================================================================== */
 .tax-hero { background: var(--hero-gradient); color: #fff; padding: 4rem 0; }
-.tax-hero-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; line-height: 1.15; color: #fff; }
+/* Two lines on a wide screen, split where the sentence splits: at 3rem in a half-width
+   column "Pay" and "Work" each wrapped onto a line of their own. The hyphen in
+   "Take-Home" is non-breaking in the template so it never splits there. */
+.tax-hero-title { font-size: clamp(1.75rem, 2.6vw, 2.25rem); font-weight: 800; line-height: 1.15; color: #fff; text-wrap: balance; }
 .tax-hero-lead { font-size: 1.05rem; opacity: 0.9; max-width: 34rem; }
 .tax-stat {
   background: rgba(255, 255, 255, 0.08);
