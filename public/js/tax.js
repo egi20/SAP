@@ -70,6 +70,8 @@
       doc.getElementById('taxResultActions').classList.toggle('d-none', !positive);
       var box = doc.getElementById('taxResult');
       box.classList.remove('d-none');
+      var row = doc.querySelector('.tax-hero-row');
+      if (row) row.classList.add('is-calculated');
       box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       // Once per page: somebody adjusting the numbers is still one person who used it.

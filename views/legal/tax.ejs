@@ -9,11 +9,17 @@
 
   <section class="tax-hero">
     <div class="container">
-      <div class="row align-items-center g-5">
-        <div class="col-lg-6">
-          <h1 class="tax-hero-title">Maximize Your Take&#8209;Home Pay <br class="d-none d-lg-inline">Without Changing Your Work</h1>
+      <%#
+        As on dynamicshub.net: the title starts level with the top of the calculator and the
+        stats end level with its bottom. The left column stretches to the card's height and
+        spreads its three blocks over it (.tax-hero-left). Once a result opens the card grows
+        far taller, so tax.js adds .is-calculated and the left side packs back to the top.
+      -%>
+      <div class="row g-5 tax-hero-row">
+        <div class="col-lg-6 tax-hero-left">
+          <h1 class="tax-hero-title">Maximize Your Take&#8209;Home&nbsp;Pay <br class="d-none d-lg-inline">Without Changing Your&nbsp;Work</h1>
           <p class="tax-hero-lead"><%= TAX_PROGRAM.heroLead %></p>
-          <div class="row g-3 mt-2">
+          <div class="row g-3 tax-hero-stats">
             <% TAX_PROGRAM.stats.forEach(function (s) { %>
               <div class="col-4"><div class="tax-stat">
                 <div class="tax-stat-value"><%= s.value %></div>
