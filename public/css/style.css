@@ -1965,8 +1965,20 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 }
 .cv-facts li { display: flex; gap: 0.6rem; margin-bottom: 0.6rem; }
 .cv-facts i { color: var(--primary-blue); font-size: 1.1rem; line-height: 1.4; }
-.cv-example-frame { max-width: 52rem; margin: 0 auto; }
-.cv-example-frame .glass-card { background-color: var(--bg-white); }
+.cv-need li { margin-bottom: 0.25rem; }
+
+/* The example CV drawn as a page: A4's width at 96 dpi, A4's proportions as a minimum
+   height, paper margins and a shadow, so it reads as the Word document it downloads as. */
+.cv-paper {
+  max-width: 794px; margin: 0 auto; background-color: var(--bg-white);
+  aspect-ratio: 210 / 297; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 12px 32px rgba(0, 38, 91, 0.12);
+  border: 1px solid var(--border-color);
+}
+.cv-paper-body { padding: 64px 72px; }
+@media (max-width: 575.98px) {
+  .cv-paper { aspect-ratio: auto; }
+  .cv-paper-body { padding: 28px 20px; }
+}
 @media (min-width: 992px) {
   /* Held inside the viewport: a sticky box taller than the screen hides its own button. */
   .sow-summary { position: sticky; top: 5.5rem; z-index: 3; background-color: var(--bg-white); max-height: calc(100vh - 6.5rem); overflow-y: auto; }

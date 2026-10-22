@@ -256,7 +256,8 @@ router.get(
     const user = req.session.user;
     const { buildCv, cvGaps } = require('../utils/cvData');
     const { exampleCvInput } = require('../config/cvExample');
-    const example = buildCv(exampleCvInput());
+    const exampleView = exampleViewFrom(req.query);
+    const example = buildCv(exampleCvInput({ ordered: exampleView.ordered }), { length: exampleView.length });
 
     /*
      * A consultant gets the real thing on this page: their own CV's gaps, the adverts it can
@@ -273,9 +274,24 @@ router.get(
         : { gaps: null, engagements: 0, options, adverts: [] };
     }
 
-    res.render('legal/cv-generator', { title: 'CV Generator', example, mine });
+    res.render('legal/cv-generator', { title: 'CV Generator', example, exampleView, mine });
   })
 );
+
+/**
+ * How the example is shown: ordered against the example advert unless asked not to (it is
+ * the feature the example exists to show), full unless the short version is asked for. Query
+ * parameters rather than a script, so the toggles work as links and the .docx beside them
+ * carries the same choice.
+ */
+function exampleViewFrom(query) {
+  const view = { ordered: query.example_order !== '0', length: query.example_len === 'short' ? 'short' : 'full' };
+  view.query = (overrides) => {
+    const v = { ...view, ...overrides };
+    return `example_order=${v.ordered ? 1 : 0}&example_len=${v.length}`;
+  };
+  return view;
+}
 
 /**
  * GET /cv-generator/example.docx — the example CV as the file a member would download.
@@ -289,7 +305,8 @@ router.get(
     const { buildCv } = require('../utils/cvData');
     const { buildCvDocx } = require('../utils/documents/cvDocx');
     const { exampleCvInput } = require('../config/cvExample');
-    const buffer = await buildCvDocx(buildCv(exampleCvInput()));
+    const view = exampleViewFrom(req.query);
+    const buffer = await buildCvDocx(buildCv(exampleCvInput({ ordered: view.ordered }), { length: view.length }));
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', 'attachment; filename="example-sap-hub-cv.docx"');
     res.setHeader('Content-Length', buffer.length);

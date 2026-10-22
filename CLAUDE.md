@@ -270,7 +270,12 @@ builder would ignore. **The example is a fictional consultant rendered by the re
 (`config/cvExample.js`, asserted at boot: named as an example, every client "Example",
 every module a catalogue key), at `/cv-generator/example.docx` and inline through the same
 `cv-preview` partial — an example drawn by hand could promise a layout the builder does not
-make. Still no cover letter: a template of prompts was considered and left for the owner.
+make. It is shown ORDERED against a fictional advert by default, because that is the feature
+a general CV builder cannot have; Full/Short and ordered/plain are query-string links
+(`exampleViewFrom`), and the .docx beside them carries the same choice. **The example reads
+like a real CV**: its summary is written as a member would write one, and the explanation
+that it is an example sits on the page above it, never inside the document. Still no cover
+letter: a template of prompts was considered and left for the owner.
 
 **ATS-friendly is a shape, not a claim.** The reference advertises it and lays its CV out
 in a two-column table. An applicant-tracking system reads the document in linear order, so
