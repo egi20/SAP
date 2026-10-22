@@ -87,6 +87,14 @@
                 </tr>
               <% } %>
 
+              <% if (estimate.runPhase && estimate.runPhase.weeks) { %>
+                <tr>
+                  <td>Hypercare</td>
+                  <td class="text-muted-2 small"><%= estimate.runPhase.weeks %> weeks × <%= estimate.runPhase.teamSize %> people after go-live</td>
+                  <td class="text-end"><%= estimate.runPhase.days %>d</td>
+                </tr>
+              <% } %>
+
               <% estimate.addonBreakdown.forEach(function (a) { %>
                 <tr><td><%= a.name %></td><td class="text-muted-2 small"><%= a.category %></td><td class="text-end"><%= a.days %>d</td></tr>
               <% }); %>
@@ -172,7 +180,8 @@
 
           <% if (estimate.runPhase && estimate.runPhase.included) { %>
             <p class="form-text mb-0 mt-3">
-              Hypercare is <strong><%= estimate.runPhase.days %> days</strong>
+              Hypercare is <strong><%= estimate.runPhase.days %> days</strong><% if (estimate.runPhase.weeks) { %>
+              (<%= estimate.runPhase.weeks %> weeks × <%= estimate.runPhase.teamSize %> people)<% } %>
               (about <%= estimate.runPhase.cost.toLocaleString('en-GB') %> <%= estimate.currency %>)
               <strong>within</strong> the total above, not added to it.
             </p>
@@ -186,6 +195,10 @@
         <div class="card-body">
           <h2 class="h6 mb-2">Status</h2>
           <p class="mb-2"><span class="badge-hub accent text-capitalize"><%= quote.status %></span></p>
+          <%# A copy into a new form; this estimate stays exactly as it was said to the client. -%>
+          <a class="btn btn-outline-secondary btn-sm w-100 mb-3" href="/quotes/new?from=<%= quote.reference %>">
+            <i class="bi bi-copy me-1" aria-hidden="true"></i>Duplicate into a new estimate
+          </a>
 
           <% if (allowedTransitions.length) { %>
             <form method="post" action="/quotes/<%= quote.reference %>/status">
@@ -316,7 +329,8 @@
               <%# Measured from the day the estimate was saved, which is what the timeline was computed against. -%>
               <div class="alert alert-warning small mt-3 mb-0">
                 The timeline is <%= estimate.projectDurationWeeks %> weeks from the day this estimate was
-                saved, which ends after the target go-live. Either the scope or the date has to move.
+                saved, so go-live is <%= context.earliestGoLive %> at the earliest — after the target.
+                Either the scope or the date has to move.
               </div>
             <% } %>
             <% if (context.successCriteria) { %>

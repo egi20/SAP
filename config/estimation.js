@@ -185,6 +185,25 @@ const DATA_VOLUMES = {
 };
 
 /**
+ * How long hypercare runs after go-live.
+ *
+ * `standard` is the anchor and keeps the Run phase at its share of the programme in
+ * PHASE_DISTRIBUTION, so every estimate saved before this choice existed prices exactly as
+ * it did. A length in weeks replaces that share with a staffed window: the weeks times
+ * HYPERCARE_TEAM_SIZE people times five days, added to the base effort, and the Run phase
+ * then lasts exactly that many weeks on the timeline. Two people is the reference's own
+ * hypercare assumption; it is printed beside the figure rather than hidden in it.
+ */
+const HYPERCARE_TEAM_SIZE = 2;
+
+const HYPERCARE_DURATIONS = {
+  standard: { name: 'Standard — a share of the programme', weeks: null },
+  4: { name: '4 weeks', weeks: 4 },
+  8: { name: '8 weeks', weeks: 8 },
+  12: { name: '12 weeks', weeks: 12 }
+};
+
+/**
  * The client's current system. Context for the document and for whoever reads the quote,
  * NOT a multiplier: the transition approach above already prices the path from it.
  */
@@ -349,6 +368,13 @@ function estimationProblems() {
     if (!(scope.share >= 0 && scope.share <= 0.5)) problems.push(`data migration scope "${id}" has a share outside 0-50%`);
   }
   if (DATA_VOLUMES.medium.multiplier !== 1.0) problems.push('medium data volume is the baseline and must be exactly 1.0');
+  if (!HYPERCARE_DURATIONS.standard || HYPERCARE_DURATIONS.standard.weeks !== null) {
+    problems.push('HYPERCARE_DURATIONS.standard is the anchor and must keep the Run phase share (weeks: null)');
+  }
+  for (const [id, h] of Object.entries(HYPERCARE_DURATIONS)) {
+    if (id !== 'standard' && !(Number.isInteger(h.weeks) && h.weeks > 0)) problems.push(`hypercare ${id} needs a whole number of weeks`);
+  }
+  if (!(Number.isInteger(HYPERCARE_TEAM_SIZE) && HYPERCARE_TEAM_SIZE > 0)) problems.push('HYPERCARE_TEAM_SIZE must be a positive integer');
 
   return problems;
 }
@@ -388,7 +414,9 @@ function catalogueVersion() {
     INTEGRATION_DAYS,
     UNMAPPED_ITEM_DAYS,
     DATA_MIGRATION_SCOPES,
-    DATA_VOLUMES
+    DATA_VOLUMES,
+    HYPERCARE_DURATIONS,
+    HYPERCARE_TEAM_SIZE
   });
 
   return crypto.createHash('sha256').update(material).digest('hex').slice(0, 12);
@@ -403,6 +431,8 @@ module.exports = {
   COMPANY_SIZE_MULTIPLIERS,
   DATA_MIGRATION_SCOPES,
   DATA_VOLUMES,
+  HYPERCARE_DURATIONS,
+  HYPERCARE_TEAM_SIZE,
   CURRENT_SYSTEMS,
   PHASE_DISTRIBUTION,
   DEFAULT_RESOURCE_ALLOCATION,

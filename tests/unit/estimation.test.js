@@ -270,6 +270,56 @@ describe('data migration', () => {
   });
 });
 
+describe('hypercare length', () => {
+  test('standard is the anchor: the Run phase keeps its share and nothing else moves', () => {
+    const before = calculateEstimation(SCOPE);
+    const standard = calculateEstimation({ ...SCOPE, hypercareDuration: 'standard' });
+    expect(standard.totalManDays).toBe(before.totalManDays);
+    expect(standard.projectDurationWeeks).toBe(before.projectDurationWeeks);
+    expect(standard.runPhase.weeks).toBeNull();
+  });
+
+  test('a length in weeks is a staffed window: its days, its weeks on the timeline, inside the total', () => {
+    const { HYPERCARE_TEAM_SIZE } = require('../../config/estimation');
+    const e = calculateEstimation({ ...SCOPE, hypercareDuration: '8' });
+    const run = e.phaseBreakdown.find((p) => p.id === 'run');
+    expect(run.days).toBe(8 * HYPERCARE_TEAM_SIZE * 5);
+    expect(e.timeline.find((t) => t.phaseId === 'run').durationWeeks).toBe(8);
+    expect(e.runPhase).toMatchObject({ included: true, weeks: 8, days: run.days });
+    expect(reconciliationProblems(e)).toEqual([]);
+    expect(calculateEstimation({ ...SCOPE, hypercareDuration: '12' }).totalManDays).toBeGreaterThan(e.totalManDays);
+  });
+
+  test('a length is ignored when hypercare is not included', () => {
+    const off = calculateEstimation({ ...SCOPE, includeRun: false });
+    expect(calculateEstimation({ ...SCOPE, includeRun: false, hypercareDuration: '12' }).totalManDays).toBe(off.totalManDays);
+  });
+});
+
+describe('the effort steps', () => {
+  test('sum exactly to the total, under every combination that adds a step', () => {
+    const variants = [
+      SCOPE,
+      { selectedModules: ['fi-ap', 'fi-ar', 'fi-aa'] },
+      { ...SCOPE, selectedAddons: ['addon-vertex'], dataMigrationScope: 'full-history', hypercareDuration: '4', otherModules: 'x, y' },
+      { selectedLines: [] }
+    ];
+    for (const input of variants) {
+      const e = calculateEstimation(input);
+      expect(e.effortSteps.reduce((sum, s) => sum + s.days, 0)).toBe(e.totalManDays);
+      expect(reconciliationProblems(e)).toEqual([]);
+    }
+  });
+
+  test('name the boundaries to unticked modules, so 80 days of modules reading as more says why', () => {
+    const e = calculateEstimation({ selectedModules: ['fi-ap', 'fi-ar', 'fi-aa'] });
+    const ids = e.effortSteps.map((s) => s.id);
+    expect(e.effortSteps[0]).toMatchObject({ id: 'scope', days: 80 });
+    expect(ids).toContain('boundaries');
+    expect(ids).toContain('contingency');
+  });
+});
+
 describe('the catalogue fingerprint', () => {
   test('is stable across calls', () => {
     expect(catalogueVersion()).toBe(catalogueVersion());
