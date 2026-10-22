@@ -18,6 +18,9 @@ const {
   COMPLEXITY_MULTIPLIERS,
   INDUSTRY_MULTIPLIERS,
   COMPANY_SIZE_MULTIPLIERS,
+  DATA_MIGRATION_SCOPES,
+  DATA_VOLUMES,
+  CURRENT_SYSTEMS,
   catalogueVersion
 } = require('../config/estimation');
 const { PRODUCT_LINES, isModule, lineByValue } = require('../config/sapProducts');
@@ -48,7 +51,103 @@ function catalogueLocals() {
     cleanCoreLevels: CLEAN_CORE_LEVELS,
     complexityLevels: COMPLEXITY_MULTIPLIERS,
     industries: Object.keys(INDUSTRY_MULTIPLIERS),
-    companySizes: Object.keys(COMPANY_SIZE_MULTIPLIERS)
+    companySizes: Object.keys(COMPANY_SIZE_MULTIPLIERS),
+    dataMigrationScopes: DATA_MIGRATION_SCOPES,
+    dataVolumes: DATA_VOLUMES,
+    currentSystems: CURRENT_SYSTEMS,
+    sowDocuments: DOCUMENT_KINDS
+  };
+}
+
+/** Plain text, bounded: these fields are printed back, never rendered as markup. */
+function plain(value, max) {
+  return String(value || '').replace(/\r\n/g, '\n').trim().slice(0, max);
+}
+
+/**
+ * The project context: facts about the client's situation that the document carries and
+ * the reader needs, but that do not move the number (data migration, which does, is an
+ * engine input). A go-live date is kept only as a real calendar date.
+ */
+function contextFrom(form) {
+  const goLive = /^\d{4}-\d{2}-\d{2}$/.test(form.go_live_date || '') && !Number.isNaN(Date.parse(form.go_live_date))
+    ? form.go_live_date
+    : '';
+  return {
+    currentSystem: Object.prototype.hasOwnProperty.call(CURRENT_SYSTEMS, form.current_system) ? form.current_system : '',
+    goLiveDate: goLive,
+    successCriteria: plain(form.success_criteria, 2000),
+    constraints: plain(form.constraints, 2000)
+  };
+}
+
+/**
+ * The stored project context, labelled for the page. Null for an estimate saved before the
+ * context existed, so the card does not render as a column of "not specified".
+ *
+ * Whether the target go-live is reachable is measured from the day the estimate was SAVED:
+ * that is the date the timeline was computed against, and measuring from today would turn a
+ * plan that fitted when it was sent into one that "does not fit" by the passage of time.
+ */
+function contextForDisplay(quote) {
+  const inputs = quote.inputs || {};
+  const c = inputs.projectContext;
+  if (!c) return null;
+  const scope = DATA_MIGRATION_SCOPES[inputs.dataMigrationScope] || DATA_MIGRATION_SCOPES['not-assessed'];
+  const weeks = (quote.estimate && quote.estimate.projectDurationWeeks) || 0;
+  let goLiveTooSoon = false;
+  if (c.goLiveDate) {
+    const end = new Date(quote.created_at);
+    end.setUTCDate(end.getUTCDate() + weeks * 7);
+    goLiveTooSoon = new Date(`${c.goLiveDate}T00:00:00Z`) < end;
+  }
+  return {
+    currentSystem: CURRENT_SYSTEMS[c.currentSystem] || '',
+    goLiveDate: c.goLiveDate || '',
+    goLiveTooSoon,
+    dataMigration: scope.name,
+    successCriteria: c.successCriteria || '',
+    constraints: c.constraints || ''
+  };
+}
+
+/**
+ * A saved quote turned back into form values, for "start from a previous estimate". The
+ * inverse of inputsFrom/contextFrom, read from what was stored — so it can only offer what
+ * the catalogue still knows, and a module retired since is simply not ticked.
+ */
+function valuesFromQuote(quote) {
+  const i = quote.inputs || {};
+  const c = i.projectContext || {};
+  return {
+    client_company: quote.client_company,
+    client_name: quote.client_name,
+    client_email: quote.client_email || '',
+    client_industry: quote.client_industry || '',
+    company_size: quote.company_size || '',
+    project_name: `${quote.project_name} (copy)`.slice(0, 200),
+    lines: i.selectedLines || [],
+    modules: i.selectedModules || [],
+    addons: i.selectedAddons || [],
+    transition_approach: i.transitionApproach,
+    clean_core_level: i.cleanCoreLevel,
+    complexity: i.complexity,
+    number_of_users: i.numberOfUsers,
+    number_of_company_codes: i.numberOfCompanyCodes,
+    number_of_countries: i.numberOfCountries,
+    number_of_integrations: i.numberOfIntegrations,
+    integration_complexity: i.integrationComplexity,
+    include_training: i.includeTraining ? 'on' : '',
+    include_run: i.includeRun ? 'on' : '',
+    data_migration_scope: i.dataMigrationScope || 'not-assessed',
+    data_volume: i.dataVolume || 'medium',
+    current_system: c.currentSystem || '',
+    go_live_date: c.goLiveDate || '',
+    success_criteria: c.successCriteria || '',
+    constraints: c.constraints || '',
+    other_modules: i.otherModules || '',
+    other_addons: i.otherAddons || '',
+    contingency_percentage: quote.estimate && quote.estimate.contingencyPercentage
   };
 }
 
@@ -83,6 +182,9 @@ function inputsFrom(form) {
       : 'medium',
     includeTraining: form.include_training === 'on',
     includeRun: form.include_run === 'on',
+    dataMigrationScope: DATA_MIGRATION_SCOPES[form.data_migration_scope] ? form.data_migration_scope : 'not-assessed',
+    dataVolume: DATA_VOLUMES[form.data_volume] ? form.data_volume : 'medium',
+    projectContext: contextFrom(form),
     otherModules: String(form.other_modules || '').slice(0, 1000),
     otherAddons: String(form.other_addons || '').slice(0, 1000),
     otherIntegrations: String(form.other_integrations || '').slice(0, 1000)
@@ -122,9 +224,28 @@ router.get(
   asyncHandler(async (req, res) => {
     // Pre-fill nothing from the authoring company: the client is the subject of the quote,
     // and defaulting their name to the author's own company is a confusing wrong answer.
+    const { rows: recent } = await Quote.listForOwner(req.session.user.id, { limit: 5 });
+
+    // "Start from a previous estimate": only one of the author's own, read by reference.
+    if (req.query.from) {
+      const source = await Quote.findByReference(String(req.query.from).toUpperCase().slice(0, 40));
+      if (source && source.owner_user_id === req.session.user.id) {
+        return res.render('quotes/new', {
+          title: 'SOW Generator',
+          ...catalogueLocals(),
+          recent,
+          startedFrom: source.reference,
+          values: valuesFromQuote(source),
+          errors: []
+        });
+      }
+    }
+
     res.render('quotes/new', {
-      title: 'New estimate',
+      title: 'SOW Generator',
       ...catalogueLocals(),
+      recent,
+      startedFrom: null,
       values: {
         include_training: 'on',
         include_run: 'on',
@@ -133,7 +254,9 @@ router.get(
         number_of_countries: 1,
         transition_approach: 'greenfield',
         clean_core_level: 'moderate',
-        contingency_percentage: 15
+        contingency_percentage: 15,
+        data_migration_scope: 'not-assessed',
+        data_volume: 'medium'
       },
       errors: []
     });
@@ -151,8 +274,43 @@ const quoteValidators = [
   body('number_of_users').optional({ checkFalsy: true }).isInt({ min: 1, max: 1000000 }),
   body('number_of_company_codes').optional({ checkFalsy: true }).isInt({ min: 1, max: 500 }),
   body('number_of_countries').optional({ checkFalsy: true }).isInt({ min: 1, max: 100 }),
-  body('number_of_integrations').optional({ checkFalsy: true }).isInt({ min: 0, max: 200 })
+  body('number_of_integrations').optional({ checkFalsy: true }).isInt({ min: 0, max: 200 }),
+  body('go_live_date').optional({ checkFalsy: true }).isISO8601({ strict: true })
+    .withMessage('The target go-live is not a date.')
 ];
+
+/**
+ * POST /quotes/preview — the live summary beside the form.
+ *
+ * The same `inputsFrom` and the same `calculateEstimation` the save path runs, so the
+ * figure the author watches while ticking modules is the figure "Calculate and save"
+ * stores. A second, browser-side copy of the engine would be a second answer. Nothing is
+ * stored, and it answers only the headline numbers.
+ */
+router.post(
+  '/preview',
+  isEmailVerified,
+  asyncHandler(async (req, res) => {
+    const inputs = inputsFrom(req.body || {});
+    const empty = !inputs.selectedLines.length && !inputs.selectedModules.length
+      && !inputs.selectedAddons.length && !inputs.otherModules.trim();
+    if (empty) return res.json({ success: true, empty: true });
+    const estimate = calculateEstimation(inputs, {
+      contingencyPercentage: Math.max(0, Math.min(50, parseInt(req.body.contingency_percentage, 10) || 15)),
+      currency: 'EUR'
+    });
+    return res.json({
+      success: true,
+      empty: false,
+      modules: inputs.selectedModules.length,
+      totalManDays: estimate.totalManDays,
+      totalBudget: estimate.totalBudget,
+      currency: estimate.currency,
+      durationMonths: estimate.projectDurationMonths,
+      dataMigrationDays: estimate.dataMigration.days
+    });
+  })
+);
 
 router.post(
   '/',
@@ -176,8 +334,10 @@ router.post(
 
     if (problems.length) {
       return res.status(422).render('quotes/new', {
-        title: 'New estimate',
+        title: 'SOW Generator',
         ...catalogueLocals(),
+        recent: [],
+        startedFrom: null,
         values: req.body,
         errors: problems
       });
@@ -256,6 +416,7 @@ router.get(
     const stale = quote.catalogue_version !== catalogueVersion();
 
     return res.render('quotes/show', {
+      context: contextForDisplay(quote),
       title: `${quote.reference} — ${quote.project_name}`,
       weekRange,
       quote,

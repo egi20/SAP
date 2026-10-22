@@ -244,6 +244,32 @@ describe('the SAP-specific levers move the number', () => {
   });
 });
 
+describe('data migration', () => {
+  test('is anchored: not assessed and none add nothing, so an estimate saved without it is unchanged', () => {
+    const before = calculateEstimation(SCOPE);
+    expect(calculateEstimation({ ...SCOPE, dataMigrationScope: 'not-assessed' }).totalManDays).toBe(before.totalManDays);
+    expect(calculateEstimation({ ...SCOPE, dataMigrationScope: 'none', dataVolume: 'high' }).totalManDays).toBe(before.totalManDays);
+    expect(before.dataMigration.days).toBe(0);
+  });
+
+  test('more history and more volume cost more, and the result still reconciles', () => {
+    const days = (scope, volume) =>
+      calculateEstimation({ ...SCOPE, dataMigrationScope: scope, dataVolume: volume }).dataMigration.days;
+    expect(days('open-items', 'medium')).toBeGreaterThan(days('master-data', 'medium'));
+    expect(days('full-history', 'medium')).toBeGreaterThan(days('open-items', 'medium'));
+    expect(days('open-items', 'high')).toBeGreaterThan(days('open-items', 'low'));
+
+    const estimate = calculateEstimation({ ...SCOPE, dataMigrationScope: 'full-history', dataVolume: 'high' });
+    expect(estimate.totalManDays).toBeGreaterThan(calculateEstimation(SCOPE).totalManDays);
+    expect(reconciliationProblems(estimate)).toEqual([]);
+  });
+
+  test('an unknown scope or volume falls back to the anchor rather than throwing', () => {
+    const odd = calculateEstimation({ ...SCOPE, dataMigrationScope: 'everything', dataVolume: 'huge' });
+    expect(odd.totalManDays).toBe(calculateEstimation(SCOPE).totalManDays);
+  });
+});
+
 describe('the catalogue fingerprint', () => {
   test('is stable across calls', () => {
     expect(catalogueVersion()).toBe(catalogueVersion());

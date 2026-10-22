@@ -1,8 +1,19 @@
 <%- include('../partials/layout-start') %>
 
+<%
+  /*
+   * A ticked box has to survive a refused submission and a "start from a previous
+   * estimate": the body carries a lone value as a string and several as an array.
+   */
+  const picked = function (field, value) {
+    const v = values[field];
+    return Array.isArray(v) ? v.includes(value) : v === value;
+  };
+  const req = '<span class="text-danger" aria-hidden="true">*</span>';
+%>
 <%- include('../partials/page-header', {
       icon: 'bi-calculator',
-      heading: 'New estimate',
+      heading: 'SOW Generator',
       sub: 'Scope, effort, team shape and budget for an SAP programme.',
       label: 'DELIVERY'
     }) %>
@@ -19,7 +30,55 @@
     </div>
   <% } %>
 
-  <form method="post" action="/quotes">
+  <%#
+    What the author walks away with, before they start: the steps and the three documents,
+    named from DOCUMENT_KINDS so this box cannot promise a file the generator does not make.
+  -%>
+  <div class="glass-card mb-4"><div class="card-body">
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-7">
+        <h2 class="h5 card-heading">What you'll get</h2>
+        <ol class="mb-0 sow-steps">
+          <li><strong>Describe the client and the project</strong> — who it is for, where they are today and when they want to go live.</li>
+          <li><strong>Choose the scope</strong> — the SAP modules, the transition approach, data migration and add-ons.</li>
+          <li><strong>Calculate and save</strong> — effort per SAP Activate phase, a team plan, a timeline and a budget that reconcile line by line.</li>
+          <li><strong>Download and send</strong> — every saved estimate has a reference starting <code>Q-</code> and is kept under <a href="/quotes">your estimates</a>.</li>
+        </ol>
+      </div>
+      <div class="col-lg-5">
+        <h3 class="h6 mb-2">Documents</h3>
+        <ul class="list-unstyled mb-3">
+          <% Object.values(sowDocuments).forEach(function (d) { %>
+            <li class="mb-1"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i><%= d.label %> <span class="text-muted-2">(.<%= d.extension %>)</span></li>
+          <% }); %>
+        </ul>
+        <% if (recent && recent.length) { %>
+          <%# A new quote can start from one of the author's own, copied into this form; nothing is changed on the old one. -%>
+          <form method="get" action="/quotes/new" class="d-flex gap-2 align-items-end">
+            <div class="flex-grow-1">
+              <label class="form-label small mb-1" for="from">Start from a previous estimate</label>
+              <select class="form-select form-select-sm" id="from" name="from">
+                <% recent.forEach(function (q) { %>
+                  <option value="<%= q.reference %>" <%= startedFrom === q.reference ? 'selected' : '' %>><%= q.reference %> — <%= q.project_name %></option>
+                <% }); %>
+              </select>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" type="submit">Use</button>
+          </form>
+        <% } %>
+        <% if (startedFrom) { %>
+          <p class="small text-muted-2 mt-2 mb-0">
+            Copied from <a href="/quotes/<%= startedFrom %>"><%= startedFrom %></a>; saving creates a new estimate.
+            <a href="/quotes/new">Start blank</a>
+          </p>
+        <% } %>
+      </div>
+    </div>
+  </div></div>
+
+  <p class="small text-muted-2 mb-3"><span class="text-danger">*</span> Required</p>
+
+  <form method="post" action="/quotes" id="quote-form">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <div class="row g-4">
@@ -30,12 +89,12 @@
             <h2 class="h6 mb-3">Who it is for</h2>
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label" for="client_company">Client company</label>
+                <label class="form-label" for="client_company">Client company <%- req %></label>
                 <input class="form-control" id="client_company" name="client_company" maxlength="200" required
                        value="<%= values.client_company || '' %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="client_name">Contact name</label>
+                <label class="form-label" for="client_name">Contact name <%- req %></label>
                 <input class="form-control" id="client_name" name="client_name" maxlength="200" required
                        value="<%= values.client_name || '' %>">
               </div>
@@ -63,13 +122,68 @@
                 </select>
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="project_name">Project name</label>
+                <label class="form-label" for="project_name">Project name <%- req %></label>
                 <input class="form-control" id="project_name" name="project_name" maxlength="200" required
                        value="<%= values.project_name || '' %>">
               </div>
               <div class="col-12">
                 <label class="form-label" for="project_summary">Summary</label>
                 <textarea class="form-control" id="project_summary" name="project_summary" rows="3"><%= values.project_summary || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%#
+          Project context: what the SOW has to say about the client's situation. Only data
+          migration moves the number — it is real effort — so it is an engine input; the rest
+          is carried into the estimate as the author typed it.
+        -%>
+        <div class="glass-card mb-4">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Project context</h2>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="current_system">Current system</label>
+                <select class="form-select" id="current_system" name="current_system">
+                  <option value="">Not specified</option>
+                  <% Object.entries(currentSystems).forEach(function (entry) { %>
+                    <option value="<%= entry[0] %>" <%= values.current_system === entry[0] ? 'selected' : '' %>><%= entry[1] %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="go_live_date">Target go-live</label>
+                <input class="form-control" id="go_live_date" name="go_live_date" type="date"
+                       value="<%= values.go_live_date || '' %>">
+                <div class="form-text">The estimate says whether its timeline fits.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="data_migration_scope">Data migration</label>
+                <select class="form-select" id="data_migration_scope" name="data_migration_scope">
+                  <% Object.entries(dataMigrationScopes).forEach(function (entry) { %>
+                    <option value="<%= entry[0] %>" <%= (values.data_migration_scope || 'not-assessed') === entry[0] ? 'selected' : '' %>><%= entry[1].name %></option>
+                  <% }); %>
+                </select>
+                <div class="form-text">Costed as a share of the module effort. "Not assessed" adds nothing and the estimate says so.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="data_volume">Data volume</label>
+                <select class="form-select" id="data_volume" name="data_volume">
+                  <% Object.entries(dataVolumes).forEach(function (entry) { %>
+                    <option value="<%= entry[0] %>" <%= (values.data_volume || 'medium') === entry[0] ? 'selected' : '' %>><%= entry[1].name %> (×<%= entry[1].multiplier %>)</option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="success_criteria">Success criteria</label>
+                <textarea class="form-control" id="success_criteria" name="success_criteria" rows="2" maxlength="2000"
+                          placeholder="What has to be true at go-live for the client to call it a success."><%= values.success_criteria || '' %></textarea>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="constraints">Constraints</label>
+                <textarea class="form-control" id="constraints" name="constraints" rows="2" maxlength="2000"
+                          placeholder="Fixed dates, freeze periods, budget ceilings, people who are not available."><%= values.constraints || '' %></textarea>
               </div>
             </div>
           </div>
@@ -109,21 +223,27 @@
               estimate shows each of those separately rather than burying it.
             </p>
 
+            <div class="mb-3 d-none" data-module-search-wrap>
+              <label class="visually-hidden" for="module_search">Search modules</label>
+              <input class="form-control" id="module_search" type="search" placeholder="Search modules, e.g. EWM or Ariba" data-module-search>
+            </div>
+
             <% productLines.forEach(function (line) { %>
-              <details class="filter-group mb-2">
-                <summary class="form-label mb-2"><%= line.label %></summary>
+              <% const groupOpen = picked('lines', line.value) || line.modules.some(function (m) { return picked('modules', m.value); }); %>
+              <details class="filter-group mb-2" data-module-group <%= groupOpen ? 'open' : '' %>>
+                <summary class="form-label mb-2"><%= line.label %> <span class="badge-hub ms-1 d-none" data-selected-count></span></summary>
                 <div class="form-check mb-2">
                   <input class="form-check-input" type="checkbox" name="lines" value="<%= line.value %>"
-                         id="line-<%= line.value %>">
+                         id="line-<%= line.value %>" <%= picked('lines', line.value) ? 'checked' : '' %>>
                   <label class="form-check-label small" for="line-<%= line.value %>">
                     Platform foundation only (<%= line.foundationEffortDays %> days)
                   </label>
                 </div>
                 <div class="d-flex flex-wrap gap-3">
                   <% line.modules.forEach(function (m) { %>
-                    <div class="form-check">
+                    <div class="form-check" data-module-item data-search="<%= (m.label + ' ' + m.value + ' ' + line.label).toLowerCase() %>">
                       <input class="form-check-input" type="checkbox" name="modules" value="<%= m.value %>"
-                             id="qm-<%= m.value %>">
+                             id="qm-<%= m.value %>" <%= picked('modules', m.value) ? 'checked' : '' %>>
                       <label class="form-check-label small" for="qm-<%= m.value %>">
                         <%= m.label %> <span class="text-muted-2">(<%= m.baseEffortDays %>d)</span>
                       </label>
@@ -148,7 +268,7 @@
               <% Object.entries(addons).forEach(function (entry) { %>
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" name="addons" value="<%= entry[0] %>"
-                         id="ad-<%= entry[0] %>">
+                         id="ad-<%= entry[0] %>" <%= picked('addons', entry[0]) ? 'checked' : '' %>>
                   <label class="form-check-label small" for="ad-<%= entry[0] %>">
                     <%= entry[1].name %> <span class="text-muted-2">(<%= entry[1].days %>d)</span>
                   </label>
@@ -161,9 +281,33 @@
             </div>
           </div>
         </div>
+
+        <button class="btn btn-primary" type="submit">Calculate and save</button>
       </div>
 
       <div class="col-lg-4">
+        <%#
+          The live total is asked of the server (POST /quotes/preview), which runs the same
+          engine the save runs: a copy of the arithmetic in the browser would be a second
+          answer. Without scripting the box says the figure appears after saving.
+        -%>
+        <div class="glass-card mb-4 sow-summary">
+          <div class="card-body" data-quote-preview>
+            <h2 class="h6 mb-2">Estimate so far</h2>
+            <div data-preview-body>
+              <p class="small text-muted-2 mb-3" data-preview-empty>Tick a module to see the effort and the budget. The full breakdown appears once it is saved.</p>
+              <dl class="row small mb-3 d-none" data-preview-figures>
+                <dt class="col-6 fw-normal text-muted-2">Modules</dt><dd class="col-6 text-end mb-1" data-preview="modules">—</dd>
+                <dt class="col-6 fw-normal text-muted-2">Effort</dt><dd class="col-6 text-end mb-1" data-preview="days">—</dd>
+                <dt class="col-6 fw-normal text-muted-2">Duration</dt><dd class="col-6 text-end mb-1" data-preview="months">—</dd>
+                <dt class="col-6 fw-normal text-muted-2">Data migration</dt><dd class="col-6 text-end mb-1" data-preview="migration">—</dd>
+                <dt class="col-6 fw-semibold">Budget</dt><dd class="col-6 text-end mb-0 fw-semibold" data-preview="budget">—</dd>
+              </dl>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Calculate and save</button>
+          </div>
+        </div>
+
         <div class="glass-card mb-4">
           <div class="card-body">
             <h2 class="h6 mb-3">Shape of the programme</h2>
@@ -242,8 +386,6 @@
               <label class="form-check-label" for="include_run">Include hypercare (Run)</label>
               <div class="form-text">Inside the total, never added on top of it.</div>
             </div>
-
-            <button class="btn btn-primary w-100" type="submit">Calculate and save</button>
           </div>
         </div>
       </div>
@@ -252,4 +394,5 @@
 </div>
 </section>
 
+<script src="/js/quote-form.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
 <%- include('../partials/layout-end') %>

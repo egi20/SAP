@@ -184,6 +184,29 @@ was never a block of calendar of its own.
 `crossModule` partner is not costs a share of the partner's own baseline — the boundary has
 to be built either way. Counting it from both sides doubles it invisibly.
 
+**The form is the SOW Generator, and its live total is the server's** (2026-10-22, as on
+dynamicshub.net). `POST /quotes/preview` runs the same `inputsFrom` and `calculateEstimation`
+the save runs and stores nothing; `public/js/quote-form.js` only displays what comes back. A
+copy of the arithmetic in the browser would be a second engine, and the number the author
+watched would drift from the number "Calculate and save" stores. The page heading is "SOW
+Generator"; the menus keep "Get SOW Quote" and "SOW Generator", which are pinned by
+`navigationMenus.test.js`.
+
+**Data migration is an engine input; the rest of the project context is not.**
+`DATA_MIGRATION_SCOPES` × `DATA_VOLUMES` in `config/estimation.js` add a share of the module
+effort, anchored so that "not assessed" and "none" add nothing — every estimate saved before
+the field existed prices exactly as it did, and both tables are in `catalogueVersion()`.
+Current system, target go-live, success criteria and constraints are stored in
+`inputs.projectContext` and printed back as typed; they move no number. Whether the go-live
+fits is measured from the day the estimate was SAVED, because that is the date its timeline
+was computed against — measured from today, a plan that fitted when it was sent would stop
+fitting by the passage of time.
+
+**"Start from a previous estimate" copies into the form and changes nothing.** `?from=` reads
+only one of the signed-in author's own quotes; anybody else's reference opens a blank form.
+Saving creates a new quote with a new reference — the old one is what was said to a client
+on a date.
+
 ## Documents
 
 `utils/documents/` renders `quote.estimate` and computes NOTHING. Every figure was produced

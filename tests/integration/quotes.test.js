@@ -67,7 +67,13 @@ async function signUp({ email, name, roles }) {
   return agent;
 }
 
-const OWN_ACCOUNTS = ['partner@example.test', 'other@example.test', 'docs@example.test', 'nosy@example.test'];
+const OWN_ACCOUNTS = [
+  'partner@example.test',
+  'other@example.test',
+  'docs@example.test',
+  'nosy@example.test',
+  'sow@example.test'
+];
 
 /**
  * Each suite owns its own accounts and removes only those.
@@ -372,5 +378,153 @@ maybe()('producing the deliverables', () => {
   test('an unknown kind is a 404, not an attempt to build it', async () => {
     const res = await author.get(`/quotes/${reference}/download/exe`);
     expect(res.status).toBe(404);
+  });
+});
+
+maybe()('the SOW generator form', () => {
+  let author;
+  let reference;
+
+  const BASE = {
+    client_company: 'Context Client AG',
+    client_name: 'A Sponsor',
+    project_name: 'Finance core with migration',
+    transition_approach: 'greenfield',
+    clean_core_level: 'moderate',
+    complexity: 'moderate',
+    modules: ['fi-gl', 'fi-ap'],
+    number_of_users: 100,
+    number_of_company_codes: 1,
+    number_of_countries: 1,
+    contingency_percentage: 15,
+    include_run: 'on'
+  };
+
+  beforeAll(async () => {
+    author = await signUp({ email: 'sow@example.test', name: 'Sow Author', roles: 'company' });
+    const form = await author.get('/quotes/new');
+    const posted = await author
+      .post('/quotes')
+      .type('form')
+      .send({
+        ...BASE,
+        _csrf: csrfFrom(form.text),
+        current_system: 'ecc6',
+        go_live_date: '2020-01-01',
+        data_migration_scope: 'open-items',
+        data_volume: 'high',
+        success_criteria: 'Month-end close in three days.',
+        constraints: 'No cut-over in December.'
+      });
+    expect(posted.status).toBe(302);
+    const [[row]] = await promisePool.query(
+      'SELECT q.reference FROM quotes q JOIN users u ON u.id = q.owner_user_id WHERE u.email = ? ORDER BY q.id DESC LIMIT 1',
+      ['sow@example.test']
+    );
+    reference = row.reference;
+  });
+
+  test('the page explains what it produces and marks the required fields', async () => {
+    const page = await author.get('/quotes/new');
+    expect(page.text).toContain('SOW Generator');
+    expect(page.text).toContain("What you'll get");
+    for (const label of ['Statement of work', 'Work breakdown', 'Summary deck']) expect(page.text).toContain(label);
+    for (const field of ['Client company', 'Contact name', 'Project name']) {
+      expect(page.text).toMatch(new RegExp(`${field} <span class="text-danger" aria-hidden="true">\\*</span>`));
+    }
+  });
+
+  test('the project context and the data migration are stored and shown', async () => {
+    const Quote = require('../../models/Quote');
+    const { reconciliationProblems } = require('../../utils/sapEstimation');
+    const quote = await Quote.findByReference(reference);
+    expect(quote.inputs.projectContext).toEqual({
+      currentSystem: 'ecc6',
+      goLiveDate: '2020-01-01',
+      successCriteria: 'Month-end close in three days.',
+      constraints: 'No cut-over in December.'
+    });
+    expect(quote.estimate.dataMigration.days).toBeGreaterThan(0);
+    expect(reconciliationProblems(quote.estimate)).toEqual([]);
+
+    const page = await author.get(`/quotes/${reference}`);
+    expect(page.text).toContain('Project context');
+    expect(page.text).toContain('SAP ECC 6.0');
+    expect(page.text).toContain('Month-end close in three days.');
+    // A go-live in the past cannot fit any timeline.
+    expect(page.text).toContain('ends after the target go-live');
+  });
+
+  test('a new estimate can start from a previous one, and only from the author\'s own', async () => {
+    const mine = await author.get(`/quotes/new?from=${reference}`);
+    expect(mine.text).toContain(`Copied from <a href="/quotes/${reference}">`);
+    expect(mine.text).toMatch(/id="qm-fi-gl" checked/);
+    expect(mine.text).toContain('Finance core with migration (copy)');
+
+    // The first suite's quote belongs to another account: the form opens blank. (A second
+    // sign-up here would spend the registration limiter the other suites need.)
+    const [[foreign]] = await promisePool.query(
+      'SELECT q.reference FROM quotes q JOIN users u ON u.id = q.owner_user_id WHERE u.email = ? LIMIT 1',
+      ['partner@example.test']
+    );
+    const theirs = await author.get(`/quotes/new?from=${foreign.reference}`);
+    expect(theirs.status).toBe(200);
+    expect(theirs.text).not.toContain('Copied from');
+    expect(theirs.text).not.toContain('Acme Manufacturing GmbH');
+  });
+
+  test('a refused submission keeps the ticked modules', async () => {
+    const form = await author.get('/quotes/new');
+    const res = await author
+      .post('/quotes')
+      .type('form')
+      .send({ ...BASE, _csrf: csrfFrom(form.text), client_company: '' });
+    expect(res.status).toBe(422);
+    expect(res.text).toMatch(/id="qm-fi-ap" checked/);
+  });
+
+  test('the live total is the engine\'s own figure, and nothing is stored', async () => {
+    const form = await author.get('/quotes/new');
+    const token = csrfFrom(form.text);
+    const [[{ n: before }]] = await promisePool.query(
+      'SELECT COUNT(*) AS n FROM quotes q JOIN users u ON u.id = q.owner_user_id WHERE u.email = ?',
+      ['sow@example.test']
+    );
+    const res = await author
+      .post('/quotes/preview')
+      .set('X-CSRF-Token', token)
+      .set('Sec-Fetch-Dest', 'empty')
+      .type('form')
+      .send({ ...BASE, data_migration_scope: 'open-items', data_volume: 'high' });
+    expect(res.status).toBe(200);
+
+    const { calculateEstimation } = require('../../utils/sapEstimation');
+    const Quote = require('../../models/Quote');
+    const stored = await Quote.findByReference(reference);
+    const expected = calculateEstimation({ ...stored.inputs, projectContext: undefined }, { contingencyPercentage: 15, currency: 'EUR' });
+    expect(res.body).toMatchObject({
+      success: true,
+      empty: false,
+      modules: 2,
+      totalManDays: expected.totalManDays,
+      totalBudget: expected.totalBudget,
+      dataMigrationDays: expected.dataMigration.days
+    });
+
+    const [[{ n: after }]] = await promisePool.query(
+      'SELECT COUNT(*) AS n FROM quotes q JOIN users u ON u.id = q.owner_user_id WHERE u.email = ?',
+      ['sow@example.test']
+    );
+    expect(after).toBe(before);
+  });
+
+  test('the preview with nothing ticked says so rather than pricing an empty programme', async () => {
+    const form = await author.get('/quotes/new');
+    const res = await author
+      .post('/quotes/preview')
+      .set('X-CSRF-Token', csrfFrom(form.text))
+      .type('form')
+      .send({ complexity: 'moderate' });
+    expect(res.body).toEqual({ success: true, empty: true });
   });
 });
