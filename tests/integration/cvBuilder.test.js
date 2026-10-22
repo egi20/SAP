@@ -245,6 +245,26 @@ maybe()('the public CV Generator page', () => {
     expect(res.text).toMatch(/action="\/profile\/settings\/roles"[\s\S]*name="roles" value="consultant"[\s\S]*name="redirectTo" value="\/cv-generator"/);
   });
 
+  it('shows the example ordered for an advert, and full or short on request', async () => {
+    const ordered = await request(app).get('/cv-generator');
+    expect(ordered.text).toContain('Ordered for: Senior EWM Consultant — Example Distribution GmbH');
+    expect(ordered.text).toContain('Relevant here: Extended Warehouse Management (EWM)');
+    expect(ordered.text).toContain('ECC inventory management rollout');
+
+    const plainShort = await request(app).get('/cv-generator?example_order=0&example_len=short');
+    expect(plainShort.text).not.toContain('Ordered for: Senior EWM');
+    expect(plainShort.text).toContain('Short version: work from the last 10 years.');
+    expect(plainShort.text).not.toContain('ECC inventory management rollout');
+    // The download beside the toggles carries the same choice.
+    expect(plainShort.text).toContain('href="/cv-generator/example.docx?example_order=0&amp;example_len=short"');
+  });
+
+  it('keeps the explanation outside the example document', async () => {
+    const res = await request(app).get('/cv-generator');
+    const paper = res.text.slice(res.text.indexOf('class="cv-paper"'));
+    expect(paper).not.toMatch(/fictional consultant/i);
+  });
+
   it('serves the example as a .docx that opens and carries no table', async () => {
     const res = await request(app).get('/cv-generator/example.docx').buffer().parse((r, cb) => {
       const chunks = [];

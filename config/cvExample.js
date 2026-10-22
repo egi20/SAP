@@ -29,8 +29,10 @@ const EXAMPLE_PROFILE = Object.freeze({
   willing_to_travel: 1,
   years_experience: 11,
   full_lifecycles: 3,
-  bio: 'This is an example CV for a fictional consultant. Everything on it is a field a member fills in on their own profile: '
-    + 'this paragraph is the About section, the engagements below are the delivery history, and the modules come from the SAP catalogue.'
+  // Written as a member would write their own About section. The explanation that this is
+  // an example lives on the page around it, never inside the CV.
+  bio: 'EWM lead with eleven years in SAP logistics and three full lifecycles in retail and distribution. '
+    + 'I design warehouse processes with the people who run them, and I stay through cutover and hypercare.'
 });
 
 const EXAMPLE_SKILLS = ['Wave and task management', 'RF framework', 'Yard management', 'Cutover planning'];
@@ -70,8 +72,31 @@ const EXAMPLE_PROJECTS = [
     started_on: '2018-06-01',
     ended_on: '2020-12-31',
     description: ''
+  },
+  {
+    // Older than ten years, so the short version visibly leaves it out.
+    name: 'ECC inventory management rollout',
+    client: 'Example Wholesale BV',
+    role: 'MM consultant',
+    activate_phase: 'realize',
+    is_full_lifecycle: 1,
+    modules: ['mm-inventory'],
+    started_on: '2014-09-01',
+    ended_on: '2015-11-30',
+    description: ''
   }
 ];
+
+/**
+ * The advert the example is ordered against, so the page shows the builder's one feature a
+ * general CV builder cannot have. Fictional, like everything here: an "Example" company, and
+ * modules that are catalogue keys.
+ */
+const EXAMPLE_ADVERT = Object.freeze({
+  title: 'Senior EWM Consultant',
+  company_name: 'Example Distribution GmbH',
+  modules: ['ewm', 'tm']
+});
 
 const EXAMPLE_EXPERIENCES = [
   { title: 'Freelance SAP consultant', company: 'Independent', started_on: '2021-01-01', ended_on: null, is_current: 1, description: '' },
@@ -79,14 +104,14 @@ const EXAMPLE_EXPERIENCES = [
 ];
 
 /** The rows `buildCv` reads, shaped as the models return them. */
-function exampleCvInput() {
+function exampleCvInput({ ordered = false } = {}) {
   return {
     profile: { ...EXAMPLE_PROFILE },
     skills: EXAMPLE_SKILLS.map((name) => ({ name })),
     certifications: EXAMPLE_CERTIFICATIONS.map((c) => ({ label: certByCode(c.code).label, earned_on: c.earned_on })),
     experiences: EXAMPLE_EXPERIENCES.map((e) => ({ ...e })),
     projects: EXAMPLE_PROJECTS.map((p) => ({ ...p, modules: [...p.modules] })),
-    job: null
+    job: ordered ? { ...EXAMPLE_ADVERT, modules: [...EXAMPLE_ADVERT.modules] } : null
   };
 }
 
@@ -98,6 +123,8 @@ function exampleProblems() {
     if (!/example/i.test(p.client)) problems.push(`example client "${p.client}" must be named as an example`);
     for (const m of p.modules) if (!isModule(m)) problems.push(`unknown module ${m} in the example CV`);
   }
+  if (!/example/i.test(EXAMPLE_ADVERT.company_name)) problems.push('the example advert must name an Example company');
+  for (const m of EXAMPLE_ADVERT.modules) if (!isModule(m)) problems.push(`unknown module ${m} in the example advert`);
   for (const c of EXAMPLE_CERTIFICATIONS) if (!certByCode(c.code)) problems.push(`unknown certification ${c.code}`);
   return problems;
 }
