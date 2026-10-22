@@ -1019,6 +1019,10 @@ site sets one and says so. An open is counted once per session and only for some
 looks like a person and is not a link preview; every open still stores the code, so a counter
 is never a gate. The tab ends with a "No agent link" row so the agents' sign-ups have a
 denominator. The privacy policy names both kinds of link (`2026-10-22`).
+An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
+who came through it by NAME, role and date — never their email addresses: those people did not
+sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";
+"Sales Agent" means a real agent.
 
 **Deactivating a referrer stops new introductions only.** It does not touch existing
 attributions or anything already earned.

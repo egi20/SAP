@@ -106,6 +106,26 @@ class SalesAgent {
     }));
   }
 
+  /** One agent's own figures, for their dashboard — the same counts the admin tab shows. */
+  static async statsFor(userId) {
+    const [[row]] = await promisePool.query(
+      `SELECT sa.code, sa.is_active, sa.link_opens,
+              COUNT(s.id) AS signups,
+              COALESCE(SUM(s.is_consultant = 1), 0) AS consultants,
+              COALESCE(SUM(s.is_company = 1), 0) AS companies,
+              COALESCE(SUM(s.email_verified = 1), 0) AS verified,
+              MAX(s.created_at) AS last_signup
+         FROM sales_agents sa
+         LEFT JOIN users s ON s.sales_agent_id = sa.user_id
+        WHERE sa.user_id = ?
+        GROUP BY sa.user_id, sa.code, sa.is_active, sa.link_opens`,
+      [userId]
+    );
+    if (!row) return null;
+    ['signups', 'consultants', 'companies', 'verified'].forEach((k) => { row[k] = Number(row[k]); });
+    return row;
+  }
+
   /**
    * Everybody who signed up WITHOUT an agent's link — the exact complement of the agents'
    * counts, so the agents' sign-ups plus this row is every account. `viaReferrer` is called

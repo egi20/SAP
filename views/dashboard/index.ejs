@@ -186,6 +186,78 @@
     </section>
   <% } %>
 
+  <% if (salesAgent) { %>
+    <%#
+      A sales agent's own link and the people who came through it (migration 035). Names,
+      roles and dates — not email addresses: the agent is a colleague following up on how
+      people found us, and the people on this list did not sign up to be contacted by them.
+    %>
+    <%
+      const agentDay = function (d) { return d ? new Date(d).toISOString().slice(0, 10) : '—'; };
+      const agentRole = function (p) { return [p.is_consultant ? 'Consultant' : null, p.is_company ? 'Company' : null].filter(Boolean).join(' + ') || '—'; };
+    %>
+    <div class="row g-3 mb-4">
+      <div class="col-lg-5">
+        <div class="glass-card h-100"><div class="card-body">
+          <h2 class="h6"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>Your sign-up link</h2>
+          <% if (!salesAgent.is_active) { %>
+            <p class="small text-warning mb-2"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>Paused by an administrator: new sign-ups through it are not credited to you.</p>
+          <% } %>
+          <div class="input-group mb-2">
+            <input class="form-control" type="text" readonly value="<%= salesAgent.link %>" aria-label="Your sign-up link">
+            <button class="btn btn-outline-primary" type="button" data-copy="<%= salesAgent.link %>"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Copy</button>
+          </div>
+          <p class="small text-muted-2 mb-0">
+            Share it anywhere. Whoever opens it and creates an account is credited to you — the first
+            colleague's link they opened, once. It measures who you bring in; it does not pay commission.
+          </p>
+        </div></div>
+      </div>
+      <div class="col-lg-7">
+        <div class="row g-3 h-100">
+          <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= salesAgent.link_opens %></p><p class="small text-muted-2 mb-0">people opened it</p>
+          </div></div></div>
+          <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= salesAgent.signups %></p><p class="small text-muted-2 mb-0">signed up</p>
+          </div></div></div>
+          <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= salesAgent.consultants %> · <%= salesAgent.companies %></p><p class="small text-muted-2 mb-0">consultants · companies</p>
+          </div></div></div>
+          <div class="col-6 col-md-3"><div class="glass-card h-100"><div class="card-body">
+            <p class="stat-value mb-0"><%= salesAgent.verified %></p><p class="small text-muted-2 mb-0">confirmed their email</p>
+          </div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-4"><div class="card-body">
+      <h2 class="h6 mb-1">Came from your link</h2>
+      <p class="small text-muted-2 mb-3">
+        <% if (!salesAgent.signups) { %>Nobody yet. The first person to sign up through your link appears here.
+        <% } else if (salesAgent.people.length < salesAgent.signups) { %>The <%= salesAgent.people.length %> most recent of <%= salesAgent.signups %> people.
+        <% } else { %><%= salesAgent.signups %> <%= salesAgent.signups === 1 ? 'person' : 'people' %>, newest first.<% } %>
+      </p>
+      <% if (salesAgent.people.length) { %>
+        <div class="table-responsive" style="max-height: 380px">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Name</th><th>Signed up as</th><th>Date</th><th class="text-center">Confirmed</th></tr></thead>
+            <tbody>
+              <% salesAgent.people.forEach(function (p) { %>
+                <tr>
+                  <td><%= p.name %><% if (!p.is_active) { %> <span class="badge-hub muted">closed</span><% } %></td>
+                  <td class="small"><%= agentRole(p) %></td>
+                  <td class="small"><%= agentDay(p.created_at) %></td>
+                  <td class="text-center"><% if (p.email_verified) { %><i class="bi bi-check-circle text-success" aria-label="confirmed"></i><% } else { %><span class="text-muted-2">—</span><% } %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div></div>
+  <% } %>
+
   <% if (currentUser.isConsultant && activeTab.key === 'consultant') { %>
   <section>
     <h2 class="h5 mb-3">Saved jobs</h2>
