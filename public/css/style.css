@@ -2378,3 +2378,85 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .learning-certs li { padding: .45rem 0; border-bottom: 1px solid var(--border-color); }
 .learning-certs li:last-child { border-bottom: 0; }
 .learning-certs a { text-decoration: none; }
+
+/* ------------------------------------------------- arcade games */
+.arcade { position: relative; }
+.arcade-practice { font-weight: 600; color: var(--t2); background: rgba(0, 38, 91, .05); border-radius: 12px; padding: .6rem .9rem; }
+.arcade-hud { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; font-size: .9rem; margin-bottom: .75rem; }
+.arcade-hud i { color: var(--t2); }
+.arcade-result { position: relative; text-align: center; margin-top: 1rem; padding: 1.25rem; border-radius: var(--radius-lg); background: #fff; border: 2px solid var(--t1); }
+.arcade-result-score { font-size: 2.6rem; font-weight: 800; color: var(--t2); }
+.arcade-confetti { position: absolute; left: 50%; top: 40%; width: 9px; height: 9px; border-radius: 2px; animation: arcade-confetti 1.1s ease-out forwards; }
+@keyframes arcade-confetti { to { transform: translate(var(--dx), var(--dy)) rotate(260deg); opacity: 0; } }
+
+/* Memory */
+.mem-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; perspective: 900px; }
+@media (max-width: 575.98px) { .mem-grid { grid-template-columns: repeat(3, 1fr); } }
+.mem-card { position: relative; aspect-ratio: 4 / 3; border: 0; padding: 0; background: none; border-radius: 14px; cursor: pointer; }
+.mem-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.2, .8, .3, 1.2); border-radius: 14px; }
+.mem-card.is-up .mem-inner { transform: rotateY(180deg); }
+.mem-back, .mem-front { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; backface-visibility: hidden; padding: .4rem; text-align: center; }
+.mem-back { background: linear-gradient(135deg, var(--t1), var(--t2)); color: rgba(255, 255, 255, .85); font-size: 1.6rem; box-shadow: 0 8px 18px -10px var(--t2); }
+.mem-card:hover .mem-back { filter: brightness(1.1); }
+.mem-front { transform: rotateY(180deg); background: #fff; border: 2px solid var(--border-color); font-size: .8rem; font-weight: 600; color: var(--text-dark); line-height: 1.25; }
+.mem-card.is-code .mem-front { font: 800 1.15rem/1 ui-monospace, Menlo, monospace; color: var(--t2); }
+.mem-card.is-matched .mem-front { border-color: #1aa35c; background: rgba(26, 163, 92, .08); }
+.mem-card.is-matched { cursor: default; animation: mem-pop .4s ease-out; }
+.mem-card.is-miss .mem-front { border-color: #e0261b; animation: mem-shake .35s; }
+@keyframes mem-pop { 50% { transform: scale(1.06); } }
+@keyframes mem-shake { 25% { transform: rotateY(180deg) translateX(-5px); } 75% { transform: rotateY(180deg) translateX(5px); } }
+
+/* Lightning */
+.lightning-start { text-align: center; padding: 2.5rem 1rem; border-radius: var(--radius-lg); background: #fff; border: 1px solid var(--border-color); }
+.lightning-bolt { width: 84px; height: 84px; margin: 0 auto 1rem; border-radius: 50%; display: grid; place-items: center; font-size: 2.4rem; color: #fff; background: linear-gradient(135deg, #ffcf3f, #e08a00); animation: lt-pulse 1.6s ease-in-out infinite; }
+@keyframes lt-pulse { 50% { transform: scale(1.08); box-shadow: 0 0 0 14px rgba(224, 161, 0, .15); } }
+.lightning-timer { height: 12px; border-radius: 99px; background: var(--border-color); overflow: hidden; }
+.lightning-timer span { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #1aa35c, #e0a100); transition: width .2s linear; }
+.lightning-timer span.is-low { background: linear-gradient(90deg, #e0261b, #ff7a00); }
+.lightning-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem; min-height: 150px; margin: 1rem 0; padding: 1.5rem; border-radius: var(--radius-lg); background: #fff; border: 3px solid var(--border-color); text-align: center; transition: border-color .2s, background .2s; }
+.lightning-card.is-in { animation: lt-in .25s ease-out; }
+@keyframes lt-in { from { opacity: 0; transform: scale(.94); } }
+.lightning-card.is-right { border-color: #1aa35c; background: rgba(26, 163, 92, .07); }
+.lightning-card.is-wrong { border-color: #e0261b; background: rgba(224, 38, 27, .06); animation: lt-shake .35s; }
+@keyframes lt-shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.lightning-code { font: 800 2rem/1 ui-monospace, Menlo, monospace; color: var(--t2); }
+.lightning-eq { font-size: 1.6rem; color: var(--text-light); }
+.lightning-shown { font-size: 1.15rem; font-weight: 600; max-width: 28rem; }
+.lightning-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.lightning-btn { border: 0; border-radius: 16px; padding: 1rem; font-size: 1.15rem; font-weight: 800; color: #fff; transition: transform .1s; }
+.lightning-btn:active { transform: scale(.96); }
+.lightning-btn.is-true { background: #12733f; }
+.lightning-btn.is-false { background: #b3261e; }
+.lightning-feedback { min-height: 1.5rem; margin-top: .75rem; text-align: center; font-weight: 600; }
+
+/* Snake */
+.snake-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: .5rem; margin-bottom: .6rem; }
+.snake-prompt { display: flex; flex-direction: column; padding: .55rem .9rem; border-radius: 12px; background: linear-gradient(135deg, var(--t1), var(--t2)); color: #fff; max-width: 100%; }
+.snake-prompt span { opacity: .8; font-size: .7rem; letter-spacing: .05em; }
+.snake-prompt strong { font-size: 1.05rem; }
+.snake-stage { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 16px 34px -18px rgba(0, 23, 57, .7); }
+.snake-canvas { display: block; width: 100%; height: auto; touch-action: none; }
+.snake-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 23, 57, .72); color: #fff; text-align: center; padding: 1rem; }
+.snake-overlay[hidden] { display: none; }
+.snake-overlay-inner { max-width: 26rem; }
+.snake-logo { font-size: 2.6rem; margin-bottom: .5rem; animation: lt-pulse 1.8s ease-in-out infinite; display: inline-block; }
+.snake-pad { display: grid; grid-template-areas: ". up ." "left down right"; grid-template-columns: repeat(3, 56px); gap: .35rem; justify-content: center; margin-top: .75rem; }
+.snake-pad button { height: 48px; border: 0; border-radius: 12px; background: rgba(0, 38, 91, .08); color: var(--primary-navy); font-size: 1.3rem; }
+.snake-pad button:active { background: rgba(0, 38, 91, .18); }
+.snake-pad [data-sn-dir="up"] { grid-area: up; } .snake-pad [data-sn-dir="left"] { grid-area: left; }
+.snake-pad [data-sn-dir="down"] { grid-area: down; } .snake-pad [data-sn-dir="right"] { grid-area: right; }
+@media (hover: hover) and (pointer: fine) { .snake-pad { display: none; } }
+.snake-feedback { min-height: 1.5rem; margin-top: .6rem; font-weight: 600; }
+
+/* The arcade row on /games/challenges */
+.arena-arcade { position: relative; overflow: hidden; height: 100%; display: flex; flex-direction: column; padding: 1.5rem; border-radius: var(--radius-lg); color: #fff; background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, .22), transparent 45%), linear-gradient(150deg, var(--t1), var(--t2)); box-shadow: 0 14px 30px -14px var(--t2); transition: transform .25s ease; animation: arena-in .5s ease-out both; }
+.arena-arcade:hover, .arena-arcade:focus-within { transform: translateY(-6px) rotate(-.4deg); }
+.arena-arcade .arena-topic-icon { font-size: 1.9rem; width: 64px; height: 64px; animation: arcade-bob 2.6s ease-in-out infinite; }
+@keyframes arcade-bob { 50% { transform: translateY(-6px); } }
+.arena-arcade .arcade-tag { position: absolute; top: 1rem; right: 1rem; font-size: .7rem; font-weight: 800; letter-spacing: .06em; padding: .2rem .55rem; border-radius: 99px; background: rgba(255, 255, 255, .2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mem-inner, .lightning-card, .lightning-timer span, .lightning-btn, .arena-arcade { transition: none; }
+  .mem-card.is-matched, .mem-card.is-miss .mem-front, .lightning-card.is-in, .lightning-card.is-wrong,
+  .lightning-bolt, .snake-logo, .arena-arcade, .arena-arcade .arena-topic-icon, .arcade-confetti { animation: none; }
+}

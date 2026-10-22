@@ -49,6 +49,25 @@
 <div class="container">
   <%- include('../partials/flash') %>
 
+  <%# --- Arcade: played, not answered. First, because these are the games people come back for. %>
+  <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+    <h2 class="arena-section mb-0"><i class="bi bi-joystick me-2" aria-hidden="true"></i>Arcade</h2>
+    <span class="small text-muted-2">Play as often as you like · your first run of the day scores</span>
+  </div>
+  <div class="row g-4 mb-5 arena-grid">
+    <% arcadeGames.forEach(function (g) { const done = played[g.key]; %>
+    <div class="col-lg-4 col-md-6">
+      <article class="arena-arcade arena-tone-<%= toneFor(g) %>">
+        <span class="arcade-tag"><%= done ? 'PLAYED ' + done.score + '/' + done.total : 'NEW' %></span>
+        <div class="arena-topic-icon"><i class="bi <%= g.icon %>" aria-hidden="true"></i></div>
+        <h3 class="arena-topic-name"><%= g.title %></h3>
+        <p class="arena-topic-blurb"><%= g.blurb %></p>
+        <a class="arena-topic-cta" href="/games/<%= g.key %>"><i class="bi bi-play-fill me-1" aria-hidden="true"></i><%= !currentUser ? 'Sign in to play' : done ? 'Play again' : 'Play' %></a>
+      </article>
+    </div>
+    <% }); %>
+  </div>
+
   <%# --- Topic challenges: one subject each, scored like the rest, shown first because they are the newest. %>
   <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
     <h2 class="arena-section mb-0"><i class="bi bi-stars me-2" aria-hidden="true"></i>Topic challenges</h2>

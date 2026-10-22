@@ -83,7 +83,9 @@ because the stored breakdown is what was said to a client on a date.
   project scenarios are scored — once a day, marked on the server, up to 2 points each —
   and flashcards and typing are practice. Four topic challenges — SAP Fiori, SAP HANA, SAP
   Sapphire (conference news, each answer with its source) and SAP & AI agents — are scored
-  the same way, five questions a day each. A finished game offers a "Share on LinkedIn" link
+  the same way, five questions a day each. Three arcade games — SAP Memory (flip cards to
+  pair codes with what they do), Lightning (sixty seconds of true or false) and SAP Snake (steer
+  and eat the right code) — score your first run of the day and can be replayed as practice. A finished game offers a "Share on LinkedIn" link
   with the score. Today's Rankings sums everything played today.
   Signed-in members also find it as "Challenges" in their account menu.
 

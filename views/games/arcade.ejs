@@ -1,0 +1,87 @@
+<%#
+  The three arcade games (config/games.js, "arcade games"). Everything that moves is in
+  public/js/arcade.js; this markup holds no answer, no face and no layout. Memory's faces,
+  Lightning's statements and every right-or-wrong arrive from the server one move at a time.
+
+  `practice` is true once today's attempt exists: the same game, graded the same way, stored
+  nowhere and paying nothing — and it says so before anybody starts.
+%>
+<div class="arcade arena-tone-<%= game.key === 'memory' ? 4 : game.key === 'lightning' ? 9 : 7 %>" data-arcade="<%= game.key %>" data-practice="<%= practice ? '1' : '0' %>">
+  <% if (practice) { %>
+    <p class="arcade-practice"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Today's run is in. Play again as much as you like — practice runs pay no points.</p>
+  <% } %>
+  <noscript><p class="alert alert-warning">This game needs scripting. Every other challenge works without it.</p></noscript>
+
+  <% if (game.key === 'memory') { %>
+    <div class="arcade-hud">
+      <span><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Turns <strong data-mem-turns><%= memoryProgress ? memoryProgress.turns : 0 %></strong></span>
+      <span><i class="bi bi-check2-all" aria-hidden="true"></i> Pairs <strong data-mem-found><%= memoryProgress ? memoryProgress.matched.length / 2 : 0 %></strong>/<%= set.cards / 2 %></span>
+      <span class="small text-muted-2">9 turns or fewer keeps every point</span>
+    </div>
+    <div class="mem-grid" data-mem-grid data-cards="<%= set.cards %>" data-restore='<%- JSON.stringify(memoryProgress ? memoryProgress.matched : []).replace(/</g, "\\u003c").replace(/'/g, "\\u0027") %>'>
+      <% for (let i = 0; i < set.cards; i++) { %>
+        <button type="button" class="mem-card" data-card="<%= i %>" aria-label="Card <%= i + 1 %>, face down">
+          <span class="mem-inner"><span class="mem-back" aria-hidden="true"><i class="bi bi-hexagon"></i></span><span class="mem-front"></span></span>
+        </button>
+      <% } %>
+    </div>
+    <p class="small text-muted-2 mt-2 mb-0">Pair each transaction code or table with what it does. Faces come from the server one flip at a time, so the board cannot be read from the page.</p>
+
+  <% } else if (game.key === 'lightning') { %>
+    <div class="lightning-start" data-lt-start>
+      <div class="lightning-bolt" aria-hidden="true"><i class="bi bi-lightning-charge-fill"></i></div>
+      <h2 class="h4 mb-2"><%= set.items.length %> statements · <%= set.seconds %> seconds</h2>
+      <p class="text-muted-2 mb-3">Is that code really for that job? Tap <strong>True</strong> or <strong>False</strong> — or use ← and →. The clock is the server's and starts when you press start.</p>
+      <button type="button" class="btn btn-primary btn-lg rounded-pill px-5" data-lt-go><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Start</button>
+    </div>
+    <div class="lightning-play" data-lt-play hidden>
+      <div class="lightning-timer"><span data-lt-bar></span></div>
+      <div class="arcade-hud mt-2">
+        <span><i class="bi bi-stopwatch" aria-hidden="true"></i> <strong data-lt-time><%= set.seconds %></strong>s</span>
+        <span><i class="bi bi-list-ol" aria-hidden="true"></i> <strong data-lt-count>1</strong>/<%= set.items.length %></span>
+        <span><i class="bi bi-fire" aria-hidden="true"></i> Streak <strong data-lt-streak>0</strong></span>
+        <span><i class="bi bi-check2" aria-hidden="true"></i> <strong data-lt-score>0</strong></span>
+      </div>
+      <div class="lightning-card" data-lt-card aria-live="polite">
+        <span class="lightning-code" data-lt-term></span>
+        <span class="lightning-eq" aria-hidden="true">=</span>
+        <span class="lightning-shown" data-lt-shown></span>
+      </div>
+      <div class="lightning-buttons">
+        <button type="button" class="lightning-btn is-false" data-lt-answer="false"><i class="bi bi-x-lg" aria-hidden="true"></i> False</button>
+        <button type="button" class="lightning-btn is-true" data-lt-answer="true"><i class="bi bi-check-lg" aria-hidden="true"></i> True</button>
+      </div>
+      <p class="lightning-feedback small" data-lt-feedback aria-live="polite"></p>
+    </div>
+
+  <% } else if (game.key === 'snake') { %>
+    <div class="snake-top">
+      <div class="snake-prompt" aria-live="polite"><span class="small text-uppercase fw-bold">Eat the code for</span><strong data-sn-prompt>Press start</strong></div>
+      <div class="arcade-hud">
+        <span><i class="bi bi-heart-fill text-danger" aria-hidden="true"></i> <strong data-sn-lives>3</strong></span>
+        <span><i class="bi bi-check2" aria-hidden="true"></i> <strong data-sn-score>0</strong>/<%= set.items.length %></span>
+        <span><i class="bi bi-list-ol" aria-hidden="true"></i> <strong data-sn-step>0</strong>/<%= set.items.length %></span>
+      </div>
+    </div>
+    <div class="snake-stage">
+      <canvas class="snake-canvas" data-sn-canvas width="616" height="392" aria-label="SAP Snake game board" role="img"></canvas>
+      <div class="snake-overlay" data-sn-overlay>
+        <div class="snake-overlay-inner">
+          <div class="snake-logo" aria-hidden="true"><i class="bi bi-joystick"></i></div>
+          <p class="mb-2" data-sn-message>Arrow keys or WASD to steer — swipe on a phone. Eat the code that does the job shown above. Space pauses.</p>
+          <button type="button" class="btn btn-primary rounded-pill px-4" data-sn-go><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Start</button>
+        </div>
+      </div>
+    </div>
+    <div class="snake-pad" aria-label="Direction buttons">
+      <button type="button" data-sn-dir="up" aria-label="Up"><i class="bi bi-caret-up-fill"></i></button>
+      <button type="button" data-sn-dir="left" aria-label="Left"><i class="bi bi-caret-left-fill"></i></button>
+      <button type="button" data-sn-dir="down" aria-label="Down"><i class="bi bi-caret-down-fill"></i></button>
+      <button type="button" data-sn-dir="right" aria-label="Right"><i class="bi bi-caret-right-fill"></i></button>
+    </div>
+    <p class="snake-feedback small" data-sn-feedback aria-live="polite"></p>
+  <% } %>
+
+  <div class="arcade-result" data-arcade-result hidden aria-live="polite"></div>
+</div>
+<script src="/js/arcade.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>

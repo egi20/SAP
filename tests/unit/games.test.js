@@ -67,7 +67,8 @@ describe.each(games.SCORED_KEYS)('%s', (key) => {
     const set = games.dailySetFor(key, DATE);
     const right = {};
     set.items.forEach((i) => { right[i.id] = key === 'wordsearch' ? i.word.toLowerCase() : i.answer; });
-    const full = games.grade(key, set, right);
+    // Memory is graded from what the SERVER counted: every pair found in the fewest turns.
+    const full = games.grade(key, set, key === 'memory' ? { turns: set.items.length, found: set.items.map((i) => i.id) } : right);
     expect(full.score).toBe(full.total);
     expect(full.points).toBe(2);
 
@@ -129,5 +130,46 @@ describe('the routes', () => {
   test('typing practice sends nothing anywhere', () => {
     const code = codeOf('../../public/js/games.js');
     expect(code).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon/);
+  });
+});
+
+describe('the arcade games', () => {
+  test('Memory scores turns the SERVER counted: nine are free, every two after cost a pair', () => {
+    expect(games.memoryScore(6, 6)).toBe(6);
+    expect(games.memoryScore(9, 6)).toBe(6);
+    expect(games.memoryScore(11, 6)).toBe(5);
+    expect(games.memoryScore(40, 6)).toBe(0);
+    expect(games.memoryScore(6, 3)).toBe(3);
+  });
+
+  test('a Memory board holds each pair once on each side, and the page gets only a count', () => {
+    const set = games.dailySetFor('memory', DATE);
+    const board = games.memoryBoard(set, () => 0.3);
+    expect(board).toHaveLength(set.items.length * 2);
+    set.items.forEach((p) => {
+      expect(board.filter((c) => c.pair === p.id).map((c) => c.side).sort()).toEqual(['code', 'meaning']);
+    });
+    expect(games.publicFormOf('memory', set)).toEqual({ cards: set.items.length * 2 });
+  });
+
+  test('Lightning hands over statements with no truth in them', () => {
+    const set = games.dailySetFor('lightning', DATE);
+    const pub = games.publicFormOf('lightning', set);
+    expect(JSON.stringify(pub)).not.toMatch(/"(answer|meaning)"/);
+    expect(set.items.some((i) => i.answer) && set.items.some((i) => !i.answer)).toBe(true);
+  });
+
+  test('every Snake option is a short code, and only one is right', () => {
+    const set = games.dailySetFor('snake', DATE);
+    set.items.forEach((i) => {
+      expect(new Set(i.options).size).toBe(4);
+      i.options.forEach((o) => expect(o.length).toBeLessThanOrEqual(12));
+    });
+  });
+
+  test('the arcade routes read no score, time or answer from the browser', () => {
+    const src = codeOf('../../routes/games.js');
+    const block = src.slice(src.indexOf("router.post('/memory/flip'"), src.indexOf("router.get('/:game'"));
+    expect(block).not.toMatch(/req\.body\.(score|time|duration|answers|turns|found|startedAt)/);
   });
 });

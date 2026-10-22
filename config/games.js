@@ -56,6 +56,19 @@ const GAMES = Object.freeze([
     key: 'wordsearch', title: 'Word search', icon: 'bi-grid-3x3', scored: true, perDay: 6,
     blurb: 'Six SAP terms hidden in a grid. Each comes with a clue.'
   },
+  // Arcade games (2026-10-22): played, not answered — state on the server, see below.
+  {
+    key: 'memory', title: 'SAP Memory', icon: 'bi-grid-3x2-gap', scored: true, perDay: 6, arcade: true,
+    blurb: 'Flip the cards and pair each transaction code with what it does. Fewer turns, more points.'
+  },
+  {
+    key: 'lightning', title: 'Lightning', icon: 'bi-lightning-charge', scored: true, perDay: 16, arcade: true,
+    blurb: 'Sixty seconds. Is this the right code for that job? True or false, as fast as you can.'
+  },
+  {
+    key: 'snake', title: 'SAP Snake', icon: 'bi-joystick', scored: true, perDay: 8, arcade: true,
+    blurb: 'Steer the snake and eat the right code for each task. A wrong bite costs a life; a wall ends the run.'
+  },
   // Topic challenges (2026-10-22). `topic: true` puts them in their own row on /games/challenges.
   {
     key: 'fiori', title: 'SAP Fiori', icon: 'bi-grid-1x2', scored: true, perDay: 5, topic: true,
@@ -1040,6 +1053,51 @@ function mcqSet(bank, gameKey, dateIso, size) {
   });
 }
 
+/* ------------------------------------------------------------------ arcade games */
+
+/*
+ * Three games that are played rather than answered (owner, 2026-10-22): SAP Memory, Lightning
+ * and SAP Snake. Their mechanics happen in the browser — flipping, tapping against a clock,
+ * steering — and that is exactly where this file's rule bites hardest: the browser is never
+ * asked for a score, a time or a right answer. Each one keeps its state on the SERVER, in the
+ * player's session, and the browser only says what it did:
+ *
+ *   - Memory: the board lives in the session and a card's face is fetched one flip at a time,
+ *     so the page never holds the layout; the server counts the turns, and the score is the
+ *     server's count. `memoryScore` is pure.
+ *   - Lightning: the statements are handed over by the START request, which stamps the start
+ *     time server-side; a submission later than the limit plus a grace for the network scores
+ *     nothing. The time a phone reports is never read.
+ *   - Snake: each answer is LOCKED by the server the moment the snake eats it, and the reply
+ *     says whether it was right; the finish grades what the session holds, not what is posted.
+ *
+ * Their content is the same SAP vocabulary as code match (`CODES`), so nothing new has to be
+ * true. The day's set is derived from the date like every other game; Memory's LAYOUT is
+ * shuffled per player, so positions cannot be passed around.
+ */
+const MEMORY_PAIRS = 6;
+const MEMORY_FREE_TURNS = 9;
+const LIGHTNING_SECONDS = 60;
+const LIGHTNING_GRACE_SECONDS = 15;
+const LIGHTNING_ITEMS = 16;
+const SNAKE_PROMPTS = 8;
+
+/** Pure: a perfect memory needs six turns; three spare are free, every two after that cost a pair. */
+function memoryScore(turns, found) {
+  const penalty = Math.floor(Math.max(0, turns - MEMORY_FREE_TURNS) / 2);
+  return Math.max(0, Math.min(found, MEMORY_PAIRS) - penalty);
+}
+
+/** A board for one player: twelve cards, each pair a code and its meaning, shuffled with `random`. */
+function memoryBoard(set, random = Math.random) {
+  const cards = [];
+  set.items.forEach((p) => {
+    cards.push({ pair: p.id, face: p.term, side: 'code' });
+    cards.push({ pair: p.id, face: p.meaning, side: 'meaning' });
+  });
+  return shuffled(cards, random);
+}
+
 /* ------------------------------------------------------------------ word search grid */
 
 const GRID_SIZE = 12;
@@ -1132,6 +1190,32 @@ function dailySetFor(gameKey, dateIso) {
     }
     case 'flashcards':
       return { items: shuffled(activeOn(CODES, dateIso), random).slice(0, game.perDay).map((c) => ({ ...c })) };
+    case 'memory':
+      return { items: shuffled(activeOn(CODES, dateIso), random).slice(0, MEMORY_PAIRS).map((c) => ({ id: c.id, term: c.term, meaning: c.meaning })) };
+    case 'lightning': {
+      const pool = activeOn(CODES, dateIso);
+      const picked = shuffled(pool, random).slice(0, LIGHTNING_ITEMS);
+      return {
+        seconds: LIGHTNING_SECONDS,
+        items: picked.map((c, i) => {
+          const truth = random() < 0.5;
+          const others = pool.filter((o) => o.id !== c.id);
+          const decoy = others[Math.floor(random() * others.length)];
+          return { id: `${c.id}-${i}`, term: c.term, shown: truth ? c.meaning : decoy.meaning, meaning: c.meaning, answer: truth };
+        })
+      };
+    }
+    case 'snake': {
+      const pool = activeOn(CODES, dateIso);
+      const picked = shuffled(pool, random).slice(0, SNAKE_PROMPTS);
+      return {
+        items: picked.map((c) => {
+          const wrong = shuffled(pool.filter((o) => o.id !== c.id), rngFrom(seedFor(dateIso, `snake:${c.id}`))).slice(0, 3);
+          const options = shuffled([c, ...wrong], rngFrom(seedFor(dateIso, `snake:opts:${c.id}`))).map((o) => o.term);
+          return { id: c.id, prompt: c.meaning, options, answer: options.indexOf(c.term), explain: `${c.term}: ${c.meaning}.` };
+        })
+      };
+    }
     case 'typing': {
       const passages = activeOn(PASSAGES, dateIso);
       return { items: [{ ...passages[Math.floor(random() * passages.length)] }] };
@@ -1162,6 +1246,13 @@ function publicFormOf(gameKey, set) {
       return { items: set.items.map((i) => ({ id: i.id, code: i.code.slice() })) };
     case 'wordsearch':
       return { grid: set.grid.slice(), items: set.items.map((i) => ({ id: i.id, clue: i.clue, letters: i.letters })) };
+    // Memory's faces are fetched one flip at a time; the page gets only how many cards there are.
+    case 'memory':
+      return { cards: set.items.length * 2 };
+    case 'lightning':
+      return { seconds: set.seconds, items: set.items.map((i) => ({ id: i.id, term: i.term, shown: i.shown })) };
+    case 'snake':
+      return { items: set.items.map((i) => ({ id: i.id, prompt: i.prompt, options: i.options.slice() })) };
     default:
       throw new Error(`no public form for ${gameKey}`);
   }
@@ -1212,6 +1303,27 @@ function grade(gameKey, set, submitted) {
         return { id: i.id, code: i.code.slice(), chosen, answer: i.answer, correct: chosen === i.answer, explain: i.explain };
       });
       break;
+    case 'memory': {
+      // `submitted` is built by the SERVER from the session: { turns, found: [pair ids] }.
+      const turns = Number.isInteger(given.turns) && given.turns >= 0 ? given.turns : 0;
+      const found = new Set(Array.isArray(given.found) ? given.found : []);
+      results = set.items.map((i) => ({ id: i.id, term: i.term, answer: i.meaning, chosen: turns, correct: found.has(i.id) }));
+      const score = memoryScore(turns, results.filter((r) => r.correct).length);
+      return { results, score, total: MEMORY_PAIRS, points: pointsFor(score, MEMORY_PAIRS), turns };
+    }
+    case 'lightning':
+      results = set.items.map((i) => {
+        const raw = pick(i.id);
+        const chosen = raw === true || raw === 'true' ? true : raw === false || raw === 'false' ? false : null;
+        return { id: i.id, term: i.term, shown: i.shown, meaning: i.meaning, chosen, answer: i.answer, correct: chosen === i.answer };
+      });
+      break;
+    case 'snake':
+      results = set.items.map((i) => {
+        const chosen = indexFrom(pick(i.id), i.options.length);
+        return { id: i.id, prompt: i.prompt, options: i.options.slice(), chosen, answer: i.answer, correct: chosen === i.answer, explain: i.explain };
+      });
+      break;
     case 'wordsearch':
       results = set.items.map((i) => {
         const typed = normaliseWord(pick(i.id));
@@ -1237,6 +1349,10 @@ function recordOf(graded) {
  * across a regrade) rather than an index, so it is mapped back to today's position.
  */
 function submissionFromRecord(gameKey, set, record) {
+  const rows = Array.isArray(record) ? record : [];
+  if (gameKey === 'memory') {
+    return { turns: rows.length && Number.isInteger(rows[0].chosen) ? rows[0].chosen : 0, found: rows.filter((r) => r && r.correct).map((r) => r.id) };
+  }
   const out = {};
   for (const entry of Array.isArray(record) ? record : []) {
     if (!entry || entry.id === undefined || entry.chosen === null || entry.chosen === undefined) continue;
@@ -1311,7 +1427,7 @@ function assertGamesIntegrity() {
   }
 
   const today = serverDate();
-  const sizes = { match: CODES, scenario: SCENARIOS, codequiz: CODE_QUIZ, bughunter: BUGS, wordsearch: WORDS, flashcards: CODES, ...TOPIC_BANKS };
+  const sizes = { match: CODES, scenario: SCENARIOS, codequiz: CODE_QUIZ, bughunter: BUGS, wordsearch: WORDS, flashcards: CODES, memory: CODES, lightning: CODES, snake: CODES, ...TOPIC_BANKS };
   for (const [key, bank] of Object.entries(sizes)) {
     if (activeOn(bank, today).length < gameOf(key).perDay * 2) {
       throw new Error(`the ${key} bank is too small: every day would be nearly the same set`);
@@ -1339,6 +1455,11 @@ module.exports = {
   recordOf,
   submissionFromRecord,
   normaliseWord,
+  memoryScore,
+  memoryBoard,
+  MEMORY_PAIRS,
+  LIGHTNING_SECONDS,
+  LIGHTNING_GRACE_SECONDS,
   assertGamesIntegrity,
   // Exposed for the tests that check the content itself.
   banks: { CODES, SCENARIOS, CODE_QUIZ, BUGS, WORDS, PASSAGES, ...TOPIC_BANKS }

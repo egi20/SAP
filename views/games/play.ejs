@@ -37,6 +37,7 @@
         %>
         <a class="share-linkedin mt-3" href="https://www.linkedin.com/feed/?shareActive=true&amp;text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener"><i class="bi bi-linkedin" aria-hidden="true"></i>Share on LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a>
       </div></div>
+      <% if (game.arcade) { %><%- include('arcade', { game: game, set: arcadeSet, practice: true }) %><% } %>
 
       <% results.results.forEach(function (r, i) { %>
         <div class="glass-card mb-3"><div class="card-body p-4">
@@ -52,6 +53,16 @@
               <h2 class="h6 mb-1"><%= r.clue %></h2>
               <p class="small mb-0"><strong>Answer:</strong> <span class="font-monospace"><%= r.answer %></span></p>
               <% if (!r.correct) { %><p class="small text-muted-2 mb-0">You wrote: <%= r.chosen || 'nothing' %></p><% } %>
+
+            <% } else if (game.key === 'memory') { %>
+              <h2 class="h6 mb-1"><span class="font-monospace"><%= r.term %></span> — <%= r.answer %></h2>
+              <p class="small text-muted-2 mb-0"><%= r.correct ? 'Paired' : 'Not paired' %><% if (i === 0) { %> · <%= r.chosen %> turns in all<% } %></p>
+
+            <% } else if (game.key === 'lightning') { %>
+              <h2 class="h6 mb-1"><span class="font-monospace"><%= r.term %></span> = <%= r.shown %>?</h2>
+              <p class="small mb-0"><strong><%= r.answer ? 'True' : 'False' %>.</strong>
+                <% if (!r.answer) { %><span class="font-monospace"><%= r.term %></span> is: <%= r.meaning %>.<% } %>
+                <% if (!r.correct) { %><span class="text-muted-2">You said <%= r.chosen === null ? 'nothing' : (r.chosen ? 'true' : 'false') %>.</span><% } %></p>
 
             <% } else if (game.key === 'bughunter') { %>
               <h2 class="h6 mb-2">Snippet <%= i + 1 %></h2>
@@ -80,6 +91,9 @@
           </div>
         </div></div>
       <% }); %>
+
+    <% } else if (game.arcade) { %>
+      <%- include('arcade', { game: game, set: arcadeSet, practice: false }) %>
 
     <% } else if (game.key === 'flashcards') { %>
       <p class="small text-muted-2">Read the code, say what it is, then open the card. Nothing is recorded.</p>

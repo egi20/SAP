@@ -1682,6 +1682,23 @@ question shows. A graded result offers "Share on LinkedIn" — a PLAIN link to
 answer, and no LinkedIn script on the page (no third party loads here; a test decodes the text
 and checks no correct option is in it).
 
+**Three ARCADE games arrived on 2026-10-22 — SAP Memory, Lightning, SAP Snake** (owner: "games,
+not only quizzes"; migration 039). They are the one place a game's mechanic runs in the browser,
+which is exactly what "no browser-scored games" refuses — so the state lives in the player's
+SESSION and the browser only reports MOVES. Memory's board is shuffled per player into the
+session and a face is fetched one flip at a time (`POST /games/memory/flip`), so the page never
+holds the layout; the server counts the turns, and `memoryScore` (nine turns free, every two
+after cost a pair) is the score. Lightning's statements arrive with `/lightning/start`, which
+stamps the start on the SERVER clock; each answer is locked by `/lightning/answer` inside that
+clock plus a 15-second grace, and the finish grades only the locks. Snake locks each bite in
+`/snake/eat`, which replies right-or-wrong; the finish grades the locks. No arcade route reads
+a score, time, turns or answer from the body, and a test reads the routes to keep it so. The
+first finished run of the day is the attempt and pays through `game_completed` like every
+game; after it, runs are PRACTICE — graded the same way, stored nowhere, paying nothing, and
+the page says so before the start. Signed-in only, because the state needs the session and the
+session needs the one cookie. Content is the code-match vocabulary (`CODES`), so nothing new
+has to be true. They are the first row on `/games/challenges`.
+
 **The other games arrived on 2026-10-21, WITHOUT the reference's shape** (owner's request;
 until then this paragraph said "one game, not nine" and why). `config/games.js`,
 `models/Game.js`, `routes/games.js`, migration 033, `/games`. Five are SCORED — code match,
