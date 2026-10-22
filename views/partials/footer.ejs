@@ -126,7 +126,7 @@
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>"></script>
 <% if (wa.ga4Id) { %><script src="/js/analytics.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>"></script><% } %>
-<% if (wa.cloudflareToken) { %>
+<% if (wa.cloudflareToken && typeof measureVisit !== 'undefined' && measureVisit) { %>
 <%# Cloudflare Web Analytics: no cookie, no identifier, so it needs no consent. Disclosed in the privacy policy. %>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<%= wa.cloudflareToken %>"}'></script>
 <% } %>

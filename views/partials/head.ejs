@@ -30,6 +30,8 @@
 <% if (typeof webAnalytics !== 'undefined' && webAnalytics && webAnalytics.ga4Id) { %>
 <%# Read by public/js/analytics.js, which loads gtag ONLY after the visitor allows it. %>
 <meta name="ga4-id" content="<%= webAnalytics.ga4Id %>">
+<%# The consent question still works here; only the tag is never loaded (middleware/visitGeo.js). %>
+<% if (typeof measureVisit !== 'undefined' && !measureVisit) { %><meta name="analytics-measure" content="off"><% } %>
 <% } %>
 <link rel="stylesheet" href="/css/inter.css">
 <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">

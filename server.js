@@ -51,7 +51,7 @@ const { csrfProtection } = require('./middleware/csrf');
 const { isUploadPath } = require('./middleware/fileUpload');
 const { captureReferralCode } = require('./middleware/referral');
 const { notFound, errorHandler, asyncHandler } = require('./middleware/errorHandler');
-const { visitGeo } = require('./middleware/visitGeo');
+const { visitGeo, isOwnTraffic } = require('./middleware/visitGeo');
 const { sanitizeRichText, toPlainText, jsonForScript } = require('./utils/sanitize');
 
 /*
@@ -430,6 +430,8 @@ app.use((req, res, next) => {
   res.locals.appBaseUrl = config.app.baseUrl;
   res.locals.assetVersion = ASSET_VERSION;
   res.locals.webAnalytics = WEB_ANALYTICS_TAGS;
+  // The admin surface and administrators are never measured; see middleware/visitGeo.js.
+  res.locals.measureVisit = !isOwnTraffic(req);
   res.locals.currentUser = req.session.user || null;
   res.locals.currentPath = req.path;
   res.locals.query = req.query;

@@ -37,8 +37,10 @@
   }
 
   var loaded = false;
+  // The admin surface and administrators are not measured: the answer is kept, the tag is not loaded.
+  var measureOff = Boolean(document.querySelector('meta[name="analytics-measure"][content="off"]'));
   function loadGa4() {
-    if (loaded) return;
+    if (loaded || measureOff) return;
     loaded = true;
     window['ga-disable-' + ID] = false;
     window.dataLayer = window.dataLayer || [];

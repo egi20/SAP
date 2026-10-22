@@ -1794,6 +1794,13 @@ gtag is never requested before "Allow", and "Analytics choices" in the footer wi
 This is the change the cookie section below said a second cookie would force; it applies
 only while GA4 is configured, and the plain notice returns the moment it is not.
 
+**The Hub does not measure itself** (2026-10-22). `/admin`, `/crm` and `/auth` are never
+measured, and an administrator is measured nowhere: `isOwnTraffic` in `middleware/visitGeo.js`
+gates the server-side count, the Cloudflare beacon (not rendered) and GA4 (the consent question
+still works; `analytics.js` never loads the tag under `analytics-measure=off`). The screens were
+mostly counting the people who run the site, and a number that measures its author is worse
+than none.
+
 **One data shape for both screens** (`services/webAnalytics.js`), so they can be read side
 by side. Each provider keeps its own terms — GA4 users and sessions, Cloudflare visits — and
 the screen says page views are the only figure both define the same way. GA4's totals sit
