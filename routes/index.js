@@ -601,7 +601,7 @@ function reportView(req, values, errors, status = 200, res, { sent = null } = {}
     if (key && !fieldErrors[key]) fieldErrors[key] = e.msg;
   });
   return res.status(status).render('legal/report-issue', {
-    title: mode === 'idea' ? 'Share an idea' : 'Report a problem',
+    title: 'Report an Issue or Share an Idea',
     mode,
     issueTypes: mode === 'idea' ? Enquiry.IDEA_TYPES : Enquiry.PROBLEM_TYPES,
     severities: mode === 'idea' ? Enquiry.PRIORITIES : Enquiry.SEVERITIES,
