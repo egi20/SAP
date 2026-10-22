@@ -1659,24 +1659,111 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   max-width: calc(100vw - 2rem);
 }
 
+/* The launcher is the mascot, like dynamicshub.net's Dynamo: a transparent figure with a
+   drop shadow and a small "AI" tag, so nobody takes it for decoration. */
 .assistant-launcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-full);
-  padding: 0.6rem 1.1rem;
-  background: var(--navy-gradient);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: var(--glass-shadow);
+  position: relative;
+  width: 68px;
+  height: 96px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
 .assistant-launcher:hover,
-.assistant-launcher:focus-visible {
-  background: var(--accent-gradient-hover);
-  color: #fff;
+.assistant-launcher:focus-visible { transform: translateY(-3px) scale(1.04); }
+
+.assistant-launcher-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 38, 91, 0.45)) drop-shadow(0 0 12px rgba(0, 112, 242, 0.35));
 }
+
+.assistant-launcher-ai {
+  position: absolute;
+  right: -2px;
+  bottom: 4px;
+  padding: 0.18rem 0.4rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: var(--bg-white);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+.assistant-teaser {
+  position: relative;
+  max-width: 15rem;
+  background: var(--bg-white);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  font-size: 0.85rem;
+}
+
+.assistant-teaser-body {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0.7rem 1.9rem 0.7rem 0.9rem;
+  text-align: left;
+  color: var(--text-medium);
+}
+
+.assistant-teaser-body strong { display: block; color: var(--primary-navy); }
+
+.assistant-teaser-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-light);
+  line-height: 1;
+}
+
+.assistant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-navy);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.assistant-title { flex-grow: 1; font-size: 1rem; font-weight: 700; }
+.assistant-sub { font-weight: 400; color: var(--text-light); font-size: 0.8rem; }
+
+.assistant-badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: var(--bg-white);
+  font-size: 0.6rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.assistant-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1rem 0.5rem; }
+
+.assistant-chip {
+  border: 1px solid var(--glass-border-tinted);
+  border-radius: var(--radius-full);
+  background: var(--bg-white);
+  color: var(--primary-blue);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.7rem;
+}
+
+.assistant-chip:hover { background: var(--bg-light); }
 
 .assistant-panel {
   display: flex;
@@ -1759,12 +1846,11 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
     right: 0.75rem;
     left: 0.75rem;
     bottom: 0.75rem;
-    align-items: stretch;
     max-width: none;
   }
 
-  .assistant-launcher { justify-content: center; }
-  .assistant-panel { width: auto; }
+  .assistant-launcher { width: 56px; height: 78px; }
+  .assistant-panel { width: 100%; }
 }
 
 @media print {

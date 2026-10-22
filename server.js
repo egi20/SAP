@@ -411,6 +411,7 @@ app.use((req, res, next) => {
    * opens a panel which answers 503 advertises something the deployment does not have.
    */
   res.locals.assistantReady = assistantConfig.isConfigured();
+  res.locals.assistantName = config.assistant.name;
   res.locals.paymentsReady = stripeForLocals.isConfigured();
   res.locals.legalEntity = LEGAL_ENTITY;
   res.locals.assistantMaxChars = assistantConfig.MAX_MESSAGE_CHARS;

@@ -83,8 +83,51 @@
   }
 
   launcher.addEventListener('click', function () {
+    markTeaserSeen();
     setOpen(panel.hidden);
   });
+
+  /*
+   * A one-time teaser naming the mascot, as on dynamicshub.net — a robot in the corner is
+   * otherwise easy to read as decoration. Shown once per browser, after a short delay,
+   * never while the panel is open, and gone after fifteen seconds. localStorage can throw
+   * in a private window; the teaser is then simply not shown, which is the quiet failure.
+   */
+  var teaser = document.getElementById('assistantTeaser');
+  var TEASER_KEY = 'saphub.assistant.teaserSeen';
+  function teaserSeen() {
+    try { return window.localStorage.getItem(TEASER_KEY) === '1'; } catch (err) { return true; }
+  }
+  function markTeaserSeen() {
+    try { window.localStorage.setItem(TEASER_KEY, '1'); } catch (err) { /* nothing to remember with */ }
+    if (teaser) teaser.hidden = true;
+  }
+  if (teaser && !teaserSeen()) {
+    window.setTimeout(function () {
+      if (teaserSeen() || !panel.hidden) return;
+      teaser.hidden = false;
+      window.setTimeout(function () { teaser.hidden = true; }, 15000);
+    }, 1800);
+    document.getElementById('assistantTeaserClose').addEventListener('click', markTeaserSeen);
+    document.getElementById('assistantTeaserOpen').addEventListener('click', function () {
+      markTeaserSeen();
+      setOpen(true);
+    });
+  }
+
+  /* Suggested questions: one press asks it. They go once a conversation has started. */
+  var chips = document.getElementById('assistantChips');
+  function hideChips() { if (chips) chips.hidden = true; }
+  if (history.length) hideChips();
+  if (chips) {
+    chips.addEventListener('click', function (event) {
+      var chip = event.target.closest('[data-ask]');
+      if (!chip) return;
+      input.value = chip.getAttribute('data-ask');
+      if (typeof form.requestSubmit === 'function') form.requestSubmit();
+      else form.dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+  }
   closeButton.addEventListener('click', function () {
     setOpen(false);
     launcher.focus();
@@ -101,6 +144,7 @@
     var message = input.value.trim();
     if (!message) return;
 
+    hideChips();
     input.value = '';
     input.disabled = true;
     send.disabled = true;

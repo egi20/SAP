@@ -762,6 +762,15 @@ the visible answer. Brevity comes from the prompt and the low effort level. A
 `stop_reason` of `max_tokens` is reported to the widget and labelled, never served as
 though it were a finished answer.
 
+**It has a face and a name, like dynamicshub.net's Dynamo** (2026-10-22). The launcher is the
+owner's robot (`public/images/hub-assistant.webp`, background removed by flood-filling from
+the edges so the dark visor inside stays opaque; the head crop is the panel avatar), with an
+"AI" tag, a one-time teaser and three suggested questions. The name is
+`config.assistant.name` (`ASSISTANT_NAME`, default "Hubi"), read by BOTH the widget and the
+system prompt, so the two cannot introduce it differently — and it is a per-process constant,
+so the cached prefix stays byte-identical. The opening message is written on one line:
+messages are `pre-wrap`, and template indentation showed inside the bubble.
+
 **A 400 is logged as its own thing.** Every other failure here is transient and "try again
 in a moment" is true; a 400 is the request shape being wrong, which fails identically
 forever, and the generic message would otherwise be a lie sitting in the log for weeks.

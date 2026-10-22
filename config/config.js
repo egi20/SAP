@@ -126,7 +126,13 @@ const config = {
      * the feature — model, caps, limits — lives in config/assistant.js, which asserts
      * itself at boot.
      */
-    apiKey: process.env.ANTHROPIC_API_KEY || ''
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    /*
+     * The assistant's persona name, shown on the widget and given to the model, like
+     * dynamicshub.net's "Dynamo". One name in one place: the widget and the prompt read
+     * this, so the two can never introduce it differently.
+     */
+    name: (process.env.ASSISTANT_NAME || 'Hubi').trim().slice(0, 40) || 'Hubi'
   },
   rates: {
     // Privacy floor: never publish an aggregate derived from fewer than this many

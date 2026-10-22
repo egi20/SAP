@@ -1,43 +1,55 @@
 <%
   /*
-   * The assistant widget.
+   * The assistant widget — a mascot, like dynamicshub.net's Dynamo (2026-10-22).
    *
    * Rendered only when the feature is actually configured — see `assistantReady`, set in
    * server.js. A launcher that opens a panel which answers 503 is worse than no launcher:
    * it advertises something the deployment does not have.
    *
+   * The launcher is the robot, with a small "AI" tag on it so nobody mistakes it for
+   * decoration; a one-time teaser says who it is. The name is `config.assistant.name`, the
+   * same value the system prompt introduces itself with.
+   *
    * Everything here is plain markup and a progressively-enhanced script. With JavaScript
-   * off the launcher is not shown at all, because a chat box that cannot send is furniture.
+   * off the widget is not shown at all, because a chat box that cannot send is furniture.
    */
 %>
 <div class="assistant" id="assistant" hidden>
-  <button class="assistant-launcher" type="button" id="assistantLauncher"
-          aria-expanded="false" aria-controls="assistantPanel">
-    <i class="bi bi-chat-dots" aria-hidden="true"></i>
-    <span>Ask about the Hub</span>
-  </button>
+  <div class="assistant-teaser" id="assistantTeaser" hidden>
+    <button class="assistant-teaser-close" type="button" id="assistantTeaserClose" aria-label="Dismiss">
+      <i class="bi bi-x" aria-hidden="true"></i>
+    </button>
+    <button class="assistant-teaser-body" type="button" id="assistantTeaserOpen">
+      <strong>Hi, I'm <%= assistantName %>!</strong>
+      <span>SAP Hub's AI assistant — ask me anything about the site.</span>
+    </button>
+  </div>
 
   <section class="assistant-panel" id="assistantPanel" hidden aria-labelledby="assistantTitle">
     <header class="assistant-head">
-      <h2 class="h6 mb-0" id="assistantTitle">Hub assistant</h2>
+      <img class="assistant-avatar" src="/images/hub-assistant-head.webp" alt="" width="40" height="40">
+      <h2 class="assistant-title mb-0" id="assistantTitle">
+        <%= assistantName %> <span class="assistant-sub">Hub Assistant</span> <span class="assistant-badge">AI</span>
+      </h2>
       <button class="btn-close" type="button" id="assistantClose" aria-label="Close the assistant"></button>
     </header>
 
     <div class="assistant-log" id="assistantLog" role="log" aria-live="polite">
-      <div class="assistant-msg assistant-msg-bot">
-        <p class="mb-0">
-          I answer questions about how SAP Hub works — the job board, the rate index, the
-          scope estimator, quotes and the community. I cannot see your account, and I do
-          not give SAP consulting advice.
-        </p>
-      </div>
+      <%# One line on purpose: messages keep their whitespace (pre-wrap), so indentation would show. %>
+      <div class="assistant-msg assistant-msg-bot"><p class="mb-0">Hi, I'm <%= assistantName %>, SAP Hub's AI assistant. I can help you find your way around — jobs, consultants, the rate index, the scope estimator, quotes and the community. I cannot see your account, and I do not give SAP consulting advice.</p></div>
+    </div>
+
+    <div class="assistant-chips" id="assistantChips">
+      <% ['How do I get started?', 'How does the rate index work?', 'How do I get an SOW quote?'].forEach(function (q) { %>
+        <button class="assistant-chip" type="button" data-ask="<%= q %>"><%= q %></button>
+      <% }); %>
     </div>
 
     <form class="assistant-form" id="assistantForm" data-no-guard="true">
       <label class="visually-hidden" for="assistantInput">Your question</label>
       <input class="form-control" type="text" id="assistantInput" name="message"
              maxlength="<%= assistantMaxChars %>" autocomplete="off"
-             placeholder="How does the rate index work?">
+             placeholder="Ask about SAP Hub…">
       <button class="btn btn-primary" type="submit" id="assistantSend">
         <i class="bi bi-send" aria-hidden="true"></i>
         <span class="visually-hidden">Send</span>
@@ -49,4 +61,11 @@
       on the server.
     </p>
   </section>
+
+  <button class="assistant-launcher" type="button" id="assistantLauncher"
+          aria-expanded="false" aria-controls="assistantPanel"
+          aria-label="Open <%= assistantName %>, the AI Hub Assistant">
+    <img class="assistant-launcher-img" src="/images/hub-assistant.webp" alt="" width="68" height="96" decoding="async">
+    <span class="assistant-launcher-ai" aria-hidden="true">AI</span>
+  </button>
 </div>
