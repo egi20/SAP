@@ -35,6 +35,28 @@
     </div>
   </div>
 
+  <%# Add an existing account, like dynamicshub.net's "Promote existing user". Never creates an account. %>
+  <div class="glass-card mb-4"><div class="card-body">
+    <h2 class="h6 mb-1"><i class="bi bi-person-plus me-1"></i>Add a referrer</h2>
+    <p class="small text-muted-2 mb-3">
+      Put an existing account into the scheme at an agreed rate. They get a personal link and see
+      their earnings at <a href="/referrals">/referrals</a>. Members can also join there themselves at the
+      standard <%= defaultRateBps / 100 %>%. The person must already have an account.
+    </p>
+    <form method="post" action="/admin/referrals/add" class="row g-2 align-items-end">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="col-md-6">
+        <label class="form-label small" for="add-email">Account email</label>
+        <input class="form-control" id="add-email" name="email" type="email" required autocomplete="off" placeholder="name@company.com">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small" for="add-rate">Commission (%)</label>
+        <input class="form-control" id="add-rate" name="rate_percent" type="number" min="0.01" max="30" step="0.01" value="<%= defaultRateBps / 100 %>">
+      </div>
+      <div class="col-6 col-md-3"><button class="btn btn-primary w-100" type="submit">Add referrer</button></div>
+    </form>
+  </div></div>
+
   <% if (!referrers.length) { %>
     <div class="glass-card"><div class="card-body"><p class="text-muted-2 mb-0">Nobody has joined the scheme yet.</p></div></div>
   <% } %>
@@ -127,6 +149,32 @@
           </div>
         </div>
       </div>
+      <% const brought = people[r.id] || []; %>
+      <details class="border-top">
+        <summary class="card-body py-2 small fw-semibold">
+          <i class="bi bi-people me-1"></i>People they brought in (<%= r.introductions %>)
+        </summary>
+        <div class="card-body pt-0">
+          <% if (!brought.length) { %>
+            <p class="small text-muted-2 mb-0">Nobody has signed up through <code><%= r.code %></code> yet.</p>
+          <% } else { %>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+              <thead><tr><th>Person</th><th>Signed up</th><th class="text-end">Earned for the referrer</th></tr></thead>
+              <tbody>
+                <% brought.forEach(function (p) { %>
+                  <tr>
+                    <td><a href="/admin/users?q=<%= encodeURIComponent(p.email) %>"><%= p.name || p.email %></a>
+                      <span class="small text-muted-2 d-block"><%= p.email %><%= p.is_active ? '' : ' · inactive' %></span></td>
+                    <td class="small"><%= new Date(p.created_at).toISOString().slice(0, 10) %></td>
+                    <td class="text-end"><%= formatMinor(p.earned_minor) %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table></div>
+            <% if (r.introductions > brought.length) { %><p class="small text-muted-2 mt-2 mb-0">The <%= brought.length %> most recent of <%= r.introductions %>.</p><% } %>
+          <% } %>
+        </div>
+      </details>
     </div>
   <% }); %>
 

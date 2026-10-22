@@ -983,6 +983,13 @@ The reference has no reversal at all, which leaves a refunded payment owing comm
 forever. A commission already paid out still reverses and the balance goes negative: the
 next payout settles less, which is the correct answer and a visible one.
 
+**A superadmin can ADD a referrer, but only an existing, active account** (`POST
+/admin/referrals/add`, 2026-10-22). It never creates an account — a referrer is somebody who
+agreed to the scheme's terms by having a login — and it never touches somebody already in it:
+re-enrolling would rewrite a rate stamped on their introductions. The rate is bounded 0.01–30%.
+Each referrer row expands into the people they brought in (`Referral.introducedPeople`, one
+query for the page) with what each has earned them, read from the ledger.
+
 **Deactivating a referrer stops new introductions only.** It does not touch existing
 attributions or anything already earned.
 

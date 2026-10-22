@@ -865,10 +865,12 @@ router.get(
   asyncHandler(async (req, res) => {
     const { page, perPage, limit, offset } = paginationFrom(req.query, { defaultPerPage: 30 });
     const { rows, total } = await Referral.listAll({ limit, offset });
+    const people = await Referral.introducedPeople(rows.map((r) => r.id));
 
     res.render('admin/referrals', {
       title: 'Referrals and payouts',
       referrers: rows,
+      people,
       payoutMethods: PAYOUT_METHODS,
       minPayoutMinor: MIN_PAYOUT_MINOR,
       defaultRateBps: DEFAULT_RATE_BPS,
@@ -880,6 +882,49 @@ router.get(
 );
 
 /**
+ * POST /admin/referrals/add — put an existing account into the scheme, as dynamicshub.net's
+ * "Promote existing user". Members can still join themselves at /referrals; this is for the
+ * people the owner signs up directly, at a rate agreed with them.
+ *
+ * It never creates an account: a referrer who has never signed in is a code nobody can
+ * look after, and an account made on somebody's behalf has no consent behind it. An
+ * account already in the scheme keeps its code and its rate — use "Set" to change a rate,
+ * which applies to introductions from then on.
+ */
+router.post(
+  '/referrals/add',
+  isSuperadmin,
+  asyncHandler(async (req, res) => {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    const rateRaw = String(req.body.rate_percent ?? '').trim();
+    const rateBps = rateRaw === '' ? DEFAULT_RATE_BPS : Math.round(Number(rateRaw) * 100);
+
+    if (!email) {
+      req.flash('error', 'Give the email address of the account to add.');
+      return res.redirect('/admin/referrals');
+    }
+    if (!Number.isInteger(rateBps) || rateBps < 1 || rateBps > 3000) {
+      req.flash('error', 'The commission rate must be between 0.01% and 30%.');
+      return res.redirect('/admin/referrals');
+    }
+    const user = await User.findByEmail(email);
+    if (!user || !user.is_active) {
+      req.flash('error', `There is no active account with the address ${email}. They need to sign up first.`);
+      return res.redirect('/admin/referrals');
+    }
+    const existing = await Referral.findByUserId(user.id);
+    if (existing) {
+      req.flash('info', `${user.name || email} is already a referrer (code ${existing.code}, ${existing.rate_bps / 100}%). Change the rate below if needed.`);
+      return res.redirect('/admin/referrals');
+    }
+    const referrer = await Referral.enrol(user.id, { rateBps });
+    req.flash('success', `${user.name || email} is now a referrer — code ${referrer.code}, ${referrer.rate_bps / 100}% commission.`);
+    return res.redirect('/admin/referrals');
+  })
+);
+
+/**
+ * POST /admin/referrals/:id/payout/**
  * POST /admin/referrals/:id/payout — record that a transfer was made.
  *
  * It settles the WHOLE unpaid balance, not an amount typed into a box. The reference took

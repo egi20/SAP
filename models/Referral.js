@@ -505,6 +505,33 @@ class Referral {
     return { rows, total };
   }
 
+  /**
+   * The people each referrer on a page brought in, for the admin screen — one query for the
+   * whole page, not one per referrer. Name, address, date and what they have earned the
+   * referrer; the screen is superadmin, like every other view of this scheme.
+   */
+  static async introducedPeople(referrerIds, { perReferrer = 50 } = {}) {
+    const ids = (referrerIds || []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (!ids.length) return {};
+    const [rows] = await promisePool.query(
+      `SELECT a.referrer_id, a.created_at, u.id AS user_id, u.name, u.email, u.is_active,
+              COALESCE((SELECT SUM(l.amount_minor) FROM commission_ledger l
+                         WHERE l.referred_user_id = a.referred_user_id AND l.referrer_id = a.referrer_id
+                           AND l.entry_type = 'earned'), 0) AS earned_minor
+         FROM referral_attributions a
+         JOIN users u ON u.id = a.referred_user_id
+        WHERE a.referrer_id IN (?)
+        ORDER BY a.created_at DESC`,
+      [ids]
+    );
+    const out = {};
+    rows.forEach((r) => {
+      if (!out[r.referrer_id]) out[r.referrer_id] = [];
+      if (out[r.referrer_id].length < perReferrer) out[r.referrer_id].push(r);
+    });
+    return out;
+  }
+
   static async findById(referrerId) {
     const [rows] = await promisePool.query(
       `SELECT r.*, u.email, u.name FROM referrers r JOIN users u ON u.id = r.user_id
