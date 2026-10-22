@@ -753,6 +753,17 @@ flipping it takes effect on the member's next click. Migration 029's comment sti
 "not enforced" — it is applied and immutable, and this paragraph is the correction. `/dedupe`
 left the sitemap with it: a crawler would only ever see the sign-in redirect.
 
+**Since 2026-10-22 the PAGE is public and the TOOL is not** (owner's decision: SAP Hub does
+not build master-data deduplication, it points to DH Dedupe). `/dedupe` leads with DH Dedupe —
+DynamicsHub's separate platform, own account, own plans — described in `config/dedupe.js` with
+NO price (another platform's price copied here goes stale) and linked only at `DH_DEDUPE_URL`,
+asserted at boot as https on dynamicshub.net; unset, the card has no button and only an
+administrator is told why, because a guessed address is a 404 nobody here would notice. Below
+it, the per-person check: the form renders only for an account with the switch, and the POST
+keeps `hasDedupeAccess`. Results are stat cards (lines · people · duplicates) and a clean list,
+one line per person as first written, copied by a `main.js`-built button. Fuzzy matching,
+uploads and more keys were proposed and NOT built: that is the master-data product's job.
+
 **Admin › Automated Tests runs the regression library against this process, as
 dynamicshub.net's Admin › Tests does** (owner's request, 2026-10-22; migration 034). The
 cases live in `config/regressionTests.js`, asserted at boot, and are NOT seeded into a table

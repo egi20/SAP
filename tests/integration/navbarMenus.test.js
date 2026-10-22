@@ -104,15 +104,18 @@ maybe()('pages the menus added', () => {
     expect(res.text).toContain('href="/tax/apply"');
   });
 
-  it('/dedupe asks a visitor to sign in, and tells an account without access why', async () => {
+  it('/dedupe points everybody to DH Dedupe, and keeps the quick check per account', async () => {
+    // The page is public since 2026-10-22: it leads with where master data goes.
     const visitor = await request(app).get('/dedupe');
-    expect(visitor.status).toBe(302);
-    expect(visitor.headers.location).toMatch(/^\/auth\/login/);
+    expect(visitor.status).toBe(200);
+    expect(visitor.text).toContain('Use DH Dedupe');
+    expect(visitor.text).toContain('Sign in to use the quick check');
+    expect(visitor.text).not.toContain('name="list"');
 
     await promisePool.query('UPDATE users SET dedupe_access = 0 WHERE id = ?', [userId]);
     const agent = await signIn(OWN[0]);
     const blocked = await agent.get('/dedupe');
-    expect(blocked.status).toBe(403);
+    expect(blocked.status).toBe(200);
     expect(blocked.text).toContain('not switched on for your account');
     expect(blocked.text).not.toContain('name="list"');
     const post = await agent.post('/dedupe').type('form').send({ _csrf: csrfFrom(blocked.text), list: 'a\na' });
@@ -131,7 +134,9 @@ maybe()('pages the menus added', () => {
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toContain('no-store');
     expect(res.text).toContain('anna.navtest@example.com');
-    expect(res.text).toMatch(/<strong>2<\/strong> distinct/);
+    expect(res.text).toMatch(/<div class="value">2<\/div><div class="label">People<\/div>/);
+    // The clean list keeps one line per person, as first written.
+    expect(res.text).toMatch(/<textarea[^>]*id="dedupeClean"[^>]*>Anna Navtest, anna.navtest@example.com\nSomebody Else<\/textarea>/);
   });
 
   it('/profile/documents opens for a member and not for a visitor', async () => {

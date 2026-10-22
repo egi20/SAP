@@ -35,3 +35,31 @@ describe('utils/dedupe', () => {
     expect(result.total).toBe(MAX_LINES);
   });
 });
+
+describe('the clean list', () => {
+  it('keeps one line per person, as first written, in the order given', () => {
+    const { findDuplicates } = require('../../utils/dedupe');
+    const result = findDuplicates('Anna Müller, anna@example.com\nBob Jones\nMuller, Anna <ANNA@example.com>\n\nJones Bob');
+    expect(result.clean).toEqual(['Anna Müller, anna@example.com', 'Bob Jones']);
+    expect(result.clean).toHaveLength(result.unique);
+  });
+});
+
+describe('DH Dedupe', () => {
+  const { dedupeProblems, DH_DEDUPE } = require('../../config/dedupe');
+
+  it('accepts no address at all — the card then has no button', () => {
+    expect(dedupeProblems({ ...DH_DEDUPE, url: null })).toEqual([]);
+  });
+
+  it('refuses an address that is not https on dynamicshub.net', () => {
+    expect(dedupeProblems({ ...DH_DEDUPE, url: 'https://dedupe.dynamicshub.net/' })).toEqual([]);
+    expect(dedupeProblems({ ...DH_DEDUPE, url: 'http://dynamicshub.net/dedupe' }).join(' ')).toMatch(/https/);
+    expect(dedupeProblems({ ...DH_DEDUPE, url: 'https://dynamicshub.net.evil.example/' }).join(' ')).toMatch(/dynamicshub\.net/);
+    expect(dedupeProblems({ ...DH_DEDUPE, url: 'https://dynamicshub.net@evil.example/' }).length).toBeGreaterThan(0);
+  });
+
+  it('states no price — what another platform charges is that platform\'s to say', () => {
+    expect(JSON.stringify(DH_DEDUPE)).not.toMatch(/€|\beur\b|price|\/month|lifetime/i);
+  });
+});

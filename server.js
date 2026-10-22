@@ -212,6 +212,9 @@ assertRateBoundsIntegrity();
 // unknown module there would show a visitor a CV the directory could not have produced.
 require('./config/cvExample').assertCvExampleIntegrity();
 
+// /dedupe links to DH Dedupe only at an address that was configured and is on dynamicshub.net.
+require('./config/dedupe').assertDedupeIntegrity();
+
 /*
  * The support address is the one setting a developer never notices is unset, because the
  * page renders perfectly with it. Production refuses to boot on the placeholder; here it

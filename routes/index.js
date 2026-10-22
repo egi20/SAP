@@ -436,8 +436,27 @@ const dedupeLimiter = ipLimiter({
   message: 'That is a lot of lists in an hour. Please give it a little while.'
 });
 
-router.get('/dedupe', hasDedupeAccess, (req, res) => {
-  res.render('legal/dedupe', { title: 'Find duplicates in a list', input: '', result: null, maxLines: MAX_LINES });
+/*
+ * The PAGE is public, because it now leads with where master-data deduplication lives (DH
+ * Dedupe) and the Services menu links here for everybody. The TOOL is still per account:
+ * the form renders only for an account with the switch, and the POST keeps the guard.
+ */
+function dedupeLocals(req, extra) {
+  const { DH_DEDUPE } = require('../config/dedupe');
+  const user = req.session.user;
+  return {
+    title: 'Dedupe',
+    dhDedupe: DH_DEDUPE,
+    canUseTool: Boolean(user && (user.dedupeAccess || user.isAdmin)),
+    input: '',
+    result: null,
+    maxLines: MAX_LINES,
+    ...extra
+  };
+}
+
+router.get('/dedupe', (req, res) => {
+  res.render('legal/dedupe', dedupeLocals(req, {}));
 });
 
 router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
@@ -445,7 +464,7 @@ router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
   const result = input.trim() ? findDuplicates(input) : null;
   // No caching of a response that echoes somebody's contact list back to them.
   res.setHeader('Cache-Control', 'private, no-store');
-  res.render('legal/dedupe', { title: 'Find duplicates in a list', input, result, maxLines: MAX_LINES });
+  res.render('legal/dedupe', dedupeLocals(req, { input, result }));
 });
 
 /**

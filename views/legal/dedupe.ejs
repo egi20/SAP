@@ -1,65 +1,161 @@
 <%- include('../partials/layout-start') %>
 <%- include('../partials/page-header', {
   icon: 'bi-layers',
-  heading: 'Dedupe',
-  sub: 'Paste a list of people and see which lines are the same person. Nothing is stored.'
+  label: 'DEDUPE',
+  heading: 'Duplicates, found before they reach S/4HANA',
+  sub: 'Master data goes to DH Dedupe. A list of people can be checked right here, free, with nothing stored.'
 }) %>
+<%
+  /*
+   * Two products, said plainly (owner's decision, 2026-10-22). Master-data deduplication is
+   * DH Dedupe's, a separate DynamicsHub platform with its own account, and this page sends
+   * people there — config/dedupe.js holds its description and its address. The small check
+   * below is SAP Hub's own: a pasted list of people, matched on email or name, never stored.
+   */
+%>
 <section class="glass-section pb-5">
 <div class="container">
-  <div class="row justify-content-center"><div class="col-lg-9">
-    <%- include('../partials/flash') %>
+  <%- include('../partials/flash') %>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <form method="post" action="/dedupe">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <label class="form-label fw-semibold" for="dedupeList">One person per line</label>
-        <textarea class="form-control font-monospace" id="dedupeList" name="list" rows="10"
-                  spellcheck="false" autocomplete="off"
-                  placeholder="Anna Müller, anna.mueller@example.com&#10;Muller, Anna &lt;ANNA.MUELLER@example.com&gt;&#10;John Smith"><%= input %></textarea>
-        <p class="form-text">
-          Up to <%= maxLines.toLocaleString('en-GB') %> lines. A line is matched on its email
-          address when it has one — case and spacing ignored — and otherwise on the name, with
-          accents, punctuation and word order ignored. Two lines with the same name and
-          different addresses are kept apart: they are probably two people.
-        </p>
-        <button class="btn btn-primary" type="submit"><i class="bi bi-layers me-1"></i> Find duplicates</button>
-      </form>
-    </div></div>
-
-    <% if (result) { %>
-      <div class="glass-card mb-4"><div class="card-body">
-        <h2 class="h5 mb-3">Result</h2>
-        <% if (result.truncated) { %>
-          <div class="alert alert-warning small">
-            Only the first <%= maxLines.toLocaleString('en-GB') %> lines were checked. Split the
-            list and run the rest separately.
-          </div>
-        <% } %>
-        <p class="mb-3">
-          <strong><%= result.total %></strong> line(s), <strong><%= result.unique %></strong> distinct
-          <%= result.unique === 1 ? 'person' : 'people' %>.
-          <% if (result.groups.length) { %>
-            <strong><%= result.total - result.unique %></strong> line(s) would go in a merge.
-          <% } %>
-        </p>
-
-        <% if (!result.groups.length) { %>
-          <p class="text-muted-2 mb-0"><i class="bi bi-check-circle me-1"></i>No duplicates found.</p>
-        <% } else { %>
-          <% result.groups.forEach(function (group) { %>
-            <div class="border rounded-3 p-3 mb-2">
-              <div class="small text-muted-2 mb-1">
-                Same <%= group.reason === 'email' ? 'email address' : 'name' %>:
-                <span class="fw-semibold text-break"><%= group.key %></span>
-              </div>
-              <ul class="list-unstyled small mb-0">
-                <% group.entries.forEach(function (entry) { %>
-                  <li class="text-break"><span class="text-muted-2">line <%= entry.line %>:</span> <%= entry.raw %></li>
-                <% }); %>
-              </ul>
-            </div>
+  <div class="glass-card mb-5 dh-dedupe-card"><div class="card-body">
+    <div class="row g-4 align-items-center">
+      <div class="col-lg-8">
+        <span class="badge-hub accent mb-2">Master data</span>
+        <h2 class="h4 card-heading mb-2">Cleaning SAP master data? Use <%= dhDedupe.name %></h2>
+        <p class="mb-3"><%= dhDedupe.what %></p>
+        <ul class="list-unstyled mb-0 cv-facts">
+          <% dhDedupe.features.forEach(function (f) { %>
+            <li><i class="bi bi-check2-circle" aria-hidden="true"></i><span><%= f %></span></li>
           <% }); %>
+        </ul>
+      </div>
+      <div class="col-lg-4">
+        <p class="small text-muted-2 mb-3">
+          A separate platform run by <%= legalEntity.name %>, with its own account and its own
+          plans — your SAP Hub sign-in does not carry over.
+        </p>
+        <% if (dhDedupe.url) { %>
+          <a class="btn btn-primary w-100" href="<%= dhDedupe.url %>" target="_blank" rel="noopener">
+            Open <%= dhDedupe.name %> <i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i>
+          </a>
+        <% } else if (currentUser && currentUser.isAdmin) { %>
+          <%# Only an administrator can do anything about a missing address, so only they are told. -%>
+          <div class="alert alert-warning small mb-0">
+            The link to <%= dhDedupe.name %> appears once <code>DH_DEDUPE_URL</code> is set on the server.
+          </div>
+        <% } else { %>
+          <a class="btn btn-outline-primary w-100" href="/contact">Ask us about <%= dhDedupe.name %></a>
         <% } %>
+      </div>
+    </div>
+  </div></div>
+
+  <h2 class="h4 mb-1">Quick check for a list of people</h2>
+  <p class="text-muted-2 mb-3">Free on SAP Hub. Two spreadsheets of contacts merged into one — which lines are the same person?</p>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">1</span>
+        <h3 class="h6 mt-2 mb-1">Paste</h3>
+        <p class="small text-muted-2 mb-0">One person per line, name and email in any order — up to <%= maxLines.toLocaleString('en-GB') %> lines.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">2</span>
+        <h3 class="h6 mt-2 mb-1">Find</h3>
+        <p class="small text-muted-2 mb-0">Lines match on the same email, or — without an email — the same name, ignoring case, accents and word order.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">3</span>
+        <h3 class="h6 mt-2 mb-1">Copy the clean list</h3>
+        <p class="small text-muted-2 mb-0">One line per person, as first written. Nothing is saved, logged or kept on this site.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center"><div class="col-lg-10">
+    <% if (canUseTool) { %>
+      <div class="glass-card mb-4"><div class="card-body">
+        <form method="post" action="/dedupe">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label class="form-label fw-semibold" for="dedupeList">One person per line</label>
+          <textarea class="form-control font-monospace" id="dedupeList" name="list" rows="10"
+                    spellcheck="false" autocomplete="off"
+                    placeholder="Anna Müller, anna.mueller@example.com&#10;Muller, Anna &lt;ANNA.MUELLER@example.com&gt;&#10;John Smith"><%= input %></textarea>
+          <p class="form-text">
+            Two lines with the same name and different addresses are kept apart: they are
+            probably two people, and merging them is the mistake this check exists to avoid.
+          </p>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-layers me-1"></i> Find duplicates</button>
+        </form>
+      </div></div>
+
+      <% if (result) { %>
+        <div class="glass-card mb-4"><div class="card-body">
+          <h2 class="h5 mb-3">Result</h2>
+          <% if (result.truncated) { %>
+            <div class="alert alert-warning small">
+              Only the first <%= maxLines.toLocaleString('en-GB') %> lines were checked. Split the
+              list and run the rest separately.
+            </div>
+          <% } %>
+          <div class="row g-3 mb-3">
+            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.total %></div><div class="label"><%= result.total === 1 ? 'Line' : 'Lines' %></div></div></div>
+            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.unique %></div><div class="label"><%= result.unique === 1 ? 'Person' : 'People' %></div></div></div>
+            <div class="col-4"><div class="stat-tile"><div class="value"><%= result.total - result.unique %></div><div class="label"><%= result.total - result.unique === 1 ? 'Duplicate' : 'Duplicates' %></div></div></div>
+          </div>
+
+          <% if (!result.groups.length) { %>
+            <p class="text-muted-2"><i class="bi bi-check-circle me-1"></i>No duplicates found.</p>
+          <% } else { %>
+            <% result.groups.forEach(function (group) { %>
+              <div class="border rounded-3 p-3 mb-2">
+                <div class="small text-muted-2 mb-1">
+                  Same <%= group.reason === 'email' ? 'email address' : 'name' %>:
+                  <span class="fw-semibold text-break"><%= group.key %></span>
+                </div>
+                <ul class="list-unstyled small mb-0">
+                  <% group.entries.forEach(function (entry) { %>
+                    <li class="text-break"><span class="text-muted-2">line <%= entry.line %>:</span> <%= entry.raw %></li>
+                  <% }); %>
+                </ul>
+              </div>
+            <% }); %>
+          <% } %>
+
+          <%# The list to take away: read-only, selectable without scripting, copied by main.js. -%>
+          <% const cleanText = result.clean.join('\n'); %>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+            <h3 class="h6 mb-0">Clean list — one line per person</h3>
+            <%# A slot: main.js builds the button, because it needs scripting to do anything. -%>
+            <span class="copy-field" data-copy-target="dedupeClean" data-copy-label="Copy clean list"></span>
+          </div>
+          <label class="visually-hidden" for="dedupeClean">Clean list</label>
+          <textarea class="form-control font-monospace small" id="dedupeClean" rows="<%= Math.min(12, Math.max(3, result.clean.length)) %>" readonly><%= cleanText %></textarea>
+        </div></div>
+      <% } %>
+
+    <% } else if (currentUser) { %>
+      <%# Same answer the guard gives a POST: why, and what to do. Access is per account (migration 029). -%>
+      <div class="glass-card mb-4"><div class="card-body text-center py-4">
+        <span class="icon-tile icon-navy mb-3"><i class="bi bi-lock" aria-hidden="true"></i></span>
+        <h3 class="h5">The quick check is not switched on for your account</h3>
+        <p class="text-muted-2 mb-3">
+          Access is given account by account. Write to us from the contact page and say which
+          account it is for.
+        </p>
+        <a class="btn btn-primary" href="/contact">Ask for access</a>
+      </div></div>
+    <% } else { %>
+      <div class="glass-card mb-4"><div class="card-body text-center py-4">
+        <h3 class="h5">Sign in to use the quick check</h3>
+        <p class="text-muted-2 mb-3">It is free, and access is given account by account.</p>
+        <a class="btn btn-primary" href="/auth/login?redirect=%2Fdedupe">Sign in</a>
+        <a class="btn btn-outline-primary" href="/auth/register">Create a free account</a>
       </div></div>
     <% } %>
 

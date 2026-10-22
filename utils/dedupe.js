@@ -63,7 +63,7 @@ function parseLine(raw, lineNumber) {
 
 /**
  * @param {string} input  one record per line
- * @returns {{ total, unique, groups: Array<{ reason, key, entries }>, truncated }}
+ * @returns {{ total, unique, groups: Array<{ reason, key, entries }>, clean: string[], truncated }}
  *   `groups` holds only the keys that occur more than once, in the order they first appear.
  *   `unique` counts distinct people, so `total - unique` is the number of lines a merge removes.
  */
@@ -94,7 +94,10 @@ function findDuplicates(input) {
   });
 
   const groups = [...byKey.values()].filter((g) => g.entries.length > 1);
-  return { total: records.length, unique: byKey.size, groups, truncated };
+  // One line per person, as it was first written, in the order the list gave them: the
+  // list somebody takes away. Nothing is merged into it — the first spelling is kept as typed.
+  const clean = [...byKey.values()].map((g) => g.entries[0].raw);
+  return { total: records.length, unique: byKey.size, groups, clean, truncated };
 }
 
 module.exports = { findDuplicates, normaliseName, normaliseEmail, MAX_LINES, MAX_CHARS };

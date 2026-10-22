@@ -617,6 +617,49 @@
 }());
 
 /*
+ * Copy-a-field buttons: `<span class="copy-field" data-copy-target="ID" data-copy-label="…">`.
+ *
+ * For text too long for a link — the clean list on /dedupe. The field itself stays
+ * selectable without scripting; the button is built here because it cannot work without it.
+ * The fallback selects the textarea itself, so line breaks survive the copy.
+ */
+(function copyFields() {
+  document.querySelectorAll('.copy-field').forEach(function (slot) {
+    var field = document.getElementById(slot.getAttribute('data-copy-target'));
+    if (!field) return;
+    var label = slot.getAttribute('data-copy-label') || 'Copy';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-sm btn-outline-primary';
+    button.innerHTML = '<i class="bi bi-clipboard me-1" aria-hidden="true"></i>';
+    button.appendChild(document.createTextNode(label));
+    var status = document.createElement('span');
+    status.className = 'visually-hidden';
+    status.setAttribute('aria-live', 'polite');
+
+    function confirm(text) {
+      status.textContent = text;
+      button.lastChild.textContent = text;
+      window.setTimeout(function () { button.lastChild.textContent = label; status.textContent = ''; }, 2000);
+    }
+
+    button.addEventListener('click', function () {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(field.value).then(function () { confirm('Copied'); },
+          function () { confirm('Press Ctrl+C'); });
+        return;
+      }
+      field.focus();
+      field.select();
+      try { document.execCommand('copy'); confirm('Copied'); } catch (err) { confirm('Press Ctrl+C'); }
+    });
+
+    slot.appendChild(button);
+    slot.appendChild(status);
+  });
+}());
+
+/*
  * Copy-link buttons.
  *
  * Built here rather than rendered, for the same reason as the password toggle: the button
