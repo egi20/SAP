@@ -90,8 +90,13 @@ maybe()('practice games and the hub', () => {
   it('opens flashcards and typing for anybody, and the hub lists every game', async () => {
     expect((await request(app).get('/games/flashcards')).status).toBe(200);
     expect((await request(app).get('/games/typing')).status).toBe(200);
-    const hub = await request(app).get('/games');
+    const old = await request(app).get('/games');
+    expect(old.status).toBe(301);
+    expect(old.headers.location).toBe('/games/challenges');
+    const hub = await request(app).get('/games/challenges');
     expect(hub.status).toBe(200);
+    expect(hub.text).toContain('href="/challenges"');
+    expect(hub.text).toContain("Today's Rankings");
     games.GAMES.forEach((g) => expect(hub.text).toContain(`/games/${g.key}`));
   });
 

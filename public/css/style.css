@@ -2153,3 +2153,122 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .onboarding-dot.on { width: 22px; border-radius: 99px; background: var(--primary-blue); }
 .assistant-tour { display: block; margin: 0 auto .25rem; font-size: .8rem; }
 @media (prefers-reduced-motion: reduce) { .onboarding-dot { transition: none; } }
+
+/* ------------------------------------------------- /games/challenges ("the arena") */
+/* Nine cards, nine colours: each tone is a light accent and a dark one that carries white
+   text at AA. The palette leans on SAP Fiori's accents rather than the brand blue alone. */
+.arena-tone-1 { --t1: #0070f2; --t2: #0057b8; }
+.arena-tone-2 { --t1: #ff7a00; --t2: #b34700; }
+.arena-tone-3 { --t1: #7858ff; --t2: #5232d4; }
+.arena-tone-4 { --t1: #0899a7; --t2: #066b75; }
+.arena-tone-5 { --t1: #df1278; --t2: #a80c5a; }
+.arena-tone-6 { --t1: #3d5afe; --t2: #2a3fbf; }
+.arena-tone-7 { --t1: #1aa35c; --t2: #12733f; }
+.arena-tone-8 { --t1: #3b8fe0; --t2: #1e5f9e; }
+.arena-tone-9 { --t1: #e0a100; --t2: #855c00; }
+.arena-board  { --t1: #f5b400; --t2: #855c00; }
+
+.arena-hero {
+  position: relative; overflow: hidden; color: #fff;
+  padding: 3rem 0 2.75rem;
+  background: linear-gradient(120deg, var(--primary-navy-dark), var(--primary-navy) 40%, var(--primary-blue) 75%, #7858ff);
+  background-size: 220% 220%;
+  animation: arena-sky 18s ease-in-out infinite;
+}
+@keyframes arena-sky { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.arena-codes { position: absolute; inset: 0; pointer-events: none; }
+.arena-code {
+  white-space: nowrap;
+  position: absolute; font: 600 .8rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: .3rem .55rem; border-radius: 99px; color: rgba(255, 255, 255, .3);
+  border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .04);
+  animation: arena-float calc(9s + var(--i) * .7s) ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -1.3s);
+}
+@keyframes arena-float { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-22px) rotate(3deg); } }
+.arena-eyebrow { display: inline-block; font-size: .8rem; font-weight: 600; letter-spacing: .02em; padding: .3rem .75rem; border-radius: 99px; background: rgba(255, 255, 255, .14); margin-bottom: .9rem; }
+.arena-title { color: inherit; font-weight: 800; font-size: clamp(1.9rem, 4vw, 2.8rem); margin-bottom: .6rem; }
+.arena-lead { color: rgba(255, 255, 255, .85); max-width: 40rem; }
+.arena-progress { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; border-radius: var(--radius-lg); background: rgba(255, 255, 255, .1); backdrop-filter: blur(6px); }
+.arena-progress-guest { display: block; }
+.arena-ring { width: 92px; height: 92px; flex-shrink: 0; transform: rotate(-90deg); }
+.arena-ring circle { fill: none; stroke-width: 10; stroke-linecap: round; }
+.arena-ring-track { stroke: rgba(255, 255, 255, .18); }
+.arena-ring-fill { stroke: #f5b400; stroke-dasharray: var(--pct) 100; animation: arena-ring 1.2s ease-out both; }
+@keyframes arena-ring { from { stroke-dasharray: 0 100; } }
+.arena-progress-text { display: flex; flex-direction: column; line-height: 1.25; }
+.arena-progress-text strong { font-size: 1.6rem; }
+.arena-progress-text span { font-size: .85rem; color: rgba(255, 255, 255, .8); }
+.arena-progress-text .arena-streak { color: #ffd27a; font-weight: 600; margin-top: .2rem; }
+
+.arena-card {
+  position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 1.75rem 1.5rem 1.5rem; border-radius: var(--radius-lg); background: #fff;
+  border: 1px solid var(--border-color); overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 91, .06);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  animation: arena-in .5s ease-out both;
+}
+.arena-grid > div:nth-child(2) .arena-card { animation-delay: 60ms; }
+.arena-grid > div:nth-child(3) .arena-card { animation-delay: 120ms; }
+.arena-grid > div:nth-child(4) .arena-card { animation-delay: 180ms; }
+.arena-grid > div:nth-child(5) .arena-card { animation-delay: 240ms; }
+.arena-grid > div:nth-child(6) .arena-card { animation-delay: 300ms; }
+.arena-grid > div:nth-child(7) .arena-card { animation-delay: 360ms; }
+.arena-grid > div:nth-child(8) .arena-card { animation-delay: 420ms; }
+.arena-grid > div:nth-child(9) .arena-card { animation-delay: 480ms; }
+.arena-grid > div:nth-child(10) .arena-card { animation-delay: 540ms; }
+.arena-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: linear-gradient(90deg, var(--t1), var(--t2)); }
+.arena-card:hover, .arena-card:focus-within { transform: translateY(-6px); border-color: var(--t1); box-shadow: 0 14px 32px -12px var(--t1); }
+@keyframes arena-in { from { opacity: 0; transform: translateY(14px); } }
+.arena-icon {
+  width: 68px; height: 68px; border-radius: 20px; display: grid; place-items: center; font-size: 1.75rem; color: #fff;
+  background: linear-gradient(135deg, var(--t1), var(--t2)); margin-bottom: 1rem;
+  box-shadow: 0 8px 18px -8px var(--t1);
+  transition: transform .3s ease;
+}
+.arena-card:hover .arena-icon { transform: translateY(-4px) rotate(-6deg) scale(1.05); }
+.arena-icon-gold { background: linear-gradient(135deg, #ffcf3f, #e08a00); }
+.arena-flame i { animation: arena-flicker 1.6s ease-in-out infinite; display: inline-block; }
+@keyframes arena-flicker { 0%, 100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.12) rotate(3deg); } }
+.arena-name { font-size: 1.15rem; font-weight: 700; margin-bottom: .35rem; }
+.arena-blurb { font-size: .9rem; color: var(--text-medium); margin-bottom: .75rem; }
+.arena-meta { display: flex; gap: .9rem; justify-content: center; font-size: .78rem; color: var(--text-light); margin-bottom: 1rem; }
+.arena-meta i { color: var(--t2); }
+.arena-cta {
+  position: relative; overflow: hidden; margin-top: auto; display: inline-flex; align-items: center;
+  padding: .5rem 1.25rem; border-radius: 99px; font-weight: 600; font-size: .9rem; text-decoration: none;
+  color: #fff; background: var(--t2);
+}
+.arena-cta::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent); transform: skewX(-20deg); transition: left .5s ease; }
+.arena-cta:hover { color: #fff; }
+.arena-cta:hover::after { left: 120%; }
+.arena-cta-done { background: transparent; color: var(--t2); border: 2px solid var(--t2); }
+.arena-cta-done:hover { color: var(--t2); }
+.arena-card.is-played .arena-icon::after { content: "\F26B"; font-family: bootstrap-icons; position: absolute; transform: translate(26px, -26px); font-size: 1.1rem; color: #1aa35c; background: #fff; border-radius: 50%; line-height: 1; }
+.arena-streak-count { font-size: 2.6rem; font-weight: 800; color: var(--t2); line-height: 1; margin-bottom: .4rem; }
+.arena-streak-count span { font-size: 1rem; font-weight: 600; color: var(--text-light); }
+.arena-week { display: flex; gap: .35rem; margin-top: auto; }
+.arena-week span { width: 22px; height: 8px; border-radius: 99px; background: var(--border-color); }
+.arena-week span.on { background: linear-gradient(90deg, var(--t1), var(--t2)); }
+.arena-ranks { list-style: none; padding: 0; margin: 0; width: 100%; text-align: left; font-size: .88rem; }
+.arena-ranks li { display: flex; align-items: center; gap: .6rem; padding: .4rem .5rem; border-radius: 8px; }
+.arena-ranks li:nth-child(odd) { background: rgba(0, 38, 91, .035); }
+.arena-rank { width: 1.5rem; text-align: center; font-weight: 700; color: var(--text-light); }
+.medal-1 .arena-rank { color: #c99400; }
+.medal-2 .arena-rank { color: #7a8794; }
+.medal-3 .arena-rank { color: #a35d2b; }
+.arena-who { flex: 1; min-width: 0; }
+.arena-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* The game's own colour on its play page. */
+.arena-band { height: 6px; background: linear-gradient(90deg, var(--t1), var(--t2)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-hero, .arena-code, .arena-ring-fill, .arena-card, .arena-flame i { animation: none; }
+  .arena-card, .arena-icon, .arena-cta::after { transition: none; }
+}
+.arena-resources a { display: flex; align-items: center; padding: .7rem .9rem; border-radius: 12px; font-weight: 600; text-decoration: none; color: var(--text-dark); background: rgba(0, 38, 91, .035); border: 1px solid transparent; transition: border-color .2s ease, transform .2s ease; }
+.arena-resources a i { width: 2rem; height: 2rem; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--t1), var(--t2)); }
+.arena-resources a:hover { border-color: var(--t1); transform: translateX(3px); }
+@media (prefers-reduced-motion: reduce) { .arena-resources a { transition: none; } }

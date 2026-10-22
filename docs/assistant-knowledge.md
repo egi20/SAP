@@ -72,6 +72,11 @@ because the stored breakdown is what was said to a client on a date.
 - `/community` — questions, discussions, articles and wins, with votes and accepted
   answers. Posting, replying and having an answer accepted earn points and levels.
 - `/community/new` — write a post.
+- `/games/challenges` — Daily Challenges: every game on one page. The SAP quiz (five questions a
+  day, at `/challenges`), a streak, code match, ABAP output, bug hunter, word search and
+  project scenarios are scored — once a day, marked on the server, up to 2 points each —
+  and flashcards and typing are practice. Today's Rankings sums everything played today.
+  Signed-in members also find it as "Challenges" in their account menu.
 
 ## Paying for things
 

@@ -100,6 +100,10 @@ const handWritten = [
   { name: 'Sitemap leaves out success stories', category: 'SEO', path: '/sitemap.xml', status: 200, notContains: ['/success-stories</loc>'] },
   { name: 'Search results are noindex', category: 'SEO', path: '/search?q=FI', status: 200, contains: ['noindex'] },
 
+  // -------------------------------------------------------------- challenges
+  page('Games', '/games/challenges', { name: 'Challenges page lists every game', contains: ['Daily Challenges', 'href="/challenges"', "Today's Rankings"] }),
+  page('Games', '/games/challenges', { name: 'Challenges page, signed in', role: 'consultant', contains: ['played today'] }),
+
   // ---------------------------------------------------------------- not found
   { name: 'Unknown page is a 404', category: 'Not found', path: '/no-such-page-regression', status: 404, contains: ['Page not found'] },
   { name: 'Unknown rate role is a 404, never a redirect', category: 'Not found', path: '/rates/not-a-role', status: 404 },
@@ -107,6 +111,7 @@ const handWritten = [
   { name: 'Malformed advert id is refused', category: 'Not found', path: '/applications/44.map', status: [302, 404] },
 
   // ------------------------------------------------------------------ redirects
+  { name: 'Old games hub goes to Challenges', category: 'Redirects', path: '/games', status: 301, redirect: '/games/challenges' },
   { name: "An unknown sales agent link still reaches sign-up", category: 'Redirects', path: '/s/NOTACODE', status: 302, redirect: '/auth/register' },
   { name: 'Old talent URL goes to the directory', category: 'Redirects', path: '/companies/talent', status: [301, 302], redirect: '/consultants' },
 

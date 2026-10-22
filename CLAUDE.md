@@ -1584,6 +1584,20 @@ written into three of four write paths is a gate that is off.
 the boot assertion checks it. A topic nothing else on the site knows is a dead end for
 somebody told to go and read about it.
 
+**Every game lives on ONE page, `/games/challenges`, as on dynamicshub.net (owner, 2026-10-22).**
+The daily challenge is its first card ("SAP Quiz", still played at `/challenges`), the streak
+second, then the games in the reference's order (`HUB_ORDER` in `routes/games.js`; a game
+missing from it is appended, never dropped), then Today's Rankings — `Game.todaysRankings`,
+the challenge AND every scored game summed per person, because a board that left the quiz out
+ranks somebody who played only the quiz below somebody who played nothing. `/games` is a 301
+to it. The menu carries ONE entry, "Challenges" in the account menu, where the reference puts
+it; "SAP Games" left Services and the second account-menu entry went. Unlike the reference the
+page is public: two games are practice, and a scored card says it needs an account rather than
+hiding. Each card has its own colour (`.arena-tone-N`, light accent + a dark shade that carries
+white text), carried onto the game's page as a band; the floating codes in the header are
+derived from `config/sapProducts.js` labels, never typed; every animation stops under
+`prefers-reduced-motion`.
+
 **The other games arrived on 2026-10-21, WITHOUT the reference's shape** (owner's request;
 until then this paragraph said "one game, not nine" and why). `config/games.js`,
 `models/Game.js`, `routes/games.js`, migration 033, `/games`. Five are SCORED — code match,

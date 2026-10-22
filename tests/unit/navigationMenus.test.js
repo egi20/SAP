@@ -54,15 +54,15 @@ describe('navbar menus', () => {
     expect(block.indexOf('dropdown-divider')).toBeLessThan(block.indexOf('Staff Augmentation'));
   });
 
-  // SAP Games joined on 2026-10-21, when the games beyond the daily challenge arrived.
-  it('Services: six items, in order', () => {
+  // SAP Games joined on 2026-10-21 and left on 2026-10-22, when every game moved to one
+  // "Challenges" page in the account menu, as on dynamicshub.net.
+  it('Services: five items, in order', () => {
     expect(menuLabels('Services').map(([, label]) => label)).toEqual([
       'Tax Optimization',
       'Rate &amp; Salary Index',
       'SOW Generator',
       'Document Generator',
-      'Dedupe',
-      'SAP Games'
+      'Dedupe'
     ]);
   });
 

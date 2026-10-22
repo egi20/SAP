@@ -5,6 +5,7 @@
   heading: game.title,
   sub: game.blurb
 }) %>
+<div class="arena-band arena-tone-<%= tone %>" aria-hidden="true"></div>
 
 <%#
   One template for every game, branching on the key. Before an attempt is closed it is
@@ -15,7 +16,7 @@
 <section class="glass-section pb-5">
 <div class="container">
   <%- include('../partials/flash') %>
-  <p class="small mb-3"><a href="/games"><i class="bi bi-arrow-left"></i> All SAP games</a></p>
+  <p class="small mb-3"><a href="/games/challenges"><i class="bi bi-arrow-left"></i> All challenges</a></p>
 
   <div class="row g-4">
     <div class="<%= game.scored ? 'col-lg-8' : 'col-lg-10' %>">
