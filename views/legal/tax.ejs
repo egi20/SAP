@@ -122,6 +122,42 @@
     </div>
   </section>
 
+  <%#
+    What it costs, up front: the formula from config/taxProgram.js worked for three gross
+    figures. No "net now" column — that depends on a country's tax, which this page does not
+    know — so what is shown is what we take and what is left BEFORE any tax where you live.
+  -%>
+  <section class="py-5">
+    <div class="container tax-narrow">
+      <div class="text-center mb-4">
+        <h2>What It Costs</h2>
+        <p class="text-muted-2">One fee, the same for everybody, shown before you apply</p>
+      </div>
+      <div class="glass-card"><div class="card-body p-4">
+        <p class="mb-3">
+          <strong>€<%= TAX_PROGRAM.fixedMonthlyFee.toLocaleString('en') %> a month plus <%= Math.round(TAX_PROGRAM.costRate * 100) %>% of your gross.</strong>
+          That covers social security, health insurance, payroll and our administrative fee.
+          There are no setup fees and nothing else is deducted by us.
+        </p>
+        <div class="table-responsive">
+          <table class="table mb-2">
+            <thead><tr><th scope="col">Gross a month</th><th scope="col">What we take</th><th scope="col">Paid to you</th></tr></thead>
+            <tbody>
+              <% costExamples.forEach(function (ex) { %>
+                <tr>
+                  <td>€<%= ex.gross.toLocaleString('en') %></td>
+                  <td>€<%= ex.cost.toLocaleString('en') %></td>
+                  <td>€<%= (ex.gross - ex.cost).toLocaleString('en') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <p class="small text-muted-2 mb-0">Illustrations of the formula, not anybody's case. "Paid to you" is before any income tax you may owe in your country of tax residence. Use the calculator above for your own figures.</p>
+      </div></div>
+    </div>
+  </section>
+
   <section class="glass-section py-5">
     <div class="container">
       <div class="text-center mb-5">
@@ -172,7 +208,7 @@
             <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
               <i class="bi bi-shield-check fs-3 tax-icon"></i>
               <h3 class="h5 mt-2">Compliant Structure</h3>
-              <p class="mb-0"><%= TAX_PROGRAM.entityName %> operates as a fully licensed entity in Albania, compliant with Albanian tax and employment law. Albania maintains double tax treaties with over 40 countries, which may help reduce withholding taxes on cross-border payments.</p>
+              <p class="mb-0"><%= TAX_PROGRAM.entityName %> is operated by <%= TAX_PROGRAM.operatorName %>, whose Albanian entity is fully licensed and compliant with Albanian tax and employment law. Albania maintains double tax treaties with over 40 countries, which may help reduce withholding taxes on cross-border payments.</p>
             </div></div></div>
             <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
               <i class="bi bi-laptop fs-3 tax-icon"></i>
@@ -191,6 +227,12 @@
               <li><i class="bi bi-check-circle-fill"></i> Able to work remotely for clients</li>
               <li><i class="bi bi-check-circle-fill"></i> Have existing client base or projects</li>
               <li><i class="bi bi-check-circle-fill"></i> Open to international tax structures</li>
+            </ul>
+            <h3 class="h6 mt-4 mb-2">Who this is not for</h3>
+            <ul class="tax-not-for list-unstyled">
+              <li><i class="bi bi-x-circle-fill"></i> Anybody earning under €<%= TAX_PROGRAM.minEligibleGross.toLocaleString('en') %> gross a month — the fixed fee takes too large a share.</li>
+              <li><i class="bi bi-x-circle-fill"></i> Anybody whose client requires invoices from their own company or a local payroll — check with the client first.</li>
+              <li><i class="bi bi-x-circle-fill"></i> Anybody looking for tax advice: we are not a tax advisory service, and what you owe where you live is for an advisor there.</li>
             </ul>
             <p class="mb-3">Not sure if you qualify? Let's discuss your situation.</p>
             <a href="/contact" class="btn btn-primary">Schedule Free Consultation</a>
@@ -263,6 +305,12 @@
         <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
           <i class="bi bi-patch-check fs-2 tax-icon"></i><h3 class="h5 mt-2">Registered Entity</h3>
           <p class="mb-0"><%= TAX_PROGRAM.entityName %> is operated by <%= TAX_PROGRAM.operatorName %>, a legally registered company in Albania's tech park</p>
+          <%# Printed only when set (LEGAL_REGISTRATION_NUMBER, LEGAL_ADDRESS) — never typed here. -%>
+          <% if (legalEntity.registrationNumber || legalEntity.address) { %>
+            <p class="small text-muted-2 mt-2 mb-0">
+              <% if (legalEntity.registrationNumber) { %>NIPT <%= legalEntity.registrationNumber %><% } %><% if (legalEntity.registrationNumber && legalEntity.address) { %> · <% } %><% if (legalEntity.address) { %><%= legalEntity.address %><% } %>
+            </p>
+          <% } %>
         </div></div></div>
         <div class="col-md-4"><div class="glass-card h-100"><div class="card-body p-4">
           <i class="bi bi-person-badge fs-2 tax-icon"></i><h3 class="h5 mt-2">Certified Accountants</h3>
@@ -299,4 +347,16 @@
   </section>
 </div>
 <script src="/js/tax.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" defer></script>
+<%
+  /* The programme FAQ as FAQPage structured data, from the same config the accordion renders. */
+  const taxFaqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map(function (f) {
+      const text = f.a.concat(f.list || [], f.after ? [f.after] : []).join(' ');
+      return { '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: text } };
+    })
+  };
+%>
+<script type="application/ld+json"><%- jsonForScript(taxFaqLd) %></script>
 <%- include('../partials/layout-end') %>

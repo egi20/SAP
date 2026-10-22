@@ -145,7 +145,7 @@ const FAQ = Object.freeze([
   {
     q: 'Are there any hidden costs or additional fees?',
     a: [
-      'No hidden fees. The total costs shown in the calculator include everything: social security contributions, administrative fees, and all other operational costs.',
+      'No hidden fees. The costs shown in the calculator include everything we charge: social security contributions, administrative fees, and all other operational costs. They do not include any income tax you may owe in your country of tax residence.',
       'There are no setup fees, no onboarding costs, no minimum contract value, and no percentage-based commissions. What you see in the calculator is what you get.'
     ]
   },
@@ -162,11 +162,24 @@ const FAQ = Object.freeze([
  * two constants (public/js/tax.js, fed by data attributes), and the application route runs
  * THIS on the figures posted, so a stored estimate is never a number the browser chose.
  */
+/** What the programme takes a month from a given gross: the fixed fee plus the share. */
+function costFor(gross, program = TAX_PROGRAM) {
+  return program.fixedMonthlyFee + program.costRate * Number(gross);
+}
+
+/*
+ * The gross figures the "What it costs" table is worked for. They are illustrations of the
+ * formula, not anybody's case: the table shows what WE take and what is left before any tax
+ * where the person lives, which is the one part of a "net now vs net later" comparison this
+ * page can state for a country it knows nothing about.
+ */
+const COST_EXAMPLES = Object.freeze([6000, 8000, 12000]);
+
 function estimate(gross, net, program = TAX_PROGRAM) {
   const g = Number(gross);
   const n = Number(net);
   if (!(g > 0) || !(n > 0)) return null;
-  const cost = program.fixedMonthlyFee + program.costRate * g;
+  const cost = costFor(g, program);
   const newNet = g - cost;
   const monthly = newNet - n;
   return {
@@ -207,6 +220,8 @@ module.exports = {
   APPLY_COUNTRIES,
   APPLY_OPTIONS,
   FAQ,
+  COST_EXAMPLES,
+  costFor,
   estimate,
   assertTaxProgramIntegrity
 };

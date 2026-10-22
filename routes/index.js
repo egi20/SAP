@@ -38,7 +38,7 @@ const SalesAgent = require('../models/SalesAgent');
 const { looksLikeAPerson } = require('../middleware/visitGeo');
 const {
   TAX_PROGRAM, TAX_SUCCESS_STORIES, COUNTRIES: TAX_COUNTRIES, APPLY_COUNTRIES: TAX_APPLY_COUNTRIES,
-  APPLY_OPTIONS: TAX_APPLY_OPTIONS, FAQ: TAX_FAQ
+  APPLY_OPTIONS: TAX_APPLY_OPTIONS, FAQ: TAX_FAQ, COST_EXAMPLES: TAX_COST_EXAMPLES, costFor: taxCostFor
 } = require('../config/taxProgram');
 
 const router = express.Router();
@@ -277,7 +277,8 @@ router.get('/tax', (req, res) => {
     TAX_PROGRAM,
     TAX_SUCCESS_STORIES,
     COUNTRIES: TAX_COUNTRIES,
-    FAQ: TAX_FAQ
+    FAQ: TAX_FAQ,
+    costExamples: TAX_COST_EXAMPLES.map((gross) => ({ gross, cost: Math.round(taxCostFor(gross)) }))
   });
 });
 

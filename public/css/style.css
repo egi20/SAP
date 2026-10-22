@@ -1947,6 +1947,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 .tax-saving { background: var(--grad-success); color: #fff; border-radius: var(--radius-lg); padding: var(--space-4); }
 .tax-included li { margin-bottom: 0.35rem; }
 .tax-included i { color: #1d6f4f; margin-right: 0.4rem; }
+.tax-not-for li { margin-bottom: 0.35rem; }
+.tax-not-for i { color: #9e2b3d; margin-right: 0.4rem; }
 .tax-icon { color: var(--primary-blue); }
 .tax-step-num {
   width: 56px;

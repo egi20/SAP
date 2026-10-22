@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const {
-  TAX_PROGRAM, estimate, assertTaxProgramIntegrity, TAX_SUCCESS_STORIES
+  TAX_PROGRAM, estimate, assertTaxProgramIntegrity, TAX_SUCCESS_STORIES, FAQ, COST_EXAMPLES, costFor
 } = require('../../config/taxProgram');
 const { compute } = require('../../public/js/tax');
 const TaxApplication = require('../../models/TaxApplication');
@@ -61,6 +61,19 @@ describe('config/taxProgram estimate()', () => {
     const caveat = view.indexOf('Indicative only.');
     expect(caveat).toBeGreaterThan(saving);
     expect(caveat).toBeLessThan(view.indexOf("What's Included"));
+  });
+
+  it('names the operator consistently, and never says the costs include home-country tax', () => {
+    const view = fs.readFileSync(path.join(__dirname, '..', '..', 'views', 'legal', 'tax.ejs'), 'utf8');
+    expect(view).not.toMatch(/entityName %> operates as a fully licensed/);
+    const hidden = FAQ.find((f) => /hidden costs/i.test(f.q)).a.join(' ');
+    expect(hidden).toContain('everything we charge');
+    expect(hidden).toMatch(/do not include any income tax/);
+  });
+
+  it('works the cost table from the one formula', () => {
+    COST_EXAMPLES.forEach((g) => expect(Math.round(costFor(g))).toBe(estimate(g, 1).cost));
+    expect(costFor(8000)).toBe(TAX_PROGRAM.fixedMonthlyFee + TAX_PROGRAM.costRate * 8000);
   });
 
   it('claims nothing that is only true of Dynamics Hub', () => {
