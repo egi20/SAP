@@ -20,9 +20,9 @@
 <section class="glass-section pb-5">
 <div class="container">
   <div class="row g-4">
-    <div class="col-lg-7">
-      <div class="glass-card"><div class="card-body">
-        <h2 class="h5 fw-bold">Send us a message</h2>
+    <div class="col-lg-7 d-flex flex-column">
+      <div class="glass-card flex-grow-1"><div class="card-body">
+        <h2 class="h5 fw-semibold">Send us a message</h2>
         <% if (errors.length) { %>
           <div class="alert alert-danger">
             <ul class="mb-0">
@@ -45,9 +45,9 @@
       </div></div>
     </div>
 
-    <aside class="col-lg-5">
+    <aside class="col-lg-5 d-flex flex-column">
       <div class="glass-card mb-4"><div class="card-body">
-        <h2 class="h5 fw-bold">Contact information</h2>
+        <h2 class="h5 fw-semibold">Contact information</h2>
         <ul class="list-unstyled mb-0 contact-info">
           <li class="d-flex gap-3 mb-3">
             <span class="icon-tile icon-navyblue flex-shrink-0"><i class="bi bi-envelope" aria-hidden="true"></i></span>
@@ -78,7 +78,7 @@
 
       <% if (followLinks.length) { %>
         <div class="glass-card mb-4"><div class="card-body">
-          <h2 class="h5 fw-bold">Follow us</h2>
+          <h2 class="h5 fw-semibold">Follow us</h2>
           <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
             <% followLinks.forEach(function (link) { %>
               <li>
@@ -91,17 +91,28 @@
         </div></div>
       <% } %>
 
+      <%# flex-grow: the last card ends level with the form, whatever the two hold. -%>
+      <div class="glass-card flex-grow-1"><div class="card-body">
+        <h2 class="h5 fw-semibold">Before you write</h2>
+        <p class="mb-0 small text-muted-2">
+          Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
+          built is explained on <a href="/rates">the index itself</a>, and what the estimator
+          does with your inputs is on <a href="/quotes/new">the estimator</a>.<% if (assistantReady) { %>
+          The assistant in the corner of the page answers questions about how the Hub works —
+          though it cannot see your account, so anything account-specific still comes here.<% } %>
+        </p>
+      </div></div>
     </aside>
   </div>
 
   <%#
-    The two reference boxes run full width under both columns: in the right-hand column
-    they made it twice the height of the form and left a blank space under "Send message".
+    "What to tell us" runs full width under both columns: in the right-hand column it made
+    that column far taller than the form. "Before you write" is short and fills the right
+    column down to the bottom of the form.
   -%>
-  <div class="row g-4 mt-0">
-    <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
-        <h2 class="h5 fw-bold">What to tell us</h2>
-        <ul class="mb-0 small">
+  <div class="glass-card mt-4"><div class="card-body">
+    <h2 class="h5 fw-semibold">What to tell us</h2>
+    <ul class="mb-0 small">
           <li><strong>A payment or an invoice</strong> — the payment reference from
               <a href="/payments/history">your payments page</a>. It starts with <code>PAY-</code>.</li>
           <li><strong>A quote</strong> — the quote reference, which starts with <code>Q-</code>.</li>
@@ -110,26 +121,14 @@
               what you expected to happen, or use <a href="/report-issue">Report an Issue</a>.</li>
           <li><strong>Your data, or closing your account</strong> — say so plainly and we will
               handle it under the <a href="/legal/privacy">privacy policy</a>.</li>
-        </ul>
-      </div></div></div>
-
-    <div class="col-lg-6"><div class="glass-card h-100"><div class="card-body">
-        <h2 class="h5 fw-bold">Before you write</h2>
-        <p class="mb-0 small text-muted-2">
-          Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
-          built is explained on <a href="/rates">the index itself</a>, and what the estimator
-          does with your inputs is on <a href="/quotes/new">the estimator</a>.<% if (assistantReady) { %>
-          The assistant in the corner of the page answers questions about how the Hub works —
-          though it cannot see your account, so anything account-specific still comes here.<% } %>
-        </p>
-      </div></div></div>
-  </div>
+    </ul>
+  </div></div>
 
   <% if (!currentUser) { %>
     <%# Signed-out only: a member has an account, and offering them one is noise. -%>
     <div class="glass-card mt-4"><div class="card-body d-md-flex align-items-center justify-content-between gap-3">
       <div>
-        <h2 class="h5 fw-bold mb-1">New to SAP Hub?</h2>
+        <h2 class="h5 fw-semibold mb-1">New to SAP Hub?</h2>
         <p class="mb-md-0 text-muted-2">Create a free account to find SAP roles, hire consultants and join the community.</p>
       </div>
       <a class="btn btn-primary flex-shrink-0" href="/auth/register">Create account</a>
