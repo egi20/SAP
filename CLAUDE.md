@@ -1725,6 +1725,22 @@ read, so a tab never offers a page its own guard would refuse; Sales Agent shows
 because anybody can join the referral scheme. The sign-in "Welcome back" flash is skipped
 when the destination is the dashboard, whose banner already says it.
 
+## The welcome tour
+
+**A role-aware tour opens by itself on the first signed-in page, once, as on dynamicshub.net**
+(2026-10-22). `config/onboarding.js` holds the steps per audience — consultant, company, and
+a general one for everybody else and for dual-role accounts — asserted at boot, and
+`tests/integration/onboarding.test.js` opens every href. `views/partials/onboarding.ejs` is
+included from the footer at BODY level for every signed-in page; `data-auto` comes from
+`needsOnboarding`, which `buildSessionUser` derives from `users.onboarded_at` on every request.
+**`public/js/onboarding.js` stamps the moment the tour auto-opens, not on close** — the
+reference learned that somebody who leaves without pressing anything otherwise sees it on every
+page. Step buttons open in a new tab, and a 15-second localStorage marker keeps that tab from
+opening the tour too. The way back is the assistant's "Show me the welcome tour" button (outside
+the chips, which go once a conversation starts) or `?tour=1`; a replay never stamps. The last
+step hands over to the assistant only where it is configured, and says "You're set" otherwise.
+Every account that existed before this has `onboarded_at` NULL and sees it once.
+
 ## The cookie notice, and what it is not
 
 **It is a notice, not a consent gate, because there is nothing to refuse.** This site sets

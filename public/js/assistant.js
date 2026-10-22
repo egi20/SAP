@@ -128,6 +128,23 @@
       else form.dispatchEvent(new Event('submit', { cancelable: true }));
     });
   }
+  /* The welcome tour, replayed: the one way back to it after the first sign-in. */
+  var tourButton = document.getElementById('assistantTour');
+  if (tourButton) {
+    tourButton.addEventListener('click', function () {
+      if (!window.saphubOpenOnboarding) return;
+      setOpen(false);
+      window.saphubOpenOnboarding();
+    });
+  }
+  /* The welcome tour's last step hands over to the assistant with a question already asked. */
+  window.saphubAskAssistant = function (question) {
+    markTeaserSeen();
+    setOpen(true);
+    input.value = question;
+    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+    else form.dispatchEvent(new Event('submit', { cancelable: true }));
+  };
   closeButton.addEventListener('click', function () {
     setOpen(false);
     launcher.focus();

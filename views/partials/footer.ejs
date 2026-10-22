@@ -122,6 +122,7 @@
 <%- include('social-rail') %>
 
 <% if (assistantReady) { %><%- include('assistant') %><% } %>
+<% if (typeof onboardingSteps !== 'undefined' && onboardingSteps && currentUser) { %><%- include('onboarding') %><% } %>
 
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>"></script>
@@ -130,4 +131,5 @@
 <%# Cloudflare Web Analytics: no cookie, no identifier, so it needs no consent. Disclosed in the privacy policy. %>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "<%= wa.cloudflareToken %>"}'></script>
 <% } %>
+<% if (typeof onboardingSteps !== 'undefined' && onboardingSteps && currentUser) { %><script src="/js/onboarding.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>"></script><% } %>
 <% if (assistantReady) { %><script src="/js/assistant.js?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>"></script><% } %>

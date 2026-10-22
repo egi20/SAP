@@ -1,0 +1,62 @@
+<%
+  /*
+   * The first-login welcome tour (config/onboarding.js), as on dynamicshub.net.
+   *
+   * Rendered at BODY level from footer.ejs — never inside a card, whose backdrop-filter
+   * would trap the dialog behind the modal backdrop. It opens by itself only while
+   * `needsOnboarding` is true, and `public/js/onboarding.js` stamps users.onboarded_at the
+   * moment it does, so leaving the page without pressing anything still counts as seen.
+   * Afterwards it is replayed from the assistant, or with ?tour=1.
+   *
+   * Hidden in the markup and opened by the script: with scripting off there is no modal to
+   * open and nothing to stamp, and the dashboard tiles say the same things.
+   */
+  const _obName = String(currentUser.name || 'there').split(' ')[0];
+%>
+<div class="modal fade onboarding" id="onboardingModal" tabindex="-1" aria-labelledby="onboardingTitle" aria-hidden="true"
+     data-bs-backdrop="static" data-auto="<%= currentUser.needsOnboarding ? '1' : '0' %>">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header onboarding-head">
+        <h2 class="modal-title h5 mb-0 text-white" id="onboardingTitle"><i class="bi bi-stars me-2" aria-hidden="true"></i>Welcome, <%= _obName %>!</h2>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Skip the tour"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-4" data-onb-intro>A quick tour of what you can do here. Skip it any time<% if (assistantReady) { %> — <%= assistantName %>, bottom-right, answers questions whenever you have one<% } %>.</p>
+
+        <% onboardingSteps.forEach(function (s, i) { %>
+        <div class="onboarding-step text-center" data-onb-step<%= i === 0 ? '' : ' hidden' %>>
+          <span class="icon-tile <%= s.tone %> mb-3"><i class="bi <%= s.icon %>" aria-hidden="true"></i></span>
+          <h3 class="h4 mb-2"><%= s.title %></h3>
+          <p class="text-muted mb-3"><%= s.body %></p>
+          <a href="<%= s.href %>" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm rounded-pill px-3" data-onb-cta><%= s.cta %> <i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
+        </div>
+        <% }); %>
+
+        <div class="onboarding-step text-center" data-onb-step hidden>
+          <% if (assistantReady) { %>
+          <img class="onboarding-mascot mb-3" src="/images/hub-assistant-head.webp" alt="" width="64" height="64">
+          <h3 class="h4 mb-2">Meet <%= assistantName %>, your assistant</h3>
+          <p class="text-muted mb-3">That's the tour. Whenever you are stuck, open <strong><%= assistantName %></strong> in the bottom-right corner and ask — it can also show you this tour again.</p>
+          <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-onb-ask><i class="bi bi-stars me-1" aria-hidden="true"></i>Ask <%= assistantName %> anything</button>
+          <% } else { %>
+          <span class="icon-tile icon-success mb-3"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+          <h3 class="h4 mb-2">You're set</h3>
+          <p class="text-muted mb-0">Everything on this tour is also on your dashboard, one tile each.</p>
+          <% } %>
+        </div>
+
+        <div class="onboarding-dots d-flex justify-content-center gap-2 mt-4" aria-hidden="true">
+          <% for (let i = 0; i <= onboardingSteps.length; i++) { %><span class="onboarding-dot<%= i === 0 ? ' on' : '' %>"></span><% } %>
+        </div>
+      </div>
+      <div class="modal-footer border-0 justify-content-between">
+        <button type="button" class="btn btn-link text-muted btn-sm text-decoration-none" data-bs-dismiss="modal">Skip</button>
+        <div>
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-1" data-onb-back hidden>Back</button>
+          <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" data-onb-next>Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

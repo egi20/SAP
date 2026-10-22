@@ -44,6 +44,10 @@
         <button class="assistant-chip" type="button" data-ask="<%= q %>"><%= q %></button>
       <% }); %>
     </div>
+    <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+      <%# Outside the chips, which go once a conversation starts: this is the only way back to the tour. %>
+      <button class="assistant-tour btn btn-link btn-sm" type="button" id="assistantTour"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>Show me the welcome tour</button>
+    <% } %>
 
     <form class="assistant-form" id="assistantForm" data-no-guard="true">
       <label class="visually-hidden" for="assistantInput">Your question</label>

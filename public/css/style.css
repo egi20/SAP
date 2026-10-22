@@ -2139,3 +2139,14 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .rate-hbars li { margin-bottom: .6rem; }
 .rate-hbars li:last-child { margin-bottom: 0; }
 .rate-hbars svg { display: block; margin-top: .2rem; }
+
+/* ---------------------------------------------------------------- welcome tour */
+.onboarding .modal-content { border: 0; border-radius: var(--radius-lg); overflow: hidden; }
+.onboarding-head { background: var(--accent-gradient); border: 0; }
+.onboarding-step { min-height: 200px; }
+.onboarding-step .icon-tile { margin-left: auto; margin-right: auto; }
+.onboarding-mascot { display: block; margin-left: auto; margin-right: auto; border-radius: 50%; }
+.onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); transition: background .15s, width .15s; }
+.onboarding-dot.on { width: 22px; border-radius: 99px; background: var(--primary-blue); }
+.assistant-tour { display: block; margin: 0 auto .25rem; font-size: .8rem; }
+@media (prefers-reduced-motion: reduce) { .onboarding-dot { transition: none; } }

@@ -41,6 +41,7 @@ const { assertRateBoundsIntegrity } = require('./config/rateBounds');
 const { assertCountriesIntegrity } = require('./config/countries');
 const webAnalytics = require('./config/webAnalytics');
 const { assertDashboardIntegrity } = require('./config/dashboard');
+const onboarding = require('./config/onboarding');
 const { optionLabel } = require('./utils/optionLabel');
 const { deploymentShort } = require('./config/sapDeployments');
 const { pendingMigrations } = require('./scripts/migrate');
@@ -147,6 +148,8 @@ webAnalytics.assertWebAnalyticsIntegrity();
  * pointing at a route that was never built is a dead button on the busiest screen.
  */
 assertDashboardIntegrity();
+// And the welcome tour's steps, for the same reason: it is the first thing a new member clicks.
+onboarding.assertOnboardingIntegrity();
 const WEB_ANALYTICS_CSP = webAnalytics.cspAdditions();
 const WEB_ANALYTICS_TAGS = webAnalytics.publicTags();
 
@@ -433,6 +436,12 @@ app.use((req, res, next) => {
   // The admin surface and administrators are never measured; see middleware/visitGeo.js.
   res.locals.measureVisit = !isOwnTraffic(req);
   res.locals.currentUser = req.session.user || null;
+  /*
+   * The welcome tour, rendered for every signed-in page so the assistant can replay it.
+   * It opens by itself only while `needsOnboarding` is true — rebuilt from users.onboarded_at
+   * on every request, so the stamp takes effect on the next click.
+   */
+  res.locals.onboardingSteps = req.session.user ? onboarding.stepsFor(req.session.user) : null;
   res.locals.currentPath = req.path;
   res.locals.query = req.query;
   res.locals.flash = {
