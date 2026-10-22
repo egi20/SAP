@@ -251,9 +251,15 @@ router.post(
   })
 );
 
+/*
+ * The welcome tour has opened on the first sign-in's page: it must not open by itself again,
+ * not even on the next page of the same session. users.onboarded_at was stamped at sign-in;
+ * stamping again is a no-op kept for a session that predates that.
+ */
 router.post(
   '/onboarded',
   asyncHandler(async (req, res) => {
+    delete req.session.welcomeTour;
     await User.markOnboarded(req.session.user.id);
     res.json({ success: true });
   })

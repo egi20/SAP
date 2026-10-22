@@ -437,11 +437,12 @@ app.use((req, res, next) => {
   res.locals.measureVisit = !isOwnTraffic(req);
   res.locals.currentUser = req.session.user || null;
   /*
-   * The welcome tour, rendered for every signed-in page so the assistant can replay it.
-   * It opens by itself only while `needsOnboarding` is true — rebuilt from users.onboarded_at
-   * on every request, so the stamp takes effect on the next click.
+   * The welcome tour, rendered for every signed-in page so the assistant can open it.
+   * It opens by itself only on the page the FIRST sign-in lands on — `welcomeTour` is set
+   * by that sign-in (routes/auth.js) and cleared by the tour as soon as it has opened.
    */
   res.locals.onboardingSteps = req.session.user ? onboarding.stepsFor(req.session.user) : null;
+  res.locals.welcomeTourAuto = Boolean(req.session.user && req.session.welcomeTour === true);
   res.locals.currentPath = req.path;
   res.locals.query = req.query;
   res.locals.flash = {

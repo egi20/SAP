@@ -3,10 +3,9 @@
    * The first-login welcome tour (config/onboarding.js), as on dynamicshub.net.
    *
    * Rendered at BODY level from footer.ejs — never inside a card, whose backdrop-filter
-   * would trap the dialog behind the modal backdrop. It opens by itself only while
-   * `needsOnboarding` is true, and `public/js/onboarding.js` stamps users.onboarded_at the
-   * moment it does, so leaving the page without pressing anything still counts as seen.
-   * Afterwards it is replayed from the assistant, or with ?tour=1.
+   * would trap the dialog behind the modal backdrop. It opens by itself ONLY on the page an
+   * account's first sign-in lands on (`welcomeTourAuto`, see routes/auth.js). After that the
+   * one way to open it is the assistant's "Show me the welcome tour" — no URL, no menu item.
    *
    * Hidden in the markup and opened by the script: with scripting off there is no modal to
    * open and nothing to stamp, and the dashboard tiles say the same things.
@@ -14,7 +13,7 @@
   const _obName = String(currentUser.name || 'there').split(' ')[0];
 %>
 <div class="modal fade onboarding" id="onboardingModal" tabindex="-1" aria-labelledby="onboardingTitle" aria-hidden="true"
-     data-bs-backdrop="static" data-auto="<%= currentUser.needsOnboarding ? '1' : '0' %>">
+     data-bs-backdrop="static" data-auto="<%= welcomeTourAuto ? '1' : '0' %>">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header onboarding-head">

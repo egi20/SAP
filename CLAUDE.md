@@ -1727,19 +1727,22 @@ when the destination is the dashboard, whose banner already says it.
 
 ## The welcome tour
 
-**A role-aware tour opens by itself on the first signed-in page, once, as on dynamicshub.net**
-(2026-10-22). `config/onboarding.js` holds the steps per audience — consultant, company, and
-a general one for everybody else and for dual-role accounts — asserted at boot, and
-`tests/integration/onboarding.test.js` opens every href. `views/partials/onboarding.ejs` is
-included from the footer at BODY level for every signed-in page; `data-auto` comes from
-`needsOnboarding`, which `buildSessionUser` derives from `users.onboarded_at` on every request.
-**`public/js/onboarding.js` stamps the moment the tour auto-opens, not on close** — the
-reference learned that somebody who leaves without pressing anything otherwise sees it on every
-page. Step buttons open in a new tab, and a 15-second localStorage marker keeps that tab from
-opening the tour too. The way back is the assistant's "Show me the welcome tour" button (outside
-the chips, which go once a conversation starts) or `?tour=1`; a replay never stamps. The last
-step hands over to the assistant only where it is configured, and says "You're set" otherwise.
-Every account that existed before this has `onboarded_at` NULL and sees it once.
+**A role-aware tour opens by itself on an account's FIRST sign-in and never again; after that
+only the assistant opens it** (owner, 2026-10-22, as on dynamicshub.net). `config/onboarding.js`
+holds the steps per audience — consultant, company, and a general one for everybody else and
+for dual-role accounts — asserted at boot, and `tests/integration/onboarding.test.js` opens
+every href. **The stamp is written by the SIGN-IN, on the server** (`routes/auth.js`: when
+`onboarded_at` is NULL it is set and `req.session.welcomeTour` carries "open it here" to the
+landing page). The reference stamps from the browser when the modal opens, which makes a blocked
+script or a failed request turn the next sign-in into another "first" one. `public/js/onboarding.js`
+posts `/dashboard/onboarded` as the modal opens, which only clears the session flag, so the
+next page of the same visit does not open it again. Step buttons open a new tab, and a 15-second
+localStorage marker keeps that tab from opening it too. **There is no URL that opens it** — no
+`?tour=1`, no menu item: the assistant's "Show me the welcome tour" button (outside the chips,
+which go once a conversation starts) is the only way back, and a test greps the script for a
+query-string trigger. Migration 036 dated every account that had already signed in to its
+`last_login_at`, so nobody is shown a "first sign-in" tour on their hundredth; an account that
+registered and never signed in keeps NULL and gets it when it does.
 
 ## The cookie notice, and what it is not
 

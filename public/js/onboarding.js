@@ -30,9 +30,9 @@
   }
 
   /*
-   * Stamped the moment it first opens by itself, not on close: somebody who navigates away
-   * or closes the tab without pressing anything has still seen it, and must not be shown
-   * it on every page until they do. A replay never stamps — it was already stamped.
+   * The account was stamped when it first signed in; this clears the session's "open it
+   * here" flag the moment it opens, so the next page of the same visit does not open it
+   * again. Done on open, not on close: leaving without pressing anything has still seen it.
    */
   function stamp() {
     if (stamped) return;
@@ -44,7 +44,7 @@
     }).catch(function () { /* best-effort: the next page asks again, which is the honest failure */ });
   }
 
-  /* The assistant's "show me the tour again" calls this. */
+  /* The assistant's "Show me the welcome tour" calls this — the only way back to it. */
   window.saphubOpenOnboarding = function () {
     show(0);
     modal.show();
@@ -77,7 +77,6 @@
     });
   });
 
-  var replay = /(?:^|[?&])tour=1(?:&|$)/.test(window.location.search);
   var auto = el.getAttribute('data-auto') === '1';
   var suppressed = false;
   try {
@@ -85,9 +84,7 @@
   } catch (err) { /* nothing remembered */ }
 
   show(0);
-  if (replay) {
-    modal.show();
-  } else if (auto && !suppressed) {
+  if (auto && !suppressed) {
     modal.show();
     stamp();
   }

@@ -39,23 +39,37 @@ beforeAll(async () => {
 });
 
 maybe()('welcome tour', () => {
-  test('opens by itself on first sign-in, and not after it is stamped', async () => {
-    const agent = await signIn(ACCOUNTS.consultant);
-    const first = await agent.get('/dashboard');
-    expect(first.status).toBe(200);
-    expect(first.text).toContain('id="onboardingModal"');
-    expect(first.text).toContain('data-auto="1"');
-    expect(first.text).toContain('/js/onboarding.js');
-    expect(first.text).toContain(AUDIENCES.consultant[0].title);
+  test('opens on the first sign-in only, never on a later one', async () => {
+    const first = await signIn(ACCOUNTS.consultant);
+    const landing = await first.get('/dashboard');
+    expect(landing.status).toBe(200);
+    expect(landing.text).toContain('id="onboardingModal"');
+    expect(landing.text).toContain('data-auto="1"');
+    expect(landing.text).toContain('/js/onboarding.js');
+    expect(landing.text).toContain(AUDIENCES.consultant[0].title);
 
-    const stamp = await agent.post('/dashboard/onboarded')
-      .set('X-CSRF-Token', first.text.match(META)[1]).set('Sec-Fetch-Dest', 'empty').set('Accept', 'application/json');
-    expect(stamp.status).toBe(200);
+    // Stamped by the sign-in itself, before any script has run.
+    const [[row]] = await promisePool.query('SELECT onboarded_at FROM users WHERE email = ?', [ACCOUNTS.consultant]);
+    expect(row.onboarded_at).not.toBeNull();
 
-    const after = await agent.get('/dashboard');
-    // Still rendered, so the assistant can replay it — but it no longer opens by itself.
-    expect(after.text).toContain('id="onboardingModal"');
-    expect(after.text).toContain('data-auto="0"');
+    // Once it has opened, the rest of that visit does not open it again.
+    const cleared = await first.post('/dashboard/onboarded')
+      .set('X-CSRF-Token', landing.text.match(META)[1]).set('Sec-Fetch-Dest', 'empty').set('Accept', 'application/json');
+    expect(cleared.status).toBe(200);
+    expect((await first.get('/dashboard')).text).toContain('data-auto="0"');
+
+    // A second sign-in — even one whose first page never ran the script — is not a first.
+    const second = await signIn(ACCOUNTS.consultant);
+    const again = await second.get('/dashboard');
+    // Still rendered, so the assistant can open it — but never by itself.
+    expect(again.text).toContain('id="onboardingModal"');
+    expect(again.text).toContain('data-auto="0"');
+  });
+
+  test('there is no URL that opens it: only the assistant does', () => {
+    const fs = require('fs');
+    const js = fs.readFileSync(require.resolve('../../public/js/onboarding.js'), 'utf8');
+    expect(js).not.toMatch(/location\.search|tour=/);
   });
 
   test('a company gets the company tour', async () => {

@@ -229,6 +229,17 @@ router.post(
         req.session.cookie.maxAge = config.session.rememberMeMaxAge;
       }
 
+      /*
+       * The welcome tour belongs to the FIRST sign-in and to nothing after it (owner,
+       * 2026-10-22). Stamped here, on the server, at the moment that sign-in happens — not
+       * when a script reports the modal opened — so a blocked script, a closed tab or a
+       * failed request cannot turn a second sign-in into a "first" one. The session flag
+       * carries it to the page this sign-in lands on; after that, only the assistant opens it.
+       */
+      if (!user.onboarded_at) {
+        await User.markOnboarded(user.id);
+        req.session.welcomeTour = true;
+      }
       await User.recordLogin(user.id);
       // The dashboard greets by name in its own banner; anywhere else the flash does.
       if (redirectAfterLogin !== '/dashboard') {
