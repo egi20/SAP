@@ -1234,6 +1234,9 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   font-size: 0.925rem; height: 100%;
 }
 .role-rate-link:hover { background: var(--glass-hover, rgba(127, 127, 127, 0.1)); }
+/* Every role here opens its own page; the name reads as a link, not as a table cell. */
+.role-rate-link .role-rate-name { color: var(--primary-blue); }
+.role-rate-link:hover .role-rate-name { text-decoration: underline; }
 
 /*
  * The spam honeypot. `display: none` is what a bot checks for, so it is moved off-screen

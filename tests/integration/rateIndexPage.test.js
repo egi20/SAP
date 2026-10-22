@@ -80,4 +80,12 @@ maybe()('the Rate & Salary Index', () => {
     expect(res.text).toMatch(/data-copy="[^"]*industry=finance[^"]*skills=btp&amp;skills=ai/);
     expect(res.text).toContain('data-print');
   });
+
+  it('asks for contributions where the index needs them, and shows what each skill adds', async () => {
+    const res = await request(app).get('/rates');
+    expect(res.text).toContain('Help build the index');
+    expect(res.text).toMatch(/href="\/rates\/submit"[^>]*>[\s\S]{0,120}Add your figure/);
+    expect(res.text).toMatch(/SAP BTP \+5%/);
+    expect((res.text.match(/class="role-rate-link/g) || []).length).toBeGreaterThan(40);
+  });
 });
