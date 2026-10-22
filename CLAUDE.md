@@ -691,6 +691,23 @@ flipping it takes effect on the member's next click. Migration 029's comment sti
 "not enforced" — it is applied and immutable, and this paragraph is the correction. `/dedupe`
 left the sitemap with it: a crawler would only ever see the sign-in redirect.
 
+**Admin › Automated Tests runs the regression library against this process, as
+dynamicshub.net's Admin › Tests does** (owner's request, 2026-10-22; migration 034). The
+cases live in `config/regressionTests.js`, asserted at boot, and are NOT seeded into a table
+— the reference runs a DB copy that drifts from its source until somebody presses "Refresh
+Suite". Public pages, rate role pages, games, engagement models and dashboard tiles are
+GENERATED from their catalogues. Every case is a GET: a write against the live database is
+something somebody has to clean up. `utils/regressionRunner.js` calls 127.0.0.1 (never the
+public host, so nothing crosses the CDN), sends a robot User-Agent (so `looksLikeAPerson`
+keeps runs out of the visitor count and the tax funnel), and never follows a redirect (a
+followed redirect can mask a missing guard). Signed-in cases need `QA_TEST_PASSWORD` and run
+as `qa-consultant@saphub.test` / `qa-company@saphub.test`; there is no QA ADMIN, because an
+admin login existing only for a test is an admin login on the live site — the admin screens
+are covered as guards instead. A deactivated QA account is reported, never re-activated. A
+run starts in the background and writes each row as it lands; the run page refreshes itself
+with a `Refresh` header. No response bodies are stored. `npm test` is still the real gate;
+this is the check on the DEPLOYED site.
+
 **`POST /admin/payments/:id/refunded` records a refund; it does not issue one.** The refund
 is made in Stripe by a person. A button here that moved money would make this a second
 system of record, and when two systems of record disagree about a refund the one that is

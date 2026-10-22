@@ -1,0 +1,75 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-check2-square',
+  heading: 'Test run #' + run.id,
+  sub: run.scope
+}) %>
+
+<%
+  const outcomeBadge = { passed: 'text-bg-success', failed: 'text-bg-danger', skipped: 'text-bg-secondary' };
+  const counted = { passed: 0, failed: 0, skipped: 0 };
+  run.results.forEach(function (r) { counted[r.outcome] += 1; });
+  const ran = counted.passed + counted.failed;
+%>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'tests' }) %>
+  <%- include('../partials/flash') %>
+
+  <p class="mb-3"><a href="/admin/tests"><i class="bi bi-arrow-left" aria-hidden="true"></i> All test cases</a></p>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="glass-card h-100"><div class="card-body">
+      <p class="stat-value mb-0"><%= counted.passed %><span class="text-muted-2 fs-6"> / <%= ran %></span></p>
+      <p class="small text-muted-2 mb-0">passed</p>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="glass-card h-100"><div class="card-body">
+      <p class="stat-value mb-0 <%= counted.failed ? 'text-danger' : '' %>"><%= counted.failed %></p>
+      <p class="small text-muted-2 mb-0">failed</p>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="glass-card h-100"><div class="card-body">
+      <p class="stat-value mb-0"><%= counted.skipped %></p>
+      <p class="small text-muted-2 mb-0">skipped (signed-in cases without QA_TEST_PASSWORD)</p>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="glass-card h-100"><div class="card-body">
+      <% if (run.state === 'running') { %>
+        <p class="stat-value mb-0"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span></p>
+        <p class="small text-muted-2 mb-0">running — this page refreshes itself</p>
+      <% } else if (run.state === 'interrupted') { %>
+        <p class="stat-value mb-0 text-warning"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></p>
+        <p class="small text-muted-2 mb-0">interrupted — the server restarted mid-run; the rows below are what it reached</p>
+      <% } else { %>
+        <p class="stat-value mb-0"><%= (run.duration_ms / 1000).toFixed(1) %>s</p>
+        <p class="small text-muted-2 mb-0">finished<% if (run.started_by_name) { %>, started by <%= run.started_by_name %><% } %></p>
+      <% } %>
+    </div></div></div>
+  </div>
+
+  <% if (!run.results.length) { %>
+    <p class="text-muted-2"><%= run.state === 'running' ? 'Waiting for the first result…' : 'This run recorded no results.' %></p>
+  <% } else { %>
+    <div class="glass-card">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Result</th><th>Case</th><th>Status</th><th>Time</th><th>Why</th></tr></thead>
+          <tbody>
+            <% run.results.forEach(function (r) { %>
+              <tr>
+                <td><span class="badge <%= outcomeBadge[r.outcome] %>"><%= r.outcome %></span></td>
+                <td><%= r.case_name %><div class="small text-muted-2"><%= r.category %> · <code><%= r.path %></code><% if (r.role) { %> · as <%= r.role %><% } %></div></td>
+                <td><%= r.status_code || '—' %></td>
+                <td class="text-nowrap"><%= r.duration_ms %> ms</td>
+                <td class="small <%= r.outcome === 'failed' ? 'text-danger' : 'text-muted-2' %>"><%= r.message || '' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

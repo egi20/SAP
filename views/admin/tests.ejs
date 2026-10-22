@@ -1,0 +1,138 @@
+<%- include('../partials/layout-start') %>
+
+<%- include('../partials/page-header', {
+  icon: 'bi-check2-square',
+  heading: 'Automated tests',
+  sub: 'The regression library, run against this site from here, as on dynamicshub.net.'
+}) %>
+
+<%
+  const outcomeBadge = { passed: 'text-bg-success', failed: 'text-bg-danger', skipped: 'text-bg-secondary' };
+  const fmtWhen = function (d) { return d ? new Date(d).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '—'; };
+%>
+
+<section class="glass-section pb-5">
+<div class="container">
+  <%- include('./_tabs', { current: 'tests' }) %>
+  <%- include('../partials/flash') %>
+
+  <div class="glass-card mb-4">
+    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+      <div class="flex-grow-1">
+        <p class="mb-1"><strong><%= enabledCount %></strong> of <%= total %> cases switched on, in <%= groups.length %> categories.</p>
+        <p class="small text-muted-2 mb-0">
+          Every case is a real request to this server, through every middleware, and reads a
+          page — nothing is written. The library is <code>config/regressionTests.js</code>: a
+          release that changes a page changes its case in the same commit, so there is no
+          "refresh suite" step.
+        </p>
+      </div>
+      <% if (runner.activeRunId) { %>
+        <a class="btn btn-outline-primary" href="/admin/tests/runs/<%= runner.activeRunId %>">
+          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Run #<%= runner.activeRunId %> in progress
+        </a>
+      <% } else { %>
+        <form method="post" action="/admin/tests/run">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Run all tests</button>
+        </form>
+      <% } %>
+    </div>
+    <div class="card-footer small <%= runner.qaEnabled ? '' : 'text-bg-light' %>">
+      <% if (runner.qaEnabled) { %>
+        <i class="bi bi-person-check me-1" aria-hidden="true"></i>
+        Signed-in cases run as <%= runner.qaEmails.join(' and ') %>.
+      <% } else { %>
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        Signed-in cases are <strong>skipped</strong>: set <code>QA_TEST_PASSWORD</code> (12+ characters) on the
+        server to run them. That creates <%= runner.qaEmails.join(' and ') %> — there is no QA administrator,
+        because an admin login that exists only for a test is an admin login on the live site.
+      <% } %>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <% groups.forEach(function (g) {
+           const on = g.cases.filter(function (c) { return c.enabled; }).length;
+           const failing = g.cases.filter(function (c) { return c.last && c.last.outcome === 'failed'; }).length; %>
+        <details class="glass-card mb-3" <%= failing ? 'open' : '' %>>
+          <summary class="card-body d-flex flex-wrap align-items-center gap-2">
+            <strong class="me-auto"><%= g.category %></strong>
+            <span class="badge text-bg-light border"><%= on %>/<%= g.cases.length %> on</span>
+            <% if (failing) { %><span class="badge text-bg-danger"><%= failing %> failing</span><% } %>
+          </summary>
+          <div class="px-3 pb-3">
+            <% if (!runner.activeRunId) { %>
+              <form method="post" action="/admin/tests/run" class="mb-2">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="category" value="<%= g.category %>">
+                <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-play me-1" aria-hidden="true"></i>Run this category</button>
+              </form>
+            <% } %>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Case</th><th>Expects</th><th>Last result</th><th class="text-end">Switch</th></tr></thead>
+                <tbody>
+                  <% g.cases.forEach(function (c) { %>
+                    <tr class="<%= c.enabled ? '' : 'text-muted-2' %>">
+                      <td>
+                        <%= c.name %>
+                        <div class="small text-muted-2"><code><%= c.path %></code><% if (c.role) { %> · as <%= c.role %><% } %></div>
+                      </td>
+                      <td class="small text-nowrap">
+                        <%= Array.isArray(c.status) ? c.status.join('/') : c.status %><% if (c.redirect) { %> → <code><%= c.redirect %></code><% } %>
+                      </td>
+                      <td class="small">
+                        <% if (c.last) { %>
+                          <a class="badge <%= outcomeBadge[c.last.outcome] %> text-decoration-none" href="/admin/tests/runs/<%= c.last.run_id %>"><%= c.last.outcome %></a>
+                          <% if (c.last.outcome === 'failed' && c.last.message) { %><div class="text-danger"><%= c.last.message %></div><% } %>
+                        <% } else { %><span class="text-muted-2">never run</span><% } %>
+                      </td>
+                      <td class="text-end">
+                        <form method="post" action="/admin/tests/switch" class="d-inline">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                          <input type="hidden" name="case" value="<%= c.name %>">
+                          <input type="hidden" name="enabled" value="<%= c.enabled ? '0' : '1' %>">
+                          <button class="btn btn-sm <%= c.enabled ? 'btn-outline-secondary' : 'btn-outline-success' %>" type="submit"><%= c.enabled ? 'Switch off' : 'Switch on' %></button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      <% }) %>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="glass-card">
+        <div class="card-body">
+          <h2 class="h6 mb-3"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Recent runs</h2>
+          <% if (!runs.length) { %>
+            <p class="small text-muted-2 mb-0">No run yet. Press <em>Run all tests</em>.</p>
+          <% } else { %>
+            <ul class="list-unstyled mb-0">
+              <% runs.forEach(function (r) { %>
+                <li class="border-bottom py-2">
+                  <a class="d-flex justify-content-between text-decoration-none" href="/admin/tests/runs/<%= r.id %>">
+                    <span>#<%= r.id %> · <%= r.scope %></span>
+                    <% if (r.state === 'running') { %><span class="badge text-bg-info">running</span>
+                    <% } else if (r.state === 'interrupted') { %><span class="badge text-bg-warning">interrupted</span>
+                    <% } else { %><span class="badge <%= r.failed ? 'text-bg-danger' : 'text-bg-success' %>"><%= r.passed %>/<%= r.total - r.skipped %></span><% } %>
+                  </a>
+                  <div class="small text-muted-2"><%= fmtWhen(r.started_at) %><% if (r.started_by_name) { %> · <%= r.started_by_name %><% } %><% if (r.skipped) { %> · <%= r.skipped %> skipped<% } %></div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<%- include('../partials/layout-end') %>

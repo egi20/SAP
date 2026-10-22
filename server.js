@@ -27,6 +27,7 @@ const { assertLinkedInIntegrity } = linkedinConfig;
 const { EMBED_HOSTS } = require('./utils/videoEmbed');
 const { assertChallengeIntegrity } = require('./config/challenges');
 const { assertGamesIntegrity } = require('./config/games');
+const { assertRegressionIntegrity } = require('./config/regressionTests');
 const { assertTaxProgramIntegrity } = require('./config/taxProgram');
 const { LEGAL_ENTITY, assertLegalEntityIntegrity } = require('./config/legalEntity');
 const { assertSocialIntegrity, socialLinks } = require('./config/social');
@@ -111,6 +112,7 @@ assertChallengeIntegrity();
  * have, or a word that no longer fits its grid is a game nobody can win.
  */
 assertGamesIntegrity();
+assertRegressionIntegrity();
 /*
  * And the Hub's own social accounts: a link whose host carries a typo looks right in a
  * diff and is wrong on every page of the site until somebody outside reports it.

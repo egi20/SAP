@@ -50,6 +50,9 @@ const webAnalyticsService = require('../services/webAnalytics');
 const analyticsDashboard = require('../services/analyticsDashboard');
 const SiteStats = require('../models/SiteStats');
 const TaxInterest = require('../models/TaxInterest');
+const RegressionRun = require('../models/RegressionRun');
+const regressionRunner = require('../utils/regressionRunner');
+const { CASES: REGRESSION_CASES, categoriesOf: regressionCategories } = require('../config/regressionTests');
 const { rangeFrom, rangeQuery, PRESETS: RANGE_PRESETS } = require('../utils/analyticsRange');
 
 const router = express.Router();
@@ -1087,6 +1090,102 @@ router.post(
     const removed = await ErrorLog.purgeOlderThan(days);
     req.flash('success', `Removed ${removed} entries older than ${days} days.`);
     return res.redirect('/admin/errors');
+  })
+);
+
+/* ------------------------------------------------- automated tests */
+
+/**
+ * Admin › Automated Tests, as on dynamicshub.net: the regression library in
+ * `config/regressionTests.js`, run against this process from a button. See
+ * `utils/regressionRunner.js` for what it does differently and why.
+ */
+router.get(
+  '/tests',
+  asyncHandler(async (req, res) => {
+    const [disabled, last, runs] = await Promise.all([
+      RegressionRun.disabledNames(),
+      RegressionRun.lastOutcomes(),
+      RegressionRun.recent(20)
+    ]);
+    const groups = regressionCategories().map((category) => ({
+      category,
+      cases: REGRESSION_CASES.filter((c) => c.category === category).map((c) => ({
+        ...c, enabled: !disabled.has(c.name), last: last[c.name] || null
+      }))
+    }));
+    return res.render('admin/tests', {
+      title: 'Automated tests',
+      groups,
+      runs,
+      runner: regressionRunner.status(),
+      total: REGRESSION_CASES.length,
+      enabledCount: REGRESSION_CASES.filter((c) => !disabled.has(c.name)).length
+    });
+  })
+);
+
+router.post(
+  '/tests/run',
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const category = typeof req.body.category === 'string' ? req.body.category : '';
+    const caseName = typeof req.body.case === 'string' ? req.body.case : '';
+    const disabled = await RegressionRun.disabledNames();
+    let cases;
+    let scope;
+    if (caseName) {
+      cases = REGRESSION_CASES.filter((c) => c.name === caseName);
+      scope = `Case: ${caseName}`;
+    } else if (category) {
+      cases = REGRESSION_CASES.filter((c) => c.category === category && !disabled.has(c.name));
+      scope = `Category: ${category}`;
+    } else {
+      cases = REGRESSION_CASES.filter((c) => !disabled.has(c.name));
+      scope = 'All enabled cases';
+    }
+    // Names and categories come from the form, so they are only ever looked up in the
+    // library; one that is not there runs nothing rather than something else.
+    if (!cases.length) {
+      req.flash('error', 'Nothing to run: that case or category is not in the library, or every case in it is switched off.');
+      return res.redirect('/admin/tests');
+    }
+    try {
+      const runId = await regressionRunner.startRun(cases, { scope, userId: req.session.user.id });
+      return res.redirect(`/admin/tests/runs/${runId}`);
+    } catch (err) {
+      if (err.code !== 'RUN_IN_PROGRESS') throw err;
+      req.flash('error', 'A run is already in progress. Its results are below.');
+      return res.redirect(`/admin/tests/runs/${err.runId}`);
+    }
+  })
+);
+
+router.get(
+  '/tests/runs/:id',
+  requireIdParam('id'),
+  asyncHandler(async (req, res, next) => {
+    const run = await RegressionRun.find(Number(req.params.id));
+    if (!run) return next();
+    // The browser asks again every few seconds while the run is going; no script needed.
+    if (run.state === 'running') res.set('Refresh', '3');
+    return res.render('admin/test-run', { title: `Test run #${run.id}`, run });
+  })
+);
+
+router.post(
+  '/tests/switch',
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const name = typeof req.body.case === 'string' ? req.body.case : '';
+    if (!REGRESSION_CASES.some((c) => c.name === name)) {
+      req.flash('error', 'That case is not in the library.');
+      return res.redirect('/admin/tests');
+    }
+    const enabled = req.body.enabled === '1';
+    await RegressionRun.setEnabled(name, enabled, req.session.user.id);
+    req.flash('success', `${enabled ? 'Switched on' : 'Switched off'}: ${name}`);
+    return res.redirect('/admin/tests');
   })
 );
 
