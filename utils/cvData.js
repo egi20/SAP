@@ -39,6 +39,19 @@ function monthOf(value) {
   return date.toISOString().slice(0, 7);
 }
 
+/**
+ * The short version keeps what ended in the last SHORT_CV_YEARS years, and everything still
+ * running. It is the member's choice and the document says it was made, so a reader does
+ * not take a ten-year CV for a ten-year career.
+ */
+const SHORT_CV_YEARS = 10;
+
+function endedBefore(endValue, isCurrent, cutoff) {
+  if (isCurrent || !endValue) return false;
+  const end = endValue instanceof Date ? endValue : new Date(endValue);
+  return !Number.isNaN(end.getTime()) && end < cutoff;
+}
+
 function periodOf(from, to, isCurrent) {
   const start = monthOf(from);
   const end = isCurrent ? 'present' : monthOf(to);
@@ -58,9 +71,20 @@ function periodOf(from, to, isCurrent) {
  * @param {object} options
  * @param {boolean} options.includeRate     the member's choice, off by default
  * @param {boolean} options.includeContact  the member's choice, off by default
+ * @param {string}  options.length          'full' (default) or 'short'
  */
 function buildCv({ profile, skills = [], certifications = [], experiences = [], projects = [], job = null }, options = {}) {
   if (!profile) throw new Error('A CV needs a profile');
+
+  const generatedAt = new Date();
+  const short = options.length === 'short';
+  const cutoff = new Date(generatedAt);
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - SHORT_CV_YEARS);
+  // Leaves out; never rewords. What stays is exactly what the full version prints.
+  if (short) {
+    projects = projects.filter((p) => !endedBefore(p.ended_on, !p.ended_on, cutoff));
+    experiences = experiences.filter((e) => !endedBefore(e.ended_on, e.is_current, cutoff));
+  }
 
   const jobModules = job && Array.isArray(job.modules) ? job.modules.filter(Boolean) : [];
   const wanted = new Set(jobModules);
@@ -134,7 +158,9 @@ function buildCv({ profile, skills = [], certifications = [], experiences = [], 
     engagements: ordered,
 
     targetedAt: job ? { title: job.title, company: job.company_name || null, modules: jobModules.map(moduleLabel) } : null,
-    generatedAt: new Date()
+    length: short ? 'short' : 'full',
+    shortYears: short ? SHORT_CV_YEARS : null,
+    generatedAt
   };
 }
 
@@ -151,7 +177,13 @@ function cvGaps(cv) {
   if (!cv.engagements.length) gaps.push('at least one engagement in your delivery history');
   if (!cv.skills.length) gaps.push('some skills');
   if (cv.yearsExperience === null) gaps.push('your years of experience');
+  if (!cv.certifications.length) gaps.push('your SAP certifications, if you hold any');
+  const withoutModules = cv.engagements.filter((e) => !e.modules.length).length;
+  if (withoutModules) {
+    gaps.push(`the modules for ${withoutModules} engagement${withoutModules === 1 ? '' : 's'} — without them `
+      + 'an engagement cannot be ordered against an advert or found by the module filter');
+  }
   return gaps;
 }
 
-module.exports = { buildCv, cvGaps };
+module.exports = { buildCv, cvGaps, SHORT_CV_YEARS };

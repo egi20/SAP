@@ -18,10 +18,12 @@ const { requireIdParam } = require('../utils/ids');
 const { sanitizeRichText } = require('../utils/sanitize');
 const { normaliseProfileUrls, COMPANY_URL_COLUMNS } = require('../utils/profileUrl');
 const { slugify } = require('../utils/slug');
+const { returnTo } = require('../utils/returnTo');
 const Job = require('../models/Job');
 const Quote = require('../models/Quote');
 const AccountClosure = require('../models/AccountClosure');
-const { buildCv, cvGaps } = require('../utils/cvData');
+const { cvGaps } = require('../utils/cvData');
+const { cvFor, cvOptionsFrom, orderingAdverts, cvQuery } = require('../services/cvSource');
 const { buildCvDocx } = require('../utils/documents/cvDocx');
 const { ROLE_CATEGORIES, ROLE_SLUGS } = require('../config/roleTaxonomy');
 const { CERTIFICATIONS, OTHER_CODE, isCertificationCode } = require('../config/certifications');
@@ -101,7 +103,9 @@ router.post(
     if (roles.includes('company')) await CompanyProfile.ensureExists(req.session.user.id, req.session.user.name);
 
     req.flash('success', 'Roles updated. Removing a role is done by support.');
-    return res.redirect('/profile/settings');
+    // The CV generator page posts here with its own address, so adding the role returns
+    // the member to the button they came for.
+    return res.redirect(returnTo(req, '/profile/settings'));
   })
 );
 
@@ -135,55 +139,6 @@ router.post(
 );
 
 /**
- * THE CV, built from the profile and nothing else.
- *
- * There is no wizard. The reference asks people to type their career into a form, which
- * produces a second copy of a CV that starts drifting from the profile the directory
- * searches the moment either is edited. Everything a CV needs is already on the profile —
- * including the delivery history, which is the part a generic CV builder cannot ask for
- * because it does not know what a module is.
- *
- * Both routes are consultant-only and read THIS member's own rows. There is no id in the
- * path: a CV endpoint that takes one is a CV endpoint somebody will enumerate.
- */
-async function cvFor(userId, jobSlug, options) {
-  const profile = await ConsultantProfile.findByUserId(userId);
-  if (!profile) return null;
-
-  const [skills, certifications, experiences, projects] = await Promise.all([
-    Skill.forConsultant(userId),
-    ConsultantProfile.listCertifications(userId),
-    ConsultantProfile.listExperiences(userId),
-    ConsultantProfile.listProjects(userId)
-  ]);
-
-  /*
-   * The advert is loaded only to ORDER the engagements, and only when it is one anybody
-   * could read: `Job.findBySlug` plus the open check, so a draft cannot be probed through
-   * the CV builder by somebody guessing slugs.
-   */
-  let job = null;
-  if (jobSlug) {
-    const found = await Job.findBySlug(jobSlug);
-    if (found && found.status === 'open') {
-      job = { ...found, modules: await Job.modulesFor(found.id) };
-    }
-  }
-
-  return buildCv({ profile, skills, certifications, experiences, projects, job }, options);
-}
-
-function cvOptionsFrom(query) {
-  return {
-    // Both off unless asked for, every time. A CV travels further than the person who
-    // wrote it expects, and a day rate on a document that reaches a procurement team is a
-    // negotiating position given away before the conversation starts.
-    includeRate: query.rate === '1',
-    includeContact: query.contact === '1'
-  };
-}
-
-/**
  * GET /profile/documents — every document this account can produce, in one place.
  *
  * A LIST OF GENERATORS, not a folder of files. Documents here are generated on demand and
@@ -207,6 +162,18 @@ router.get(
   })
 );
 
+/**
+ * THE CV, built from the profile and nothing else.
+ *
+ * There is no wizard. The reference asks people to type their career into a form, which
+ * produces a second copy of a CV that starts drifting from the profile the directory
+ * searches the moment either is edited. Everything a CV needs is already on the profile —
+ * including the delivery history, which is the part a generic CV builder cannot ask for
+ * because it does not know what a module is.
+ *
+ * The rows are read by `services/cvSource.js`. Both routes are consultant-only and read THIS member's own rows. There is no id in the
+ * path: a CV endpoint that takes one is a CV endpoint somebody will enumerate.
+ */
 router.get(
   '/cv',
   isConsultant,
@@ -221,7 +188,9 @@ router.get(
       cv,
       gaps: cvGaps(cv),
       options,
-      jobSlug
+      jobSlug,
+      adverts: await orderingAdverts(req.session.user.id),
+      downloadQuery: cvQuery(options, cv.targetedAt ? jobSlug : '')
     });
   })
 );

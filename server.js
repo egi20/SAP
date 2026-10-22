@@ -208,6 +208,10 @@ assertTaxAdvisoryIntegrity();
  */
 assertRateBoundsIntegrity();
 
+// The example CV on /cv-generator is rendered by the real builder from catalogue keys; an
+// unknown module there would show a visitor a CV the directory could not have produced.
+require('./config/cvExample').assertCvExampleIntegrity();
+
 /*
  * The support address is the one setting a developer never notices is unset, because the
  * page renders perfectly with it. Production refuses to boot on the placeholder; here it

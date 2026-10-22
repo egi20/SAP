@@ -1,92 +1,189 @@
 <%- include('../partials/layout-start') %>
 <%- include('../partials/page-header', {
   icon: 'bi-file-earmark-person',
-  heading: 'Build your SAP CV',
-  sub: 'From the profile you already filled in. No wizard, and nothing written for you.'
+  label: 'CV GENERATOR',
+  heading: 'Your SAP CV, straight from your profile',
+  sub: 'A Word document built from what you already filled in — your engagements, the modules each one touched, your certifications. Free.'
 }) %>
+<%
+  /*
+   * A tool first and an argument second. What the visitor can DO comes first and differs by
+   * who they are: a consultant downloads, a signed-in account without the consultant role
+   * adds it with one button, a visitor creates an account. The format, the example and the
+   * steps follow; what the builder refuses to do is a short paragraph at the end.
+   */
+  const isConsultant = currentUser && currentUser.isConsultant;
+%>
 <section class="glass-section pb-5">
 <div class="container">
-  <div class="row justify-content-center"><div class="col-lg-9">
+  <%- include('../partials/flash') %>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5 mb-3">There is no form to fill in twice</h2>
-      <p>
-        Your profile here already holds what a CV needs: the headline, the years, the full
-        lifecycles, the skills, the certifications, the employment — and the delivery
-        history, engagement by engagement, with the modules each one actually touched.
-      </p>
-      <p class="mb-0">
-        So the CV is a rendering of that, produced when you click and never stored. It is
-        always what your profile says at that moment, which means there is no second copy
-        quietly going stale behind the one companies are searching.
-      </p>
-    </div></div>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-7">
+      <div class="glass-card h-100"><div class="card-body">
+        <% if (isConsultant && mine && mine.gaps) { %>
+          <h2 class="h5 card-heading mb-3">Download your CV</h2>
 
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-diagram-3"></i></span>
-          <h3 class="h6 mb-1">It knows what a module is</h3>
-          <p class="small text-muted-2 mb-0">
-            A general CV builder cannot ask which modules an engagement touched, or which
-            SAP Activate phase it ran in, because it has no idea those exist. This one puts
-            them on the page.
+          <% if (mine.gaps.length) { %>
+            <%# Before the button: a CV is only as good as the profile behind it, and each gap is one field. -%>
+            <div class="alert alert-warning small mb-3">
+              <strong>Your profile is missing:</strong>
+              <ul class="mb-1 mt-1">
+                <% mine.gaps.forEach(function (g) { %><li><%= g %></li><% }); %>
+              </ul>
+              <a href="/profile/consultant">Fill them in on your profile</a> — the CV changes the moment you do.
+            </div>
+          <% } else { %>
+            <p class="small text-success mb-3"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>Your profile has everything a CV needs.</p>
+          <% } %>
+
+          <%#
+            One GET form, two destinations: the download and the preview read the same
+            fields, so the file is exactly what the preview showed.
+          -%>
+          <form method="get" action="/profile/cv.docx">
+            <%- include('../partials/cv-options', { options: mine.options, adverts: mine.adverts, jobSlug: '' }) %>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-primary" type="submit">
+                <i class="bi bi-download me-1" aria-hidden="true"></i>Download my CV (.docx)
+              </button>
+              <button class="btn btn-outline-primary" type="submit" formaction="/profile/cv">Preview it first</button>
+            </div>
+          </form>
+
+        <% } else if (isConsultant) { %>
+          <h2 class="h5 card-heading mb-2">Start with your profile</h2>
+          <p class="text-muted-2">Your CV is built from your consultant profile, and there is nothing in it yet.</p>
+          <a class="btn btn-primary" href="/profile/consultant">Build my profile</a>
+
+        <% } else if (currentUser) { %>
+          <h2 class="h5 card-heading mb-2">Add the consultant role to get your CV</h2>
+          <p class="text-muted-2">
+            The CV is built from a consultant profile, and this account does not have one yet.
+            Adding the role keeps everything you already have; your profile is then one page
+            to fill in.
           </p>
-        </div></div>
-      </div>
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-success mb-2"><i class="bi bi-ui-checks"></i></span>
-          <h3 class="h6 mb-1">Readable by the software that screens it</h3>
-          <p class="small text-muted-2 mb-0">
-            One column of headings, paragraphs and bullets, with no table, no text box and
-            nothing a reader needs hidden in a page header. Those three are where an
-            applicant-tracking system's parsing goes wrong.
+          <form method="post" action="/profile/settings/roles">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="roles" value="consultant">
+            <input type="hidden" name="redirectTo" value="/cv-generator">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-person-plus me-1" aria-hidden="true"></i>Add the consultant role
+            </button>
+          </form>
+
+        <% } else { %>
+          <h2 class="h5 card-heading mb-2">Get your SAP CV</h2>
+          <p class="text-muted-2">
+            Create a free account, fill in your consultant profile once, and download your CV
+            whenever you need it — always up to date with the profile companies search.
           </p>
-        </div></div>
-      </div>
-      <div class="col-md-4">
-        <div class="glass-card h-100"><div class="card-body">
-          <span class="icon-tile icon-tile-sm icon-navyblue mb-2"><i class="bi bi-sort-down"></i></span>
-          <h3 class="h6 mb-1">Ordered against a role</h3>
-          <p class="small text-muted-2 mb-0">
-            Open it from an advert and the engagements that touched that advert's modules
-            come first, marked as the relevant ones. Nothing is added or reworded.
-          </p>
-        </div></div>
-      </div>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" href="/auth/register">Create a free account</a>
+            <a class="btn btn-outline-primary" href="/auth/login?redirect=%2Fcv-generator">Sign in</a>
+          </div>
+        <% } %>
+      </div></div>
     </div>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5 mb-3">What it does not do</h2>
-      <p>
-        <strong>It writes nothing for you.</strong> Every line is something you typed or a
-        label from the SAP catalogue. A generated summary is a claim you would be sending to
-        an employer under your own name — and the first you would hear of a sentence you
-        cannot stand behind is in the interview.
-      </p>
-      <p class="mb-0">
-        There is no cover letter yet, for the same reason. Without your own words it would
-        be a form letter, and a form letter is worse than no letter: it tells the reader
-        you did not write to them.
-      </p>
-    </div></div>
+    <div class="col-lg-5">
+      <div class="glass-card h-100"><div class="card-body">
+        <h2 class="h5 card-heading mb-3">What you get</h2>
+        <ul class="list-unstyled mb-3 cv-facts">
+          <li><i class="bi bi-file-earmark-word" aria-hidden="true"></i><span><strong>A Word document (.docx)</strong> — opens in Word, Google Docs and LibreOffice; save it as PDF from any of them.</span></li>
+          <li><i class="bi bi-layout-text-sidebar-reverse" aria-hidden="true"></i><span><strong>One column</strong> of headings, paragraphs and bullets — readable by the software that screens CVs.</span></li>
+          <li><i class="bi bi-arrows-collapse" aria-hidden="true"></i><span><strong>Full or short.</strong> Full carries everything on your profile; short keeps the last 10 years and says so on the page.</span></li>
+          <li><i class="bi bi-eye-slash" aria-hidden="true"></i><span><strong>Your day rate and contact details are off</strong> unless you tick them.</span></li>
+        </ul>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-outline-primary btn-sm" href="#example"><i class="bi bi-eye me-1" aria-hidden="true"></i>See an example</a>
+          <a class="btn btn-outline-secondary btn-sm" href="/cv-generator/example.docx"><i class="bi bi-download me-1" aria-hidden="true"></i>Download the example (.docx)</a>
+        </div>
+      </div></div>
+    </div>
+  </div>
 
-    <div class="glass-card glass-card-tinted"><div class="card-body text-center py-4">
-      <% if (currentUser && currentUser.isConsultant) { %>
-        <a class="btn btn-primary" href="/profile/cv">Build your CV</a>
-      <% } else if (currentUser) { %>
-        <p class="text-muted-2 mb-0">
-          The builder reads a consultant profile. Add the consultant role in
-          <a href="/profile/settings">your settings</a> and it appears.
+  <h2 class="h4 mb-3">How it works</h2>
+  <div class="row g-3 mb-5">
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">1</span>
+        <h3 class="h6 mt-2 mb-1">Complete your profile</h3>
+        <p class="small text-muted-2 mb-0">Headline, About, your engagements with the modules each one touched, certifications and skills. You fill it in once — it is also what companies search.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">2</span>
+        <h3 class="h6 mt-2 mb-1">Choose an advert <span class="text-muted-2 fw-normal">(optional)</span></h3>
+        <p class="small text-muted-2 mb-0">Pick a role you saved or applied to, or use "Build my CV for this role" on any open advert. The engagements that touched its modules move to the top.</p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="step-number">3</span>
+        <h3 class="h6 mt-2 mb-1">Download</h3>
+        <p class="small text-muted-2 mb-0">Full or short, with or without your rate and contact details. It is built when you click, so it is always what your profile says right now.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <h2 class="h4 mb-3">Built for SAP work</h2>
+  <div class="row g-3 mb-5">
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile icon-tile-sm icon-blue mb-2"><i class="bi bi-diagram-3"></i></span>
+        <h3 class="h6 mb-1">Modules and phases on every engagement</h3>
+        <p class="small text-muted-2 mb-0">
+          Each engagement shows the SAP modules it touched and the SAP Activate phase it ran
+          in — the detail a general CV builder cannot ask for.
         </p>
-      <% } else { %>
-        <p class="text-muted-2 mb-3">Free, like everything else a consultant does here.</p>
-        <a class="btn btn-primary" href="/auth/register">Create a free account</a>
-        <a class="btn btn-outline-secondary" href="/jobs">Browse roles first</a>
-      <% } %>
-    </div></div>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile icon-tile-sm icon-success mb-2"><i class="bi bi-sort-down"></i></span>
+        <h3 class="h6 mb-1">Ordered for the role you want</h3>
+        <p class="small text-muted-2 mb-0">
+          Against an advert, the relevant engagements come first and are marked, and the
+          document names the advert it was ordered for.
+        </p>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="glass-card h-100"><div class="card-body">
+        <span class="icon-tile icon-tile-sm icon-navyblue mb-2"><i class="bi bi-arrow-repeat"></i></span>
+        <h3 class="h6 mb-1">Never out of date</h3>
+        <p class="small text-muted-2 mb-0">
+          There is no second copy to keep in step: edit your profile and the next CV you
+          download already says so.
+        </p>
+      </div></div>
+    </div>
+  </div>
 
+  <%#
+    The example is the real renderer on a fictional consultant (config/cvExample.js), so it
+    cannot show a layout the builder does not make.
+  -%>
+  <div id="example" class="mb-5">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+      <h2 class="h4 mb-0">Example</h2>
+      <span class="small text-muted-2">A fictional consultant — <a href="/cv-generator/example.docx">download it as .docx</a></span>
+    </div>
+    <div class="cv-example-frame">
+      <%- include('../partials/cv-preview', { cv: example }) %>
+    </div>
+  </div>
+
+  <div class="glass-card"><div class="card-body">
+    <h2 class="h6 mb-2">What it does not do</h2>
+    <p class="small text-muted-2 mb-0">
+      It writes nothing for you — no generated summary, no reworded bullets, and no cover
+      letter. Every line is something you typed or a label from the SAP catalogue, because a
+      CV is sent under your own name and you should be able to stand behind every sentence
+      in the interview.
+    </p>
   </div></div>
 </div>
 </section>

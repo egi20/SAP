@@ -1,0 +1,49 @@
+<%#
+  The choices that shape a CV, as GET fields: in the address bar, and carried by the
+  download link exactly as the preview used them. Locals: options, adverts, jobSlug.
+-%>
+<fieldset class="mb-3">
+  <legend class="form-label small fw-semibold mb-1">Length</legend>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="length" id="len-full" value="full" <%= options.length !== 'short' ? 'checked' : '' %>>
+    <label class="form-check-label small" for="len-full">Full — everything on your profile</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="length" id="len-short" value="short" <%= options.length === 'short' ? 'checked' : '' %>>
+    <label class="form-check-label small" for="len-short">Short — the last 10 years, and the document says so</label>
+  </div>
+</fieldset>
+
+<div class="mb-3">
+  <label class="form-label small fw-semibold mb-1" for="cv-job">Order against an advert</label>
+  <select class="form-select form-select-sm" id="cv-job" name="job">
+    <option value="">No advert — newest engagements first</option>
+    <% adverts.forEach(function (a) { %>
+      <option value="<%= a.slug %>" <%= jobSlug === a.slug ? 'selected' : '' %>><%= a.title %><%= a.company ? ' — ' + a.company : '' %> (<%= a.why %>)</option>
+    <% }); %>
+    <% if (jobSlug && !adverts.some(function (a) { return a.slug === jobSlug; })) { %>
+      <option value="<%= jobSlug %>" selected>The advert you came from</option>
+    <% } %>
+  </select>
+  <div class="form-text">
+    <% if (adverts.length) { %>Open adverts you saved or applied to.<% } else { %>Save or apply to an open advert and it appears here.<% } %>
+    Any other open advert has a "Build my CV for this role" button on its own page.
+  </div>
+</div>
+
+<div class="form-check mb-2">
+  <input class="form-check-input" type="checkbox" id="opt-contact" name="contact" value="1"
+         <%= options.includeContact ? 'checked' : '' %>>
+  <label class="form-check-label small" for="opt-contact">Include my email and LinkedIn</label>
+</div>
+<div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" id="opt-rate" name="rate" value="1"
+         <%= options.includeRate ? 'checked' : '' %>>
+  <label class="form-check-label small" for="opt-rate">
+    Include my day rate
+    <span class="text-muted-2 d-block">
+      Off by default. A CV travels further than you expect, and a rate on one that
+      reaches a procurement team is a position given away before the conversation.
+    </span>
+  </label>
+</div>

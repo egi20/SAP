@@ -128,3 +128,53 @@ describe('cvGaps', () => {
     expect(cvGaps(base())).toEqual([]);
   });
 });
+
+describe('the short version', () => {
+  const input = {
+    profile: PROFILE,
+    projects: [
+      ...PROJECTS,
+      { name: 'Ancient R/3 job', client: 'Client C', modules: ['fi-gl'], started_on: new Date('2005-01-01'), ended_on: new Date('2009-12-31') }
+    ],
+    experiences: [
+      { title: 'Freelance', company: 'Independent', started_on: new Date('2018-04-01'), is_current: 1 },
+      { title: 'Junior', company: 'Old Employer', started_on: new Date('2004-01-01'), ended_on: new Date('2010-01-01'), is_current: 0 }
+    ]
+  };
+
+  it('leaves out what ended more than ten years ago, keeps what is running, and says it did', () => {
+    const full = buildCv(input);
+    const short = buildCv(input, { length: 'short' });
+    expect(full.engagements.map((e) => e.name)).toContain('Ancient R/3 job');
+    expect(short.engagements.map((e) => e.name)).not.toContain('Ancient R/3 job');
+    expect(short.experiences.map((e) => e.company)).toEqual(['Independent']);
+    expect(short).toMatchObject({ length: 'short', shortYears: 10 });
+    expect(full.length).toBe('full');
+  });
+
+  it('rewords nothing it keeps', () => {
+    const full = JSON.stringify(buildCv(input).engagements[0]);
+    expect(JSON.stringify(buildCv(input, { length: 'short' }).engagements[0])).toBe(full);
+  });
+});
+
+describe('cvGaps names the delivery details a CV needs', () => {
+  it('asks for certifications and for the modules of an engagement that has none', () => {
+    const cv = buildCv({ profile: PROFILE, projects: [{ name: 'No modules', modules: [] }] });
+    const gaps = cvGaps(cv).join(' ');
+    expect(gaps).toContain('certifications');
+    expect(gaps).toContain('the modules for 1 engagement');
+  });
+});
+
+describe('the example CV', () => {
+  const { exampleCvInput, exampleProblems } = require('../../config/cvExample');
+
+  it('passes its own assertion and is built by the real builder', () => {
+    expect(exampleProblems()).toEqual([]);
+    const cv = buildCv(exampleCvInput());
+    expect(cv.name).toMatch(/example/i);
+    expect(cv.engagements.every((e) => /example/i.test(e.client))).toBe(true);
+    expect(cvGaps(cv)).toEqual([]);
+  });
+});

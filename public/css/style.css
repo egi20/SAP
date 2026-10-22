@@ -1956,6 +1956,17 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
    column scrolls. Opaque, because the cards below it scroll underneath. */
 .sow-steps li { margin-bottom: 0.35rem; }
 .text-prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* CV generator: numbered steps, the format facts, and the example in a paper-like frame. */
+.step-number {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--primary-blue); color: var(--bg-white); font-weight: 700;
+}
+.cv-facts li { display: flex; gap: 0.6rem; margin-bottom: 0.6rem; }
+.cv-facts i { color: var(--primary-blue); font-size: 1.1rem; line-height: 1.4; }
+.cv-example-frame { max-width: 52rem; margin: 0 auto; }
+.cv-example-frame .glass-card { background-color: var(--bg-white); }
 @media (min-width: 992px) {
   /* Held inside the viewport: a sticky box taller than the screen hides its own button. */
   .sow-summary { position: sticky; top: 5.5rem; z-index: 3; background-color: var(--bg-white); max-height: calc(100vh - 6.5rem); overflow-y: auto; }

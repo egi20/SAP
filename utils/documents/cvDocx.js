@@ -129,6 +129,12 @@ async function buildCvDocx(cv) {
     ));
   }
 
+  // Said on the document, for the same reason as the line above: a reader who is not told
+  // the short version was chosen takes a ten-year CV for a ten-year career.
+  if (cv.length === 'short') {
+    children.push(para(`Short version: work from the last ${cv.shortYears} years.`, { size: 18, italics: true }));
+  }
+
   if (cv.about) {
     children.push(heading('Summary'));
     children.push(para(cv.about, { size: 20 }));

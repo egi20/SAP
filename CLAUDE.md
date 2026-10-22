@@ -257,6 +257,21 @@ is a negotiating position given away before the conversation starts. The preview
 everything the file will contain — a preview that omits a field the download includes is a
 preview that lies about the document, and the field it would omit is that one.
 
+**`/cv-generator` is a tool before it is an argument** (2026-10-22). The first card does the
+job for whoever is reading: a consultant gets the download (with the profile's gaps named
+above the button, a Full / Short choice and an advert to order against), an account without
+the role gets a button that adds it and returns here through `returnTo`, a visitor gets an
+account. The rows come from `services/cvSource.js`, the one loader `/profile/cv` uses too.
+**The short version leaves out, it never rewords**: engagements and employment that ended
+more than `SHORT_CV_YEARS` ago go, and the document SAYS it is the short version, or a reader
+takes a ten-year CV for a ten-year career. The advert dropdown offers only OPEN adverts the
+member saved or applied to — the same rule `cvFor` applies, so it never offers something the
+builder would ignore. **The example is a fictional consultant rendered by the real builder**
+(`config/cvExample.js`, asserted at boot: named as an example, every client "Example",
+every module a catalogue key), at `/cv-generator/example.docx` and inline through the same
+`cv-preview` partial — an example drawn by hand could promise a layout the builder does not
+make. Still no cover letter: a template of prompts was considered and left for the owner.
+
 **ATS-friendly is a shape, not a claim.** The reference advertises it and lays its CV out
 in a two-column table. An applicant-tracking system reads the document in linear order, so
 columns interleave, text boxes are skipped and a page header repeats as though it were

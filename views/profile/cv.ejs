@@ -24,86 +24,7 @@
         </div></div>
       <% } %>
 
-      <div class="glass-card"><div class="card-body cv-preview">
-        <h2 class="h4 mb-1"><%= cv.name %></h2>
-        <% if (cv.headline) { %><p class="text-muted-2 mb-1"><%= cv.headline %></p><% } %>
-        <p class="small text-muted-2">
-          <%
-            const facts = [];
-            if (cv.role) facts.push(cv.role);
-            if (cv.seniority) facts.push(cv.seniority);
-            if (cv.yearsExperience !== null) facts.push(cv.yearsExperience + ' years');
-            // Zero is printed: it is a real answer and the people giving it are the honest ones.
-            if (cv.fullLifecycles !== null) facts.push(cv.fullLifecycles + ' full lifecycle' + (cv.fullLifecycles === 1 ? '' : 's'));
-            if (cv.location) facts.push(cv.location);
-          %>
-          <%= facts.join(' · ') %>
-        </p>
-
-        <%#
-          The preview has to show everything the file will contain. One that omits a field
-          the download includes is a preview that lies about the document — and the field
-          it would omit is the day rate, which is the one somebody most needs to see before
-          sending it.
-        %>
-        <% if (cv.contact) { %>
-          <p class="small mb-1">
-            <%= [cv.contact.email, cv.contact.linkedin].filter(Boolean).join(' · ') %>
-          </p>
-        <% } %>
-        <% if (cv.rate) { %>
-          <p class="small mb-1">Indicative day rate: <%= cv.rate.amount %> <%= cv.rate.currency %></p>
-        <% } %>
-
-        <% if (cv.targetedAt) { %>
-          <p class="small"><span class="badge-hub accent">Ordered for <%= cv.targetedAt.title %></span></p>
-        <% } %>
-
-        <% if (cv.about) { %>
-          <h3 class="h6 mt-4">Summary</h3>
-          <p class="small"><%= cv.about %></p>
-        <% } %>
-
-        <% if (cv.engagements.length) { %>
-          <h3 class="h6 mt-4">Delivery history</h3>
-          <% cv.engagements.forEach(function (e) { %>
-            <div class="mb-3">
-              <strong class="small"><%= [e.name, e.client].filter(Boolean).join(' — ') %></strong>
-              <div class="small text-muted-2"><%= [e.role, e.phase, e.period].filter(Boolean).join(' · ') %></div>
-              <% if (e.matchedModules.length) { %>
-                <div class="small"><span class="badge-hub ok">Relevant here: <%= e.matchedModules.join(', ') %></span></div>
-              <% } %>
-              <% if (e.modules.length) { %>
-                <div class="small text-muted-2">Modules: <%= e.modules.map(function (m) { return m.label; }).join(', ') %></div>
-              <% } %>
-            </div>
-          <% }) %>
-        <% } %>
-
-        <% if (cv.experiences.length) { %>
-          <h3 class="h6 mt-4">Employment</h3>
-          <% cv.experiences.forEach(function (e) { %>
-            <div class="small mb-2">
-              <strong><%= [e.title, e.company].filter(Boolean).join(' — ') %></strong>
-              <span class="text-muted-2">· <%= e.period %></span>
-            </div>
-          <% }) %>
-        <% } %>
-
-        <% if (cv.certifications.length) { %>
-          <h3 class="h6 mt-4">Certifications</h3>
-          <ul class="small mb-0">
-            <% cv.certifications.forEach(function (c) { %>
-              <li><%= c.earned ? c.label + ' (' + c.earned + ')' : c.label %></li>
-            <% }) %>
-          </ul>
-        <% } %>
-
-        <% if (cv.skills.length) { %>
-          <h3 class="h6 mt-4">Skills</h3>
-          <p class="small mb-0"><%= cv.skills.join(', ') %></p>
-        <% } %>
-      </div></div>
+      <%- include('../partials/cv-preview', { cv: cv }) %>
     </div>
 
     <aside class="col-lg-4">
@@ -115,32 +36,14 @@
           document is how somebody sends a day rate they thought they had turned off.
         %>
         <form method="get" action="/profile/cv">
-          <% if (jobSlug) { %><input type="hidden" name="job" value="<%= jobSlug %>"><% } %>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="opt-contact" name="contact" value="1"
-                   <%= options.includeContact ? 'checked' : '' %>>
-            <label class="form-check-label small" for="opt-contact">
-              Include my email and LinkedIn
-            </label>
-          </div>
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="opt-rate" name="rate" value="1"
-                   <%= options.includeRate ? 'checked' : '' %>>
-            <label class="form-check-label small" for="opt-rate">
-              Include my day rate
-              <span class="text-muted-2 d-block">
-                Off by default. A CV travels further than you expect, and a rate on one that
-                reaches a procurement team is a position given away before the conversation.
-              </span>
-            </label>
-          </div>
+          <%- include('../partials/cv-options', { options: options, adverts: adverts, jobSlug: jobSlug }) %>
           <button class="btn btn-outline-primary btn-sm w-100" type="submit">Update the preview</button>
         </form>
       </div></div>
 
       <div class="glass-card mb-3"><div class="card-body">
-        <a class="btn btn-primary w-100" href="/profile/cv.docx<%= `?rate=${options.includeRate ? 1 : 0}&contact=${options.includeContact ? 1 : 0}${jobSlug ? '&job=' + encodeURIComponent(jobSlug) : ''}` %>">
-          <i class="bi bi-download"></i> Download as .docx
+        <a class="btn btn-primary w-100" href="/profile/cv.docx?<%= downloadQuery %>">
+          <i class="bi bi-download"></i> Download as Word (.docx)
         </a>
         <p class="form-text mb-0 mt-2">
           Generated when you click and never stored, so it is always what your profile says

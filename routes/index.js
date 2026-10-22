@@ -250,9 +250,52 @@ router.get(
  * sells an "AI CV builder"; this one writes nothing, and saying so is the point rather
  * than an apology.
  */
-router.get('/cv-generator', (req, res) => {
-  res.render('legal/cv-generator', { title: 'Build your SAP CV' });
-});
+router.get(
+  '/cv-generator',
+  asyncHandler(async (req, res) => {
+    const user = req.session.user;
+    const { buildCv, cvGaps } = require('../utils/cvData');
+    const { exampleCvInput } = require('../config/cvExample');
+    const example = buildCv(exampleCvInput());
+
+    /*
+     * A consultant gets the real thing on this page: their own CV's gaps, the adverts it can
+     * be ordered against and a download button that carries the same choices as the form.
+     * The rows come from the same loader /profile/cv uses.
+     */
+    let mine = null;
+    if (user && user.isConsultant) {
+      const { cvFor, cvOptionsFrom, orderingAdverts } = require('../services/cvSource');
+      const options = cvOptionsFrom({});
+      const cv = await cvFor(user.id, '', options);
+      mine = cv
+        ? { gaps: cvGaps(cv), engagements: cv.engagements.length, options, adverts: await orderingAdverts(user.id) }
+        : { gaps: null, engagements: 0, options, adverts: [] };
+    }
+
+    res.render('legal/cv-generator', { title: 'CV Generator', example, mine });
+  })
+);
+
+/**
+ * GET /cv-generator/example.docx — the example CV as the file a member would download.
+ *
+ * Built by the same renderer from `config/cvExample.js`, a fictional consultant, so a visitor
+ * can open the actual document before deciding to fill in a profile.
+ */
+router.get(
+  '/cv-generator/example.docx',
+  asyncHandler(async (req, res) => {
+    const { buildCv } = require('../utils/cvData');
+    const { buildCvDocx } = require('../utils/documents/cvDocx');
+    const { exampleCvInput } = require('../config/cvExample');
+    const buffer = await buildCvDocx(buildCv(exampleCvInput()));
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', 'attachment; filename="example-sap-hub-cv.docx"');
+    res.setHeader('Content-Length', buffer.length);
+    return res.send(buffer);
+  })
+);
 
 /**
  * GET /tax — the tax optimisation programme, as on dynamicshub.net/tax-optimization.
