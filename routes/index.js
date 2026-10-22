@@ -572,8 +572,8 @@ router.post(
  * GET/POST /report-issue
  *
  * The same queue, in two modes, as on dynamicshub.net: "Report a problem" and "Share an
- * idea". The mode is a query parameter and the page is rendered for it on the server, so
- * both work with scripting off; the idea mode uses the idea_* half of the same ENUM and
+ * idea", on one page: report-issue.js switches between them in place. The mode is also a
+ * query parameter the page is rendered for on the server, so both work with scripting off; the idea mode uses the idea_* half of the same ENUM and
  * asks for a priority where the problem mode asks for a severity (migration 030).
  *
  * `page_url` arrives prefilled from the link that brought somebody here — main.js adds the
@@ -603,8 +603,9 @@ function reportView(req, values, errors, status = 200, res, { sent = null } = {}
   return res.status(status).render('legal/report-issue', {
     title: 'Report an Issue or Share an Idea',
     mode,
-    issueTypes: mode === 'idea' ? Enquiry.IDEA_TYPES : Enquiry.PROBLEM_TYPES,
-    severities: mode === 'idea' ? Enquiry.PRIORITIES : Enquiry.SEVERITIES,
+    // Both, because both modes are on the page and the switch happens in the browser.
+    issueTypesByMode: { problem: Enquiry.PROBLEM_TYPES, idea: Enquiry.IDEA_TYPES },
+    severitiesByMode: { problem: Enquiry.SEVERITIES, idea: Enquiry.PRIORITIES },
     maxFiles: SCREENSHOT_MAX_FILES,
     maxFileMb: SCREENSHOT_MAX_BYTES / 1024 / 1024,
     faqQuestions: FAQ_QUESTIONS,

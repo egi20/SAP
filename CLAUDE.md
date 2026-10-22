@@ -534,8 +534,10 @@ are due, so "we keep it for 180 days" is checkable rather than claimed.
 **`/report-issue` has two modes and takes screenshots** (migration 030, 2026-10-21). "Share
 an idea" is the idea_* half of the same `issue_type` ENUM, not a fourth kind, and for an idea
 `severity` holds the priority — `critical` exists for problems only, and the model refuses it
-for an idea. The mode is a query parameter rendered by the server, so both work without
-scripting. Screenshots are IMAGES ONLY, re-encoded by sharp before they are stored, because
+for an idea. Both modes are on ONE page under one heading, "Report an Issue or Share an
+Idea" (2026-10-22, as on dynamicshub.net): `report-issue.js` switches the form in place and
+keeps what was typed, from a JSON copy of the labels the server rendered; the mode is still
+a query parameter the server renders for, so both work without scripting. Screenshots are IMAGES ONLY, re-encoded by sharp before they are stored, because
 a PDF or an office document from a stranger is exactly what that re-encode keeps away from
 the administrator who opens the report; they are deleted `ATTACHMENT_RETENTION_DAYS` after
 the report is closed, which the Privacy policy states and the admin queue prints as a count

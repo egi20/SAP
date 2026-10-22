@@ -81,6 +81,16 @@ maybe()('the page', () => {
     expect(idea.text).toMatch(/value="low"\s+selected/);
   });
 
+  it('carries both modes on one page, for the switch that keeps what was typed', async () => {
+    const res = await request(app).get('/report-issue');
+    expect(res.text).toContain('Report an Issue or Share an Idea');
+    const modes = JSON.parse(res.text.match(/<script type="application\/json" id="report-modes">([\s\S]*?)<\/script>/)[1]);
+    expect(modes.problem.types.map((t) => t[0])).toContain('bug');
+    expect(modes.idea.types.map((t) => t[0])).toContain('idea_feature');
+    expect(modes.idea.severities.map((t) => t[0])).not.toContain('critical');
+    expect(res.text).toContain('data-report-mode="idea"');
+  });
+
   it('drops a page address that is not http(s) instead of prefilling it', async () => {
     const res = await request(app).get('/report-issue?page=javascript:alert(1)');
     expect(res.text).not.toContain('javascript:alert');

@@ -10,7 +10,8 @@
  *  - a live character count under the message;
  *  - the first refused field gets the focus after a refused submit;
  *  - FAQ questions that match the subject are offered while it is typed;
- *  - the browser/device line is filled in only when its box is ticked, and shown first.
+ *  - the browser/device line is filled in only when its box is ticked, and shown first;
+ *  - "Report a problem" / "Share an idea" switch the form in place, keeping what was typed.
  *
  * The limits come from data attributes the server rendered from middleware/fileUpload.js.
  */
@@ -120,18 +121,18 @@
   });
 
   /* ------------------------------------------------------------------ draft */
-  var draftKey = form.getAttribute('data-draft-key');
+  function draftKey() { return form.getAttribute('data-draft-key'); }
   var DRAFT_FIELDS = ['subject', 'message', 'issue_type', 'severity', 'page_url', 'content_url'];
   function storage() {
     try { return window.sessionStorage; } catch (e) { return null; }
   }
   var store = storage();
-  if (store && draftKey) {
+  if (store && draftKey()) {
     if (document.querySelector('[data-report-sent]')) {
       try { store.removeItem('report-draft-problem'); store.removeItem('report-draft-idea'); } catch (e) { /* nothing kept */ }
     } else {
       var saved = null;
-      try { saved = JSON.parse(store.getItem(draftKey) || 'null'); } catch (e) { saved = null; }
+      try { saved = JSON.parse(store.getItem(draftKey()) || 'null'); } catch (e) { saved = null; }
       if (saved) {
         DRAFT_FIELDS.forEach(function (name) {
           var el = form.elements[name];
@@ -145,7 +146,7 @@
     form.addEventListener('input', function () {
       var data = {};
       DRAFT_FIELDS.forEach(function (name) { if (form.elements[name]) data[name] = form.elements[name].value; });
-      try { store.setItem(draftKey, JSON.stringify(data)); } catch (e) { /* storage full or blocked */ }
+      try { store.setItem(draftKey(), JSON.stringify(data)); } catch (e) { /* storage full or blocked */ }
     });
   }
 
@@ -213,5 +214,90 @@
   if (envToggle) {
     envToggle.addEventListener('change', syncEnv);
     syncEnv();
+  }
+
+  /* ------------------------------------------------------------ the two modes */
+  /*
+   * Both modes are on one page. The labels, options and guides for each come from the JSON
+   * the server rendered (views/legal/report-issue.ejs), so nothing here restates them. The
+   * buttons stay links: without this script they load the page for the other mode.
+   */
+  var modes = null;
+  try { modes = JSON.parse((document.getElementById('report-modes') || {}).textContent || 'null'); } catch (e) { modes = null; }
+  var modeInput = form.querySelector('[data-mode-input]');
+  var modeLinks = document.querySelectorAll('[data-report-mode]');
+
+  function fillSelect(select, options, selected) {
+    if (!select) return;
+    var keepBlank = select.options.length && select.options[0].value === '';
+    var blank = keepBlank ? select.options[0] : null;
+    select.textContent = '';
+    if (blank) select.appendChild(blank);
+    options.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o[0];
+      opt.textContent = o[1];
+      if (o[0] === selected) opt.selected = true;
+      select.appendChild(opt);
+    });
+    if (blank && !selected) blank.selected = true;
+    select.classList.remove('is-invalid');
+  }
+
+  function fillGuide(dl, guide) {
+    var gap = dl.querySelector('dd') ? dl.querySelector('dd').className : 'mb-1';
+    dl.textContent = '';
+    guide.forEach(function (g) {
+      var dt = document.createElement('dt');
+      var badge = document.createElement('span');
+      badge.className = 'badge ' + g[0];
+      badge.textContent = g[1];
+      dt.appendChild(badge);
+      var dd = document.createElement('dd');
+      dd.className = gap;
+      dd.textContent = g[2];
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+  }
+
+  function setMode(mode) {
+    var m = modes && modes[mode];
+    if (!m || !modeInput || modeInput.value === mode) return;
+    modeInput.value = mode;
+    form.setAttribute('data-draft-key', 'report-draft-' + mode);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mode-text]'), function (el) {
+      var key = el.getAttribute('data-mode-text');
+      if (typeof m[key] === 'string') el.textContent = m[key];
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mode-guide]'), function (dl) { fillGuide(dl, m.guide); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mode-only]'), function (el) {
+      el.hidden = el.getAttribute('data-mode-only') !== mode;
+    });
+    fillSelect(form.elements.issue_type, m.types, '');
+    fillSelect(form.elements.severity, m.severities, m.defaultSeverity);
+    if (form.elements.issue_type) form.elements.issue_type.dispatchEvent(new Event('change', { bubbles: true }));
+    Array.prototype.forEach.call(modeLinks, function (a) {
+      var on = a.getAttribute('data-report-mode') === mode;
+      a.classList.toggle('btn-primary', on);
+      a.classList.toggle('btn-outline-primary', !on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    // The address follows, so a reload or a copied link opens the same mode.
+    if (window.history && history.replaceState) {
+      var url = new URL(window.location.href);
+      if (mode === 'idea') url.searchParams.set('mode', 'idea'); else url.searchParams.delete('mode');
+      url.searchParams.delete('sent');
+      history.replaceState(null, '', url.pathname + url.search);
+    }
+  }
+
+  if (modes && modeInput) {
+    Array.prototype.forEach.call(modeLinks, function (a) {
+      a.addEventListener('click', function (event) {
+        event.preventDefault();
+        setMode(a.getAttribute('data-report-mode'));
+      });
+    });
   }
 }());

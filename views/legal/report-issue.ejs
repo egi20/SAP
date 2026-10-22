@@ -13,44 +13,72 @@
     idea_feature: 'A new feature', idea_improvement: 'An improvement to something that exists',
     idea_integration: 'An integration with another tool', idea_other: 'Something else'
   };
-  const severityLabels = isIdea
-    ? { low: 'Nice to have', normal: 'Important', high: 'Essential — I need it to use the site' }
-    : { low: 'Minor — I can work around it', normal: 'Normal — it is getting in the way',
-        high: 'High — I cannot do what I came to do', critical: 'Critical — the site is down or data is being lost' };
-  const defaultSeverity = isIdea ? 'low' : 'normal';
-  const guide = isIdea
-    ? [
-        ['low', 'text-bg-secondary', 'Nice to have', 'It would make the site better; nothing is blocked without it.'],
-        ['normal', 'text-bg-info', 'Important', 'You would use it regularly, or it would save real time.'],
-        ['high', 'text-bg-warning', 'Essential', 'Without it the site does not do what you need it for.']
-      ]
-    : [
-        ['low', 'text-bg-secondary', 'Minor', 'A cosmetic problem, or one with an easy workaround.'],
-        ['normal', 'text-bg-info', 'Normal', 'Something does not work as it should, but you can carry on.'],
-        ['high', 'text-bg-warning', 'High', 'You cannot finish what you came to do.'],
-        ['critical', 'text-bg-danger', 'Critical', 'The site is down for you, or data is being lost or exposed.']
-      ];
+  /*
+   * Both modes live on ONE page, as on dynamicshub.net: the buttons switch the form in place
+   * (report-issue.js) and keep whatever was already typed. Everything that differs between
+   * the two is in this one object, which renders the mode the server was asked for AND is
+   * handed to the script as JSON, so the switch cannot show a label the server would not.
+   */
+  const MODES = {
+    problem: {
+      typeLabel: 'What kind of problem',
+      types: issueTypesByMode.problem.map(function (t) { return [t, typeLabels[t]]; }),
+      severityLabel: 'How badly does it affect you',
+      severities: [['low', 'Minor — I can work around it'], ['normal', 'Normal — it is getting in the way'],
+        ['high', 'High — I cannot do what I came to do'], ['critical', 'Critical — the site is down or data is being lost']]
+        .filter(function (x) { return severitiesByMode.problem.includes(x[0]); }),
+      defaultSeverity: 'normal',
+      guideSummary: 'What do the levels mean?',
+      guideHeading: 'Severity guide',
+      guide: [
+        ['text-bg-secondary', 'Minor', 'A cosmetic problem, or one with an easy workaround.'],
+        ['text-bg-info', 'Normal', 'Something does not work as it should, but you can carry on.'],
+        ['text-bg-warning', 'High', 'You cannot finish what you came to do.'],
+        ['text-bg-danger', 'Critical', 'The site is down for you, or data is being lost or exposed.']
+      ],
+      pageHelp: 'Filled in for you when you came here from a page on this site.',
+      submit: 'Send report',
+      noun: 'report'
+    },
+    idea: {
+      typeLabel: 'Idea type',
+      types: issueTypesByMode.idea.map(function (t) { return [t, typeLabels[t]]; }),
+      severityLabel: 'Priority',
+      severities: [['low', 'Nice to have'], ['normal', 'Important'], ['high', 'Essential — I need it to use the site']]
+        .filter(function (x) { return severitiesByMode.idea.includes(x[0]); }),
+      defaultSeverity: 'low',
+      guideSummary: 'What do the priorities mean?',
+      guideHeading: 'Priority guide',
+      guide: [
+        ['text-bg-secondary', 'Nice to have', 'It would make the site better; nothing is blocked without it.'],
+        ['text-bg-info', 'Important', 'You would use it regularly, or it would save real time.'],
+        ['text-bg-warning', 'Essential', 'Without it the site does not do what you need it for.']
+      ],
+      pageHelp: 'If the idea is about one page, its address.',
+      submit: 'Send idea',
+      noun: 'idea'
+    }
+  };
+  const m = MODES[mode];
 %>
 <%- include('../partials/page-header', {
-  icon: isIdea ? 'bi-lightbulb' : 'bi-bug',
+  icon: 'bi-chat-square-text',
   heading: 'Report an Issue or Share an Idea',
-  sub: isIdea
-    ? 'Something the site should do, or do better. Every idea is read by a person.'
-    : 'Something broken, confusing, or not behaving the way the page said it would.'
+  sub: 'Something broken, or something the site should do better. Every report and idea is read by a person.'
 }) %>
 <section class="glass-section pb-5">
 <div class="container">
   <div class="row g-4">
     <div class="col-lg-8">
       <%#
-        Two modes, as on dynamicshub.net. They are links, not a script-driven toggle: the
-        server renders the form for the mode it was asked for, so both work without
-        JavaScript and a link to "Share an idea" can be sent to somebody.
+        Two modes on one page, as on dynamicshub.net. report-issue.js switches the form in
+        place and keeps what was typed; without scripting the buttons are still links the
+        server renders for, and ?mode=idea can still be sent to somebody.
       -%>
       <nav class="report-modes mb-3" aria-label="What would you like to send?">
-        <a class="btn <%= isIdea ? 'btn-outline-primary' : 'btn-primary' %>" href="/report-issue<%= values.page_url ? '?page=' + encodeURIComponent(values.page_url) : '' %>"
+        <a class="btn <%= isIdea ? 'btn-outline-primary' : 'btn-primary' %>" data-report-mode="problem" href="/report-issue<%= values.page_url ? '?page=' + encodeURIComponent(values.page_url) : '' %>"
            <%- isIdea ? '' : 'aria-current="page"' %>><i class="bi bi-bug me-1" aria-hidden="true"></i>Report a problem</a>
-        <a class="btn <%= isIdea ? 'btn-primary' : 'btn-outline-primary' %>" href="/report-issue?mode=idea<%= values.page_url ? '&page=' + encodeURIComponent(values.page_url) : '' %>"
+        <a class="btn <%= isIdea ? 'btn-primary' : 'btn-outline-primary' %>" data-report-mode="idea" href="/report-issue?mode=idea<%= values.page_url ? '&page=' + encodeURIComponent(values.page_url) : '' %>"
            <%- isIdea ? 'aria-current="page"' : '' %>><i class="bi bi-lightbulb me-1" aria-hidden="true"></i>Share an idea</a>
       </nav>
 
@@ -74,28 +102,29 @@
 
         <form method="post" action="/report-issue" enctype="multipart/form-data" data-report-form data-draft-key="report-draft-<%= mode %>">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <input type="hidden" name="mode" value="<%= mode %>">
+          <input type="hidden" name="mode" value="<%= mode %>" data-mode-input>
+          <script type="application/json" id="report-modes"><%- JSON.stringify(MODES).replace(/</g, '\\u003c') %></script>
 
           <div class="mb-3"><%- include('../partials/enquiry-identity', { values }) %></div>
 
           <div class="row g-3 mb-3">
             <div class="col-md-6">
-              <label class="form-label" for="f-type"><%= isIdea ? 'Idea type' : 'What kind of problem' %> <span aria-hidden="true">*</span></label>
+              <label class="form-label" for="f-type"><span data-mode-text="typeLabel"><%= m.typeLabel %></span> <span aria-hidden="true">*</span></label>
               <select class="form-select<%= fieldErrors.issue_type ? ' is-invalid' : '' %>" id="f-type" name="issue_type" required
                       <% if (fieldErrors.issue_type) { %>aria-invalid="true" aria-describedby="f-type-error"<% } %>
-                      <% if (!isIdea) { %>data-reveal="f-content-wrap" data-reveal-when="abuse"<% } %>>
+                      data-reveal="f-content-wrap" data-reveal-when="abuse">
                 <option value="">Choose…</option>
-                <% issueTypes.forEach(function (t) { %>
-                  <option value="<%= t %>" <%= values.issue_type === t ? 'selected' : '' %>><%= typeLabels[t] %></option>
+                <% m.types.forEach(function (t) { %>
+                  <option value="<%= t[0] %>" <%= values.issue_type === t[0] ? 'selected' : '' %>><%= t[1] %></option>
                 <% }) %>
               </select>
               <% if (fieldErrors.issue_type) { %><div class="invalid-feedback" id="f-type-error"><%= fieldErrors.issue_type %></div><% } %>
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="f-severity"><%= isIdea ? 'Priority' : 'How badly does it affect you' %> <span aria-hidden="true">*</span></label>
+              <label class="form-label" for="f-severity"><span data-mode-text="severityLabel"><%= m.severityLabel %></span> <span aria-hidden="true">*</span></label>
               <select class="form-select<%= fieldErrors.severity ? ' is-invalid' : '' %>" id="f-severity" name="severity" required aria-describedby="severity-guide<%= fieldErrors.severity ? ' f-severity-error' : '' %>">
-                <% severities.forEach(function (sv) { %>
-                  <option value="<%= sv %>" <%= (values.severity || defaultSeverity) === sv ? 'selected' : '' %>><%= severityLabels[sv] %></option>
+                <% m.severities.forEach(function (sv) { %>
+                  <option value="<%= sv[0] %>" <%= (values.severity || m.defaultSeverity) === sv[0] ? 'selected' : '' %>><%= sv[1] %></option>
                 <% }) %>
               </select>
               <% if (fieldErrors.severity) { %><div class="invalid-feedback" id="f-severity-error"><%= fieldErrors.severity %></div><% } %>
@@ -105,18 +134,17 @@
                 script and the keyboard reaches it.
               -%>
               <details class="d-lg-none mt-2 small">
-                <summary><%= isIdea ? 'What do the priorities mean?' : 'What do the levels mean?' %></summary>
-                <dl class="mt-2 mb-0">
-                  <% guide.forEach(function (g) { %>
-                    <dt><span class="badge <%= g[1] %>"><%= g[2] %></span></dt>
-                    <dd class="mb-1"><%= g[3] %></dd>
+                <summary data-mode-text="guideSummary"><%= m.guideSummary %></summary>
+                <dl class="mt-2 mb-0" data-mode-guide>
+                  <% m.guide.forEach(function (g) { %>
+                    <dt><span class="badge <%= g[0] %>"><%= g[1] %></span></dt>
+                    <dd class="mb-1"><%= g[2] %></dd>
                   <% }) %>
                 </dl>
               </details>
             </div>
 
-            <% if (!isIdea) { %>
-              <%#
+            <%#
                 The content being reported, separate from "Which page": the second is where
                 the reporter was, the first is what a moderator has to open to act.
                 Revealed by main.js when "Someone's behaviour or content" is chosen, and
@@ -130,7 +158,6 @@
                 <% if (fieldErrors.content_url) { %><div class="invalid-feedback" id="f-content-error"><%= fieldErrors.content_url %></div><% } %>
                 <p class="form-text" id="f-content-help">The post, reply, profile or job advert. A person reviews every report.</p>
               </div>
-            <% } %>
 
             <div class="col-12">
               <label class="form-label" for="f-page">Which page</label>
@@ -140,7 +167,7 @@
                      value="<%= values.page_url || '' %>" placeholder="https://…">
               <% if (fieldErrors.page_url) { %><div class="invalid-feedback" id="f-page-error"><%= fieldErrors.page_url %></div><% } %>
               <p class="form-text" id="f-page-help">
-                <%= isIdea ? 'If the idea is about one page, its address.' : 'Filled in for you when you came here from a page on this site.' %>
+                <span data-mode-text="pageHelp"><%= m.pageHelp %></span>
                 It is the difference between a report we can act on and one that begins "it was the page with the table".
               </p>
             </div>
@@ -185,19 +212,18 @@
             <p class="form-text mb-0" data-env-preview></p>
           </div>
 
-          <% if (isIdea) { %>
-            <div class="form-check mt-2">
+          <%# Only ever read for an idea (routes/index.js), so the box can stay in the form. -%>
+            <div class="form-check mt-2" data-mode-only="idea" <%= isIdea ? '' : 'hidden' %>>
               <input class="form-check-input" type="checkbox" id="f-publish" name="publish_consent"
                      <%= values.publish_consent === 'on' ? 'checked' : '' %>>
               <label class="form-check-label" for="f-publish">
                 You may publish this idea on the <a href="/ideas">ideas page</a> for others to vote on — without my name.
               </label>
             </div>
-          <% } %>
 
-          <button class="btn btn-primary mt-3" type="submit"><%= isIdea ? 'Send idea' : 'Send report' %></button>
+          <button class="btn btn-primary mt-3" type="submit" data-mode-text="submit"><%= m.submit %></button>
           <p class="small text-muted-2 mt-2 mb-0">
-            We use your name and email only to reply to this <%= isIdea ? 'idea' : 'report' %>. What we keep and for how
+            We use your name and email only to reply to this <span data-mode-text="noun"><%= m.noun %></span>. What we keep and for how
             long is in the <a href="/legal/privacy#reports">Privacy policy</a>.
           </p>
         </form>
@@ -206,7 +232,7 @@
 
     <aside class="col-lg-4">
       <div class="glass-card mb-4"><div class="card-body">
-        <% if (isIdea) { %>
+        <div data-mode-only="idea" <%= isIdea ? '' : 'hidden' %>>
           <h2 class="h6"><i class="bi bi-lightbulb me-1" aria-hidden="true"></i>Tips for sharing an idea</h2>
           <ul class="small mb-0 ps-3">
             <li><strong>The benefit.</strong> What would be easier, faster or possible that is not today?</li>
@@ -215,7 +241,8 @@
             <li><strong>The priority.</strong> Honest is more useful than high: it is how we decide what comes first.</li>
           </ul>
           <p class="small mt-3 mb-0"><a href="/ideas">See the ideas others shared, and vote</a></p>
-        <% } else { %>
+        </div>
+        <div data-mode-only="problem" <%= isIdea ? 'hidden' : '' %>>
           <h2 class="h6"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Tips for reporting</h2>
           <ul class="small mb-0 ps-3">
             <li><strong>Be specific.</strong> Which button, which field, which message.</li>
@@ -224,15 +251,15 @@
             <li><strong>Say which browser</strong> and device you were using.</li>
             <li><strong>Expected and actual.</strong> What you expected to happen, and what happened instead.</li>
           </ul>
-        <% } %>
+        </div>
       </div></div>
 
       <div class="glass-card mb-4 d-none d-lg-block"><div class="card-body" id="severity-guide">
-        <h2 class="h6"><%= isIdea ? 'Priority guide' : 'Severity guide' %></h2>
-        <dl class="small mb-0">
-          <% guide.forEach(function (g) { %>
-            <dt><span class="badge <%= g[1] %>"><%= g[2] %></span></dt>
-            <dd class="mb-2"><%= g[3] %></dd>
+        <h2 class="h6" data-mode-text="guideHeading"><%= m.guideHeading %></h2>
+        <dl class="small mb-0" data-mode-guide>
+          <% m.guide.forEach(function (g) { %>
+            <dt><span class="badge <%= g[0] %>"><%= g[1] %></span></dt>
+            <dd class="mb-2"><%= g[2] %></dd>
           <% }) %>
         </dl>
       </div></div>
