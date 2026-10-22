@@ -716,6 +716,13 @@ is made in Stripe by a person. A button here that moved money would make this a 
 system of record, and when two systems of record disagree about a refund the one that is
 wrong is never the payment processor.
 
+**A CSRF refusal with no session cookie is answered and NOT logged** (2026-10-22). Every
+form here is served from a page that issues `saphub.sid`, so a genuine submission — even a
+stale one — carries it; a POST without it is a scanner (`/xmlrpc.php`, `/graphql`, PHPUnit
+`eval-stdin.php`). The production log was 140 of those and nothing else, which is how a real
+form failing for real people gets buried. `isScannerCsrfRefusal` in the error handler decides;
+a refusal from a browser that HAS a session is still recorded.
+
 **The error purge validates its window against a fixed set.** `INTERVAL ? DAY` with a zero
 deletes everything, and it is the one action on the admin surface that cannot be undone.
 

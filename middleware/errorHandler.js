@@ -19,6 +19,21 @@ function notFound(req, res) {
  * gives a CSRF rejection its own message so the person is told to reload rather than
  * shown a generic failure they cannot act on.
  */
+/**
+ * A CSRF refusal from something that never had a session here is not an error — it is the
+ * defence working. Every form on this site is served from a page that issues the session
+ * cookie (the token lives in the session), so a genuine submission, even a stale one,
+ * always carries it. A POST with no session cookie at all is a scanner trying
+ * /xmlrpc.php, /graphql or a PHPUnit exploit, and the production log was 140 of those and
+ * nothing else — enough to bury the one refusal that matters, a real form failing for real
+ * people, which is how the multipart upload bug hid. Those still get the 403; they are
+ * just not written down.
+ */
+function isScannerCsrfRefusal(err, req) {
+  if (!err || err.code !== 'EBADCSRFTOKEN') return false;
+  return !/(?:^|;\s*)saphub\.sid=/.test(req.get('cookie') || '');
+}
+
 function errorHandler(err, req, res, next) {
   const status = err.status || err.statusCode || 500;
 
@@ -42,7 +57,7 @@ function errorHandler(err, req, res, next) {
     return next(err);
   }
   // Fire and forget: persisting the log must not delay or break the response.
-  ErrorLog.record(err, req, status);
+  if (!isScannerCsrfRefusal(err, req)) ErrorLog.record(err, req, status);
 
   if (err.code === 'EBADCSRFTOKEN') {
     if (!isNavigation(req)) {
@@ -71,4 +86,9 @@ function asyncHandler(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-module.exports = { notFound, errorHandler, asyncHandler };
+module.exports = {
+  isScannerCsrfRefusal,
+  notFound,
+  errorHandler,
+  asyncHandler
+};
