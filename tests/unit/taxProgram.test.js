@@ -69,7 +69,8 @@ describe('config/taxProgram estimate()', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     [view, config].forEach((text) => {
       expect(text).not.toMatch(/dozens of SAP consultants/i);
-      expect(text).not.toMatch(/€20K\+|€20,000-€30,000/);
+      // The hero's €20,000-€30,000/year is the owner's decision (config/taxProgram.js).
+      expect(text).not.toMatch(/€20K\+/);
     });
   });
 

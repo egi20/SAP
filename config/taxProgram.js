@@ -28,9 +28,10 @@ const { LEGAL_ENTITY } = require('./legalEntity');
 
 /*
  * 2026-10-22: the claims copied from dynamicshub.net that are only true of Dynamics Hub
- * came out — "€20K+ average annual savings", "€20,000-€30,000/year" and "dozens of SAP
- * consultants already using this structure" are that site's figures, and SAP Hub has no
- * clients of its own on this programme yet. What stays is what the programme itself
+ * came out — "€20K+ average annual savings" and "dozens of SAP consultants already using
+ * this structure" are that site's figures, and SAP Hub has no clients of its own on this
+ * programme yet. The hero's "€20,000-€30,000/year" went with them and came BACK the same
+ * day by the owner's decision, having seen the page both ways: it is `heroLead` below. What stays is what the programme itself
  * promises (no setup fees, the treaties, the onboarding time), and the entity is named as
  * what it is: SAP Hub is operated by the legal entity in config/legalEntity.js. Put a
  * figure back only when SAP Hub's own clients produce it.
@@ -38,6 +39,7 @@ const { LEGAL_ENTITY } = require('./legalEntity');
 const TAX_PROGRAM = Object.freeze({
   entityName: 'SAP Hub',
   operatorName: LEGAL_ENTITY.name,
+  heroLead: 'Keep your clients. Keep your location. Increase your take-home pay by €20,000-€30,000/year by moving your employment to our Albania entity.',
   stats: Object.freeze([
     Object.freeze({ value: '€0', label: 'Setup Fees' }),
     Object.freeze({ value: '40+', label: 'Tax Treaties' }),
