@@ -41,6 +41,8 @@ const {
   APPLY_OPTIONS: TAX_APPLY_OPTIONS, FAQ: TAX_FAQ, COST_EXAMPLES: TAX_COST_EXAMPLES, costFor: taxCostFor
 } = require('../config/taxProgram');
 
+const sapNews = require('../services/sapNews');
+
 const router = express.Router();
 
 /**
@@ -98,6 +100,8 @@ router.get(
       jobKind: JOB_KIND,
       postKind,
       toPlainText,
+      // The day's SAP news leads the first page only; never awaited — see services/sapNews.js.
+      news: page === 1 ? sapNews.newsOfTheDay() : null,
       pagination: paginationMeta({ page, perPage, total: feed.total }),
       pageUrl: (p) => pageUrl('/', req.query, p)
     });

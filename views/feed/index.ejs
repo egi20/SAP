@@ -38,6 +38,7 @@
 
     <div class="row g-4">
       <div class="col-lg-8">
+        <% if (news) { %><%- include('../partials/sap-news', { news: news }) %><% } %>
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
           <%- include('../partials/kind-filters', { filterBase: '/', includeJobs: true }) %>
           <a class="btn btn-navy btn-sm mb-3" href="/community">

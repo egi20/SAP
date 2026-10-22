@@ -101,6 +101,28 @@ class Game {
     );
     return rows.map((r) => ({ ...r, score: Number(r.score), total: Number(r.total), games: Number(r.games) }));
   }
+
+  /**
+   * "Today's Rankings" on /games/challenges, as on dynamicshub.net: the daily challenge AND
+   * every scored game, summed per person. Two tables, one board — the challenge is a game
+   * like the others to somebody reading the page, and a board that left it out would rank
+   * a person who played only the challenge below somebody who played nothing.
+   */
+  static async todaysRankings(date, { limit = 10 } = {}) {
+    const [rows] = await promisePool.query(
+      `SELECT ${DISPLAY_NAME_SQL} AS name, SUM(a.score) AS score, SUM(a.total) AS total, COUNT(*) AS games
+         FROM (SELECT user_id, score, total, created_at FROM game_attempts WHERE game_date = ?
+               UNION ALL
+               SELECT user_id, score, total, created_at FROM challenge_attempts WHERE challenge_date = ?) a
+         JOIN users u ON u.id = a.user_id
+        WHERE u.is_active = 1
+        GROUP BY u.id, u.name
+        ORDER BY score DESC, MIN(a.created_at) ASC
+        LIMIT ?`,
+      [date, date, limit]
+    );
+    return rows.map((r) => ({ ...r, score: Number(r.score), total: Number(r.total), games: Number(r.games) }));
+  }
 }
 
 module.exports = Game;

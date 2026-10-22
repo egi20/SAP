@@ -6,7 +6,8 @@
  *
  *   - word search: tap the first and last letter of a word to copy it into the selected
  *     clue (it never knows whether the word is right — the grid has no answers in it);
- *   - typing practice: a timer and a speed, computed here and never sent anywhere.
+ *   - typing practice: a timer and a speed, computed here and never sent anywhere;
+ *   - multiple choice: one question at a time, with a progress bar.
  */
 (function () {
   'use strict';
@@ -62,6 +63,57 @@
       var next = inputs.filter(function (i) { return !i.value; })[0];
       if (next) { active = next; next.focus(); }
     });
+  }
+
+  /* ---------------------------------------------------------------- multiple choice, one at a time */
+  /*
+   * The questions are all in the page and all in the form; this only shows one at a time,
+   * moves on when an answer is picked, and keeps the submit button for the end. It never
+   * knows which answer is right — the server marks the form exactly as it would without it.
+   */
+  var steps = Array.prototype.slice.call(doc.querySelectorAll('[data-mcq-step]'));
+  if (steps.length > 1) {
+    var form = steps[0].closest('form');
+    var nav = form.querySelector('[data-stepper-nav]');
+    var buttons = form.querySelector('[data-stepper-buttons]');
+    var back = form.querySelector('[data-stepper-back]');
+    var next = form.querySelector('[data-stepper-next]');
+    var submit = form.querySelector('[data-stepper-submit]');
+    var count = form.querySelector('[data-stepper-count]');
+    var bar = form.querySelector('[data-stepper-bar]');
+    var current = 0;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    form.classList.add('quiz-stepper');
+    nav.hidden = false;
+    buttons.hidden = false;
+
+    var answered = function (step) { return Boolean(step.querySelector('input:checked')); };
+
+    var show = function (n) {
+      current = Math.max(0, Math.min(n, steps.length - 1));
+      steps.forEach(function (step, i) {
+        step.hidden = i !== current;
+        step.classList.toggle('quiz-step-in', i === current && !reduced);
+      });
+      var done = steps.filter(answered).length;
+      count.textContent = 'Question ' + (current + 1) + ' of ' + steps.length;
+      bar.style.width = Math.round((done / steps.length) * 100) + '%';
+      back.disabled = current === 0;
+      var last = current === steps.length - 1;
+      next.hidden = last;
+      next.disabled = !answered(steps[current]);
+      submit.hidden = !(last && done === steps.length);
+    };
+
+    form.addEventListener('change', function (event) {
+      if (event.target.type !== 'radio') return;
+      show(current);
+      if (current < steps.length - 1) window.setTimeout(function () { show(current + 1); }, reduced ? 0 : 350);
+    });
+    back.addEventListener('click', function () { show(current - 1); });
+    next.addEventListener('click', function () { show(current + 1); });
+    show(0);
   }
 
   /* ---------------------------------------------------------------- typing practice */

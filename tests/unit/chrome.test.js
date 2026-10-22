@@ -148,13 +148,13 @@ describe('Home is the community, so there is no Community tab', () => {
     expect(nav).toContain('href="/payments/history"');
   });
 
-  it('gives the daily challenge a home in the menus', () => {
-    // The account menu carries "Challenges" for the signed-in; for everybody the public
-    // Services menu opens SAP Games, whose hub leads with the daily challenge. The footer
-    // link went on 2026-10-22, when the owner trimmed the footer to dynamicshub.net's.
+  it('gives every game ONE home, where dynamicshub.net puts it', () => {
+    // 2026-10-22: one "Challenges" entry in the account menu, opening /games/challenges,
+    // whose first card is the daily quiz. No second front door in Services.
     const userMenu = nav.slice(nav.indexOf('user-menu-dropdown'));
-    expect(userMenu).toContain('href="/challenges"');
-    expect(nav.slice(0, nav.indexOf('user-menu-dropdown'))).toContain('href="/games"');
+    expect(userMenu).toContain('href="/games/challenges"');
+    expect((nav.match(/href="\/games/g) || []).length).toBe(1);
+    expect(nav).not.toContain('href="/challenges"');
     expect(source('views/games/index.ejs')).toContain('href="/challenges"');
   });
 });

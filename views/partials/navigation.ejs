@@ -56,7 +56,7 @@
          * statement of work ("SOW Generator"), and the reference lists it twice for the
          * same reason.
          */
-        const isServicesArea = startsWith('/rates') || startsWith('/games') || path === '/tax' || path === '/dedupe'
+        const isServicesArea = startsWith('/rates') || path === '/tax' || path === '/dedupe'
           || path === '/quotes/new';
       %>
 
@@ -115,7 +115,6 @@
             <li><a class="dropdown-item" href="/quotes/new"><i class="bi bi-file-earmark-richtext me-2"></i>SOW Generator</a></li>
             <li><a class="dropdown-item" href="/cv-generator"><i class="bi bi-magic me-2"></i>Document Generator</a></li>
             <li><a class="<%= itemClass('/dedupe') %>" <%- itemCurrent('/dedupe') %> href="/dedupe"><i class="bi bi-layers me-2"></i>Dedupe</a></li>
-            <li><a class="<%= itemClass('/games') %>" <%- itemCurrent('/games') %> href="/games"><i class="bi bi-controller me-2"></i>SAP Games</a></li>
           </ul>
         </li>
 
@@ -246,8 +245,8 @@
                 <li><a class="<%= itemClass('/dashboard/applications') %>" href="/dashboard/applications"><i class="bi bi-file-earmark-text me-2"></i>My Applications</a></li>
                 <li><a class="<%= itemClass('/profile/documents') %>" href="/profile/documents"><i class="bi bi-folder me-2"></i>Documents</a></li>
                 <li><a class="<%= itemClass('/dashboard/saved') %>" href="/dashboard/saved"><i class="bi bi-bookmark-heart me-2"></i>Saved Jobs</a></li>
-                <li><a class="<%= itemClass('/challenges') %>" href="/challenges"><i class="bi bi-trophy me-2"></i>Challenges</a></li>
-                <li><a class="<%= itemClass('/games') %>" href="/games"><i class="bi bi-controller me-2"></i>SAP Games</a></li>
+                <%# ONE entry for every game, at the reference's address and in the reference's place (2026-10-22). %>
+                <li><a class="<%= itemClass('/games') %>" href="/games/challenges"><i class="bi bi-trophy me-2"></i>Challenges</a></li>
                 <% if (!currentUser.isCompany) { %>
                   <li><a class="<%= itemClass('/community/new') %>" href="/community/new"><i class="bi bi-pencil me-2"></i>Write a post</a></li>
                 <% } %>

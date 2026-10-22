@@ -86,12 +86,48 @@ maybe()('a scored game', () => {
   });
 });
 
+maybe()('a topic challenge', () => {
+  it('is graded on the server, pays, names its sources after grading, offers a LinkedIn share and lands on Today\'s Rankings', async () => {
+    const agent = await signIn();
+    const page = await agent.get('/games/sapphire');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('data-mcq-step');
+    const set = games.dailySetFor('sapphire', games.serverDate());
+    set.items.forEach((item) => expect(page.text).not.toContain(item.source));
+
+    const body = { _csrf: page.text.match(CSRF)[1] };
+    set.items.forEach((item) => { body[`answers[${item.id}]`] = String(item.answer); });
+    const res = await agent.post('/games/sapphire').type('form').send(body);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(`${set.items.length} / ${set.items.length}`);
+    expect(res.text).toContain(set.items[0].source);
+    expect(res.text).toContain('https://www.linkedin.com/feed/?shareActive=true&amp;text=');
+    // The shared text carries the score and a link, never an answer.
+    const shared = decodeURIComponent(res.text.match(/shareActive=true&amp;text=([^"]+)"/)[1]);
+    expect(shared).toContain(`${set.items.length}/${set.items.length}`);
+    expect(shared).toContain('/games/challenges');
+    set.items.forEach((item) => expect(shared).not.toContain(item.options[item.answer]));
+
+    const [[paid]] = await promisePool.query("SELECT COALESCE(SUM(points), 0) AS p FROM points_ledger WHERE user_id = ? AND dedupe_key LIKE 'game:sapphire:%'", [playerId]);
+    expect(Number(paid.p)).toBe(2);
+
+    const hub = await agent.get('/games/challenges');
+    expect(hub.text).toContain('Topic challenges');
+    expect(hub.text).toContain('Games Player');
+  });
+});
+
 maybe()('practice games and the hub', () => {
   it('opens flashcards and typing for anybody, and the hub lists every game', async () => {
     expect((await request(app).get('/games/flashcards')).status).toBe(200);
     expect((await request(app).get('/games/typing')).status).toBe(200);
-    const hub = await request(app).get('/games');
+    const old = await request(app).get('/games');
+    expect(old.status).toBe(301);
+    expect(old.headers.location).toBe('/games/challenges');
+    const hub = await request(app).get('/games/challenges');
     expect(hub.status).toBe(200);
+    expect(hub.text).toContain('href="/challenges"');
+    expect(hub.text).toContain("Today's Rankings");
     games.GAMES.forEach((g) => expect(hub.text).toContain(`/games/${g.key}`));
   });
 

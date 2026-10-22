@@ -42,6 +42,7 @@ const { assertCountriesIntegrity } = require('./config/countries');
 const webAnalytics = require('./config/webAnalytics');
 const { assertDashboardIntegrity } = require('./config/dashboard');
 const onboarding = require('./config/onboarding');
+const { assertSapNewsIntegrity } = require('./config/sapNews');
 const { optionLabel } = require('./utils/optionLabel');
 const { deploymentShort } = require('./config/sapDeployments');
 const { pendingMigrations } = require('./scripts/migrate');
@@ -150,6 +151,8 @@ webAnalytics.assertWebAnalyticsIntegrity();
 assertDashboardIntegrity();
 // And the welcome tour's steps, for the same reason: it is the first thing a new member clicks.
 onboarding.assertOnboardingIntegrity();
+// And the SAP news fallback: shown when the newsroom feed has never been read, so it must link to SAP.
+assertSapNewsIntegrity();
 const WEB_ANALYTICS_CSP = webAnalytics.cspAdditions();
 const WEB_ANALYTICS_TAGS = webAnalytics.publicTags();
 
@@ -538,6 +541,8 @@ if (require.main === module) {
   checkSchemaIsCurrent().then(() => {
   const server = app.listen(config.app.port, () => {
     console.log(`${config.app.name} listening on port ${config.app.port} (${config.env})`);
+    // Read SAP's newsroom once now, so the first visitor sees today's news rather than the archive.
+    require('./services/sapNews').refresh().catch(() => {});
   });
 
   const shutdown = (signal) => {

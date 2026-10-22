@@ -1127,6 +1127,20 @@ a tool, so it joined Services. `/community` keeps its categories, its author pic
 sort — which the feed has none of — so it is one click from the feed's own heading and
 from the footer, reachable without being a second front door competing with the first.
 
+**"SAP news of the day" leads the first page of the feed** (owner, 2026-10-22). It is READ
+from SAP's newsroom feed (`services/sapNews.js`, `SAP_NEWS_FEED_URL`, default
+`https://news.sap.com/feed/`), never written here: a news card the Hub typed would be a second
+newsroom nobody owns. Rules: the page never waits on SAP — a render reads the cache, and a stale
+or empty cache starts a background refresh (also once at boot, never in tests); a failed refresh
+keeps the last good copy; only a process that has never read the feed shows `config/sapNews.js`'s
+short, sourced, asserted archive, and the card then says "From our SAP news archive", never
+"today". Links are host-pinned to sap.com over https (an item pointing elsewhere is dropped);
+tags are stripped and entities decoded in the service and the template escapes the rest, so no
+HTML from somebody else's feed reaches the front page. One pick a day, rotating through the ten
+newest by the server's UTC date, so everybody sees the same one; the others are a carousel
+(`public/js/news.js`, a list of links without scripting), each with its source, "Read more" and a
+plain LinkedIn share link. A refresh failure is one `SAP news:` line in the log.
+
 **`services/feed.js` adds no filter of its own, for the same reason `services/search.js`
 does not.** Both sources go through the same `browse` their own list pages call, so a draft
 advert and a hidden post are invisible on the front page without anything in the feed
@@ -1622,6 +1636,36 @@ written into three of four write paths is a gate that is off.
 **A question's `topic` is a community category slug**, product line or cross-cutting, and
 the boot assertion checks it. A topic nothing else on the site knows is a dead end for
 somebody told to go and read about it.
+
+**Every game lives on ONE page, `/games/challenges`, as on dynamicshub.net (owner, 2026-10-22).**
+The daily challenge is its first card ("SAP Quiz", still played at `/challenges`), the streak
+second, then the games in the reference's order (`HUB_ORDER` in `routes/games.js`; a game
+missing from it is appended, never dropped), then Today's Rankings — `Game.todaysRankings`,
+the challenge AND every scored game summed per person, because a board that left the quiz out
+ranks somebody who played only the quiz below somebody who played nothing. `/games` is a 301
+to it. The menu carries ONE entry, "Challenges" in the account menu, where the reference puts
+it; "SAP Games" left Services and the second account-menu entry went. Unlike the reference the
+page is public: two games are practice, and a scored card says it needs an account rather than
+hiding. Each card has its own colour (`.arena-tone-N`, light accent + a dark shade that carries
+white text), carried onto the game's page as a band; the floating codes in the header are
+derived from `config/sapProducts.js` labels, never typed; every animation stops under
+`prefers-reduced-motion`.
+
+**Four topic challenges joined on 2026-10-22: SAP Fiori, SAP HANA, SAP Sapphire, SAP & AI
+agents** (owner's request; migration 037 widens the `game` ENUM). A topic is a BANK, not a
+mechanism — `TOPIC_BANKS` in `config/games.js` runs them through `mcqSet`/`grade` exactly as
+the scenarios, so they are server-graded, once a day, paid through `game_completed`, and on
+Today's Rankings with nothing new to trust. **Sapphire is news, and news is what a model or a
+memory gets wrong with confidence**: every Sapphire item carries `source` (asserted at boot as
+https), stripped from the public form with the answer — a source named before answering gives
+it away — and printed after grading. Facts outlets reported differently (how many agents, a
+version number) are not asked. A new Sapphire is new items with `since` and old ones
+`retired`, never an edit. Multiple-choice games are stepped one question at a time by
+`public/js/games.js` (progress bar, auto-advance, submit at the end); without scripting every
+question shows. A graded result offers "Share on LinkedIn" — a PLAIN link to
+`linkedin.com/feed/?shareActive=true&text=` with the score and `/games/challenges`, never an
+answer, and no LinkedIn script on the page (no third party loads here; a test decodes the text
+and checks no correct option is in it).
 
 **The other games arrived on 2026-10-21, WITHOUT the reference's shape** (owner's request;
 until then this paragraph said "one game, not nine" and why). `config/games.js`,

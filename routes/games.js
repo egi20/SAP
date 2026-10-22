@@ -9,6 +9,7 @@ const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { communityWritable } = require('../middleware/settingsGates');
 const games = require('../config/games');
+const { QUESTIONS_PER_DAY } = require('../config/challenges');
 
 const router = express.Router();
 
@@ -37,24 +38,76 @@ function scoredNeedsAccount(req, res, next) {
   return isAuthenticated(req, res, (err) => (err ? next(err) : isEmailVerified(req, res, next)));
 }
 
-/** GET /games — the hub: every game, what you played today, and today's combined board. */
+/*
+ * ONE page for every game, at the address dynamicshub.net uses: /games/challenges (owner,
+ * 2026-10-22). The daily challenge is its first card, as the reference's quiz is, and the
+ * menu carries one "Challenges" entry pointing here instead of a "Challenges" and an "SAP
+ * Games" that were two front doors to the same thing.
+ *
+ * Unlike the reference it is open to a signed-out visitor: two of the games are practice
+ * and need no account, and a scored card says it needs one rather than hiding.
+ *
+ * The cards follow the reference's order; a game missing from HUB_ORDER still appears, at
+ * the end, so a game added to the catalogue is never left off the page.
+ */
+const HUB_ORDER = ['match', 'flashcards', 'codequiz', 'bughunter', 'typing', 'wordsearch', 'scenario'];
+/* Each topic challenge has its own colour; the daily games take theirs by position. */
+const TOPIC_TONES = Object.freeze({ fiori: 10, hana: 11, sapphire: 12, aiagents: 13 });
+const hubOrdered = () => [...games.GAMES].sort((a, b) => {
+  const ia = HUB_ORDER.indexOf(a.key);
+  const ib = HUB_ORDER.indexOf(b.key);
+  return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+});
+
+function toneFor(game) {
+  if (TOPIC_TONES[game.key]) return TOPIC_TONES[game.key];
+  return (hubOrdered().filter((g) => !g.topic).findIndex((g) => g.key === game.key) % 7) + 3;
+}
+
+/*
+ * The floating tags across the top are the module codes from config/sapProducts.js — the
+ * same vocabulary the filters and the estimator use, never a list typed into the view.
+ */
+const MODULE_CODES = (() => {
+  const codes = [];
+  require('../config/sapProducts').ALL_MODULES.forEach((m) => {
+    const code = (String(m.label).match(/\(([A-Z][A-Z0-9/ -]{1,12})\)\s*$/) || [])[1];
+    // Short codes only: "RAR / IFRS 15" is a label, not a tag.
+    if (code && /^[A-Z]{2,5}(-[A-Z]{2,4})?$/.test(code) && !codes.includes(code)) codes.push(code);
+  });
+  return codes.slice(0, 18);
+})();
+
+router.get('/', (req, res) => res.redirect(301, '/games/challenges'));
+
 router.get(
-  '/',
+  '/challenges',
   asyncHandler(async (req, res) => {
     const date = games.serverDate();
     const user = req.session.user;
-    const [played, board, challengeToday] = await Promise.all([
+    const [played, rankings, challengeToday, streak] = await Promise.all([
       user ? Game.playedOn(user.id, date) : {},
-      Game.combinedBoard(date),
-      user ? Challenge.attemptFor(user.id, date) : null
+      Game.todaysRankings(date),
+      user ? Challenge.attemptFor(user.id, date) : null,
+      user ? Challenge.streakFor(user.id, { today: date }) : null
     ]);
+    const gamesList = hubOrdered();
+    const scoredCount = gamesList.filter((g) => g.scored).length + 1; // + the daily challenge
+    const playedCount = Object.keys(played).filter((k) => games.gameOf(k) && games.gameOf(k).scored).length + (challengeToday ? 1 : 0);
     res.render('games/index', {
-      title: 'SAP games',
+      title: 'Daily Challenges',
       date,
-      gamesList: games.GAMES,
+      gamesList: gamesList.filter((g) => !g.topic),
+      topicGames: gamesList.filter((g) => g.topic),
+      toneFor,
       played,
-      board,
-      challengeToday
+      rankings,
+      challengeToday,
+      streak,
+      scoredCount,
+      playedCount,
+      moduleCodes: MODULE_CODES,
+      challengeQuestions: QUESTIONS_PER_DAY
     });
   })
 );
@@ -83,7 +136,9 @@ async function renderGame(req, res, { results = null, status = 200 } = {}) {
     results: graded,
     // Before the day is closed, only the public form. Practice sets are their own public form.
     set: graded ? null : games.publicFormOf(game.key, set),
-    gridSize: games.GRID_SIZE
+    gridSize: games.GRID_SIZE,
+    // The card's colour on /games/challenges, carried onto the game's own page.
+    tone: toneFor(game)
   });
 }
 

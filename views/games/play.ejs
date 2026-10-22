@@ -5,6 +5,7 @@
   heading: game.title,
   sub: game.blurb
 }) %>
+<div class="arena-band arena-tone-<%= tone %>" aria-hidden="true"></div>
 
 <%#
   One template for every game, branching on the key. Before an attempt is closed it is
@@ -15,7 +16,7 @@
 <section class="glass-section pb-5">
 <div class="container">
   <%- include('../partials/flash') %>
-  <p class="small mb-3"><a href="/games"><i class="bi bi-arrow-left"></i> All SAP games</a></p>
+  <p class="small mb-3"><a href="/games/challenges"><i class="bi bi-arrow-left"></i> All challenges</a></p>
 
   <div class="row g-4">
     <div class="<%= game.scored ? 'col-lg-8' : 'col-lg-10' %>">
@@ -28,6 +29,13 @@
           <% } else { %>No points this time — the answers below are the useful half.<% } %>
           A new set arrives tomorrow.
         </p>
+        <%
+          // A plain link: no LinkedIn script on the page (no third party loads here). The text
+          // carries the score and a link to the challenges — never an answer.
+          const shareText = 'I scored ' + results.score + '/' + results.total + ' on today\'s ' + game.title +
+            ' challenge on SAP Hub. Can you beat it? ' + appBaseUrl + '/games/challenges #SAP #SAPHub';
+        %>
+        <a class="share-linkedin mt-3" href="https://www.linkedin.com/feed/?shareActive=true&amp;text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener"><i class="bi bi-linkedin" aria-hidden="true"></i>Share on LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a>
       </div></div>
 
       <% results.results.forEach(function (r, i) { %>
@@ -66,6 +74,7 @@
                 <% if (r.chosen === null) { %><li class="text-muted-2">You did not answer this one.</li><% } %>
               </ul>
               <p class="small text-muted-2 mb-0"><%= r.explain %></p>
+              <% if (r.source) { %><p class="small mb-0 mt-1"><a href="<%= r.source %>" target="_blank" rel="noopener nofollow"><i class="bi bi-link-45deg" aria-hidden="true"></i> Source</a></p><% } %>
             <% } %>
             </div>
           </div>
@@ -94,7 +103,7 @@
       <p class="small text-muted-2 mt-3 mb-0">Your speed is shown here and nowhere else — it is not sent, stored or ranked.</p>
 
     <% } else { %>
-      <form method="post" action="/games/<%= game.key %>" data-game-form="<%= game.key %>">
+      <form method="post" action="/games/<%= game.key %>" data-game-form="<%= game.key %>" class="arena-tone-<%= tone %>">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
         <% if (game.key === 'match') { %>
@@ -145,8 +154,13 @@
           <% }); %>
 
         <% } else { %>
+          <%# Multiple choice: shown one question at a time by games.js; all at once without scripting. %>
+          <div class="quiz-stepper-nav mb-3" data-stepper-nav hidden>
+            <div class="d-flex justify-content-between small mb-1"><span data-stepper-count></span><span class="text-muted-2">Choose an answer to move on</span></div>
+            <div class="quiz-progress-bar"><span data-stepper-bar></span></div>
+          </div>
           <% set.items.forEach(function (item, i) { %>
-            <div class="glass-card mb-3"><div class="card-body p-4">
+            <div class="glass-card mb-3" data-mcq-step><div class="card-body p-4">
               <fieldset>
                 <legend class="h6 mb-2"><%= i + 1 %>. <%= item.prompt %></legend>
                 <% if (item.code) { %><pre class="game-code mb-3"><%= item.code.join('\n') %></pre><% } %>
@@ -161,7 +175,11 @@
           <% }); %>
         <% } %>
 
-        <button class="btn btn-primary btn-lg w-100 mt-3" type="submit">Submit my answers</button>
+        <div class="d-flex gap-2 mt-3" data-stepper-buttons hidden>
+          <button class="btn btn-outline-secondary" type="button" data-stepper-back>Back</button>
+          <button class="btn btn-primary ms-auto" type="button" data-stepper-next disabled>Next</button>
+        </div>
+        <button class="btn btn-primary btn-lg w-100 mt-3" type="submit" data-stepper-submit>Submit my answers</button>
         <p class="small text-muted-2 text-center mt-3 mb-0">One attempt a day. This page does not know the answers — they are marked on the server.</p>
       </form>
     <% } %>
