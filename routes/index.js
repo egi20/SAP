@@ -461,7 +461,7 @@ router.get('/legal/terms', (req, res) => {
  * that opens every path the assistant may name.
  */
 router.get('/contact', (req, res) => {
-  res.render('legal/contact', { title: 'Contact us', values: {}, errors: [] });
+  res.render('legal/contact', { title: 'Contact', values: {}, errors: [] });
 });
 
 /*
@@ -539,7 +539,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(422).render('legal/contact', {
-        title: 'Contact us',
+        title: 'Contact',
         values: req.body,
         errors: errors.array()
       });

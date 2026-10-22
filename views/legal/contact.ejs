@@ -1,72 +1,133 @@
 <%- include('../partials/layout-start') %>
 <%- include('../partials/page-header', {
   icon: 'bi-envelope',
-  heading: 'Contact us',
-  sub: 'A person reads these.'
+  label: 'Contact',
+  heading: 'Get in Touch',
+  sub: 'Have a question? A real person reads every message.'
 }) %>
+<%
+  /*
+   * Laid out like dynamicshub.net/contact: the form first, on the left, so nobody scrolls
+   * past two boxes to reach it, and the ways to reach us on the right. The address is the
+   * operator's registered one from config/legalEntity.js (LEGAL_ADDRESS), printed only
+   * when it is set — an address typed into this page would be a second copy of a fact the
+   * Terms of Service already state. The social card reads the same list as the footer and
+   * the rail, minus the email that has its own card, and renders only when an account is
+   * configured.
+   */
+  const followLinks = socialLinks.filter(function (l) { return l.key !== 'email'; });
+%>
 <section class="glass-section pb-5">
 <div class="container">
-  <div class="row justify-content-center"><div class="col-lg-8">
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5">Email</h2>
-      <p class="mb-3">
-        <a class="fs-5" href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
-      </p>
-      <%#
-        There is a form below now. It shipped as an address alone until all three of the
-        things that note demanded existed: somewhere to put what it collects (migration
-        018), a spam defence (a rate limit, a honeypot and a length floor) and somebody
-        watching a queue (/admin/enquiries). The address stays, because somebody writing
-        from their own client has a copy of what they sent and a form gives them nothing.
-      %>
-      <p class="text-muted-2 mb-0">
-        We answer during UK working hours. Please include your account email if your
-        question is about something on your account — we cannot look anybody up from a
-        name alone.
-      </p>
-    </div></div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h5">Send us a message</h2>
+        <% if (errors.length) { %>
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+            </ul>
+          </div>
+        <% } %>
+        <%#
+          The form shipped as an address alone until all three of the things a form needs
+          existed: somewhere to put what it collects (migration 018), a spam defence (a rate
+          limit, a honeypot and a length floor) and somebody watching a queue
+          (/admin/enquiries). The address stays beside it, because somebody writing from
+          their own client has a copy of what they sent and a form gives them nothing.
+        -%>
+        <form method="post" action="/contact">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <%- include('../partials/enquiry-fields', { values }) %>
+          <button class="btn btn-primary mt-3" type="submit">Send message</button>
+        </form>
+      </div></div>
+    </div>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5">What to tell us</h2>
-      <ul class="mb-0">
-        <li><strong>A payment or an invoice</strong> — the payment reference from
-            <a href="/payments/history">your payments page</a>. It starts with <code>PAY-</code>.</li>
-        <li><strong>A quote</strong> — the quote reference, which starts with <code>Q-</code>.</li>
-        <li><strong>A job or an application</strong> — the link to the advert.</li>
-        <li><strong>Something that looks wrong on the site</strong> — the page you were on and
-            what you expected to happen.</li>
-        <li><strong>Your data, or closing your account</strong> — say so plainly and we will
-            handle it under the <a href="/legal/privacy">privacy policy</a>.</li>
-      </ul>
-    </div></div>
+    <aside class="col-lg-5">
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h5">Contact information</h2>
+        <ul class="list-unstyled mb-0 contact-info">
+          <li class="d-flex gap-3 mb-3">
+            <span class="icon-tile icon-navyblue flex-shrink-0"><i class="bi bi-envelope" aria-hidden="true"></i></span>
+            <div>
+              <div class="small text-muted-2">Email</div>
+              <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>
+            </div>
+          </li>
+          <% if (legalEntity.address) { %>
+            <li class="d-flex gap-3 mb-3">
+              <span class="icon-tile icon-navyblue flex-shrink-0"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+              <div>
+                <div class="small text-muted-2">Address</div>
+                <address class="mb-0"><%= legalEntity.name %>, <%= legalEntity.address %></address>
+              </div>
+            </li>
+          <% } %>
+          <li class="d-flex gap-3">
+            <span class="icon-tile icon-navyblue flex-shrink-0"><i class="bi bi-clock" aria-hidden="true"></i></span>
+            <div>
+              <div class="small text-muted-2">When we answer</div>
+              During UK working hours. If it is about your account, write from the address the
+              account uses — we cannot look anybody up from a name alone.
+            </div>
+          </li>
+        </ul>
+      </div></div>
 
-    <div class="glass-card mb-4"><div class="card-body">
-      <h2 class="h5">Or write here</h2>
-      <% if (errors.length) { %>
-        <div class="alert alert-danger">
-          <ul class="mb-0">
-            <% errors.forEach(function (e) { %><li><%= e.msg %></li><% }) %>
+      <% if (followLinks.length) { %>
+        <div class="glass-card mb-4"><div class="card-body">
+          <h2 class="h5">Follow us</h2>
+          <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+            <% followLinks.forEach(function (link) { %>
+              <li>
+                <a class="btn btn-outline-primary btn-sm" href="<%= link.href %>" target="_blank" rel="noopener noreferrer">
+                  <i class="bi <%= link.icon %> me-1" aria-hidden="true"></i><%= link.label %>
+                </a>
+              </li>
+            <% }) %>
           </ul>
-        </div>
+        </div></div>
       <% } %>
-      <form method="post" action="/contact">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <%- include('../partials/enquiry-fields', { values }) %>
-        <button class="btn btn-primary mt-3" type="submit">Send message</button>
-      </form>
-    </div></div>
 
-    <div class="glass-card"><div class="card-body">
-      <h2 class="h5">Before you write</h2>
-      <p class="mb-0 text-muted-2">
-        Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
-        built is explained on <a href="/rates">the index itself</a>, and what the estimator
-        does with your inputs is on <a href="/quotes/new">the estimator</a>.<% if (assistantReady) { %>
-        The assistant in the corner of the page answers questions about how the Hub works —
-        though it cannot see your account, so anything account-specific still comes here.<% } %>
-      </p>
+      <div class="glass-card mb-4"><div class="card-body">
+        <h2 class="h5">What to tell us</h2>
+        <ul class="mb-0 small">
+          <li><strong>A payment or an invoice</strong> — the payment reference from
+              <a href="/payments/history">your payments page</a>. It starts with <code>PAY-</code>.</li>
+          <li><strong>A quote</strong> — the quote reference, which starts with <code>Q-</code>.</li>
+          <li><strong>A job or an application</strong> — the link to the advert.</li>
+          <li><strong>Something that looks wrong on the site</strong> — the page you were on and
+              what you expected to happen, or use <a href="/report-issue">Report an Issue</a>.</li>
+          <li><strong>Your data, or closing your account</strong> — say so plainly and we will
+              handle it under the <a href="/legal/privacy">privacy policy</a>.</li>
+        </ul>
+      </div></div>
+
+      <div class="glass-card"><div class="card-body">
+        <h2 class="h5">Before you write</h2>
+        <p class="mb-0 small text-muted-2">
+          Prices are on the <a href="/payments">pricing page</a>, how the day-rate index is
+          built is explained on <a href="/rates">the index itself</a>, and what the estimator
+          does with your inputs is on <a href="/quotes/new">the estimator</a>.<% if (assistantReady) { %>
+          The assistant in the corner of the page answers questions about how the Hub works —
+          though it cannot see your account, so anything account-specific still comes here.<% } %>
+        </p>
+      </div></div>
+    </aside>
+  </div>
+
+  <% if (!currentUser) { %>
+    <%# Signed-out only: a member has an account, and offering them one is noise. -%>
+    <div class="glass-card mt-4"><div class="card-body d-md-flex align-items-center justify-content-between gap-3">
+      <div>
+        <h2 class="h5 mb-1">New to SAP Hub?</h2>
+        <p class="mb-md-0 text-muted-2">Create a free account to find SAP roles, hire consultants and join the community.</p>
+      </div>
+      <a class="btn btn-primary flex-shrink-0" href="/auth/register">Create account</a>
     </div></div>
-  </div></div>
+  <% } %>
 </div>
 </section>
 <%- include('../partials/layout-end') %>

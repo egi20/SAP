@@ -166,6 +166,13 @@ maybe()('POST /contact', () => {
     expect(source).toMatch(/'\/report-issue',\s*\n\s*enquiryLimiter/);
   });
 
+  it('puts the form first, beside the ways to reach us, and offers an account only when signed out', async () => {
+    const res = await request(app).get('/contact');
+    expect(res.text).toContain('Get in Touch');
+    expect(res.text.indexOf('action="/contact"')).toBeLessThan(res.text.indexOf('Contact information'));
+    expect(res.text).toContain('href="/auth/register">Create account');
+  });
+
   it('hides the honeypot from people and from assistive technology', async () => {
     const res = await request(app).get('/contact');
     expect(res.text).toMatch(/aria-hidden="true"[\s\S]{0,200}name="website"/);
