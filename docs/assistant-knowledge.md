@@ -75,7 +75,10 @@ because the stored breakdown is what was said to a client on a date.
 - `/games/challenges` — Daily Challenges: every game on one page. The SAP quiz (five questions a
   day, at `/challenges`), a streak, code match, ABAP output, bug hunter, word search and
   project scenarios are scored — once a day, marked on the server, up to 2 points each —
-  and flashcards and typing are practice. Today's Rankings sums everything played today.
+  and flashcards and typing are practice. Four topic challenges — SAP Fiori, SAP HANA, SAP
+  Sapphire (conference news, each answer with its source) and SAP & AI agents — are scored
+  the same way, five questions a day each. A finished game offers a "Share on LinkedIn" link
+  with the score. Today's Rankings sums everything played today.
   Signed-in members also find it as "Challenges" in their account menu.
 
 ## Paying for things

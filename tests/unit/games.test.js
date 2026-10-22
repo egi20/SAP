@@ -19,11 +19,24 @@ describe('the SAP games catalogue', () => {
     expect(games.assertGamesIntegrity()).toBe(true);
   });
 
-  test('the scored games match the ENUM in migration 033', () => {
-    const sql = fs.readFileSync(path.join(__dirname, '../../scripts/migrations/033_game_attempts.sql'), 'utf8')
-      .replace(/^\s*--.*$/gm, '');
-    const values = sql.match(/game\s+ENUM\(([^)]*)\)/)[1].split(',').map((v) => v.trim().replace(/'/g, ''));
+  test('the scored games match the EFFECTIVE game ENUM, across every migration', () => {
+    // 033 created it, 037 widened it; the last definition wins, as when the runner applies them.
+    const dir = path.join(__dirname, '../../scripts/migrations');
+    let values = null;
+    fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort().forEach((file) => {
+      const sql = fs.readFileSync(path.join(dir, file), 'utf8').replace(/^\s*--.*$/gm, '');
+      const found = sql.match(/\bgame\s+ENUM\(([^)]*)\)/);
+      if (found) values = found[1].split(',').map((v) => v.trim().replace(/'/g, ''));
+    });
     expect(values.slice().sort()).toEqual(games.SCORED_KEYS.slice().sort());
+  });
+
+  test('every Sapphire answer says where it was reported, and only after grading', () => {
+    games.banks.sapphire.forEach((item) => expect(item.source).toMatch(/^https:\/\//));
+    const set = games.dailySetFor('sapphire', DATE);
+    expect(JSON.stringify(games.publicFormOf('sapphire', set))).not.toContain('"source"');
+    const graded = games.grade('sapphire', set, {});
+    graded.results.forEach((r) => expect(r.source).toMatch(/^https:\/\//));
   });
 
   test('a game pays at most what its ledger award declares', () => {
@@ -47,7 +60,7 @@ describe.each(games.SCORED_KEYS)('%s', (key) => {
 
   test('the public form carries no answer, meaning, word or explanation', () => {
     const json = JSON.stringify(games.publicFormOf(key, games.dailySetFor(key, DATE)));
-    expect(json).not.toMatch(/"(answer|explain|meaning|word)"/);
+    expect(json).not.toMatch(/"(answer|explain|meaning|word|source)"/);
   });
 
   test('the correct answers score full marks, garbage scores zero and does not throw', () => {

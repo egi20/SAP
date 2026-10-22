@@ -1621,6 +1621,22 @@ white text), carried onto the game's page as a band; the floating codes in the h
 derived from `config/sapProducts.js` labels, never typed; every animation stops under
 `prefers-reduced-motion`.
 
+**Four topic challenges joined on 2026-10-22: SAP Fiori, SAP HANA, SAP Sapphire, SAP & AI
+agents** (owner's request; migration 037 widens the `game` ENUM). A topic is a BANK, not a
+mechanism — `TOPIC_BANKS` in `config/games.js` runs them through `mcqSet`/`grade` exactly as
+the scenarios, so they are server-graded, once a day, paid through `game_completed`, and on
+Today's Rankings with nothing new to trust. **Sapphire is news, and news is what a model or a
+memory gets wrong with confidence**: every Sapphire item carries `source` (asserted at boot as
+https), stripped from the public form with the answer — a source named before answering gives
+it away — and printed after grading. Facts outlets reported differently (how many agents, a
+version number) are not asked. A new Sapphire is new items with `since` and old ones
+`retired`, never an edit. Multiple-choice games are stepped one question at a time by
+`public/js/games.js` (progress bar, auto-advance, submit at the end); without scripting every
+question shows. A graded result offers "Share on LinkedIn" — a PLAIN link to
+`linkedin.com/feed/?shareActive=true&text=` with the score and `/games/challenges`, never an
+answer, and no LinkedIn script on the page (no third party loads here; a test decodes the text
+and checks no correct option is in it).
+
 **The other games arrived on 2026-10-21, WITHOUT the reference's shape** (owner's request;
 until then this paragraph said "one game, not nine" and why). `config/games.js`,
 `models/Game.js`, `routes/games.js`, migration 033, `/games`. Five are SCORED — code match,

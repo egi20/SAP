@@ -51,11 +51,18 @@ function scoredNeedsAccount(req, res, next) {
  * the end, so a game added to the catalogue is never left off the page.
  */
 const HUB_ORDER = ['match', 'flashcards', 'codequiz', 'bughunter', 'typing', 'wordsearch', 'scenario'];
+/* Each topic challenge has its own colour; the daily games take theirs by position. */
+const TOPIC_TONES = Object.freeze({ fiori: 10, hana: 11, sapphire: 12, aiagents: 13 });
 const hubOrdered = () => [...games.GAMES].sort((a, b) => {
   const ia = HUB_ORDER.indexOf(a.key);
   const ib = HUB_ORDER.indexOf(b.key);
   return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
 });
+
+function toneFor(game) {
+  if (TOPIC_TONES[game.key]) return TOPIC_TONES[game.key];
+  return (hubOrdered().filter((g) => !g.topic).findIndex((g) => g.key === game.key) % 7) + 3;
+}
 
 /*
  * The floating tags across the top are the module codes from config/sapProducts.js — the
@@ -90,7 +97,9 @@ router.get(
     res.render('games/index', {
       title: 'Daily Challenges',
       date,
-      gamesList,
+      gamesList: gamesList.filter((g) => !g.topic),
+      topicGames: gamesList.filter((g) => g.topic),
+      toneFor,
       played,
       rankings,
       challengeToday,
@@ -129,7 +138,7 @@ async function renderGame(req, res, { results = null, status = 200 } = {}) {
     set: graded ? null : games.publicFormOf(game.key, set),
     gridSize: games.GRID_SIZE,
     // The card's colour on /games/challenges, carried onto the game's own page.
-    tone: (hubOrdered().findIndex((g) => g.key === game.key) % 7) + 3
+    tone: toneFor(game)
   });
 }
 
