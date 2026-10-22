@@ -8,7 +8,8 @@ const { requireIdParam } = require('../utils/ids');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { screenshots, SCREENSHOT_MAX_FILES, SCREENSHOT_MAX_BYTES } = require('../middleware/fileUpload');
 const { LEGAL_ENTITY } = require('../config/legalEntity');
-const { FAQ_QUESTIONS, faqQuestion } = require('../config/faq');
+const { FAQ_QUESTIONS } = require('../config/faq');
+const { JOB_FEATURE_DAYS, JOB_FEATURE_PRICE_MINOR, formatMinor } = require('../config/payments');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { PUBLIC_PATHS, canonicalUrl } = require('../config/seoMeta');
 const { ROLE_CATEGORIES, RATE_ROLE_SLUGS } = require('../config/roleTaxonomy');
@@ -462,7 +463,13 @@ router.get('/account-closed', (req, res) => {
  * goes stale.
  */
 router.get('/faq', (req, res) => {
-  res.render('legal/faq', { title: 'Frequently asked questions', minSample: config.rates.minSampleSize, faqQuestion });
+  res.render('legal/faq', {
+    title: 'Frequently Asked Questions',
+    minSample: config.rates.minSampleSize,
+    faqQuestions: FAQ_QUESTIONS,
+    jobFeatureDays: JOB_FEATURE_DAYS,
+    jobFeaturePrice: formatMinor(JOB_FEATURE_PRICE_MINOR)
+  });
 });
 
 router.get('/legal/privacy', (req, res) => {
