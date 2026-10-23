@@ -28,10 +28,19 @@ function notFound(req, res) {
  * nothing else — enough to bury the one refusal that matters, a real form failing for real
  * people, which is how the multipart upload bug hid. Those still get the 403; they are
  * just not written down.
+ *
+ * The cookie alone stopped being enough on 2026-10-23: EVERY response here sets
+ * `saphub.sid`, a 404 included, so a scanner with a cookie jar that opens / before POSTing
+ * /graphql, /api and /app carries one — and the log filled up again. A refusal is now
+ * recorded only when it has the cookie AND came from a person: a signed-in session, or a
+ * browser, which sends `Sec-Fetch-Site` with every form post and fetch (all current ones
+ * do; scanning tools do not). A stale form a real visitor submits still shows up.
  */
 function isScannerCsrfRefusal(err, req) {
   if (!err || err.code !== 'EBADCSRFTOKEN') return false;
-  return !/(?:^|;\s*)saphub\.sid=/.test(req.get('cookie') || '');
+  if (!/(?:^|;\s*)saphub\.sid=/.test(req.get('cookie') || '')) return true;
+  const signedIn = Boolean(req.session && req.session.user);
+  return !signedIn && !req.get('sec-fetch-site');
 }
 
 function errorHandler(err, req, res, next) {

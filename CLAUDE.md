@@ -805,7 +805,12 @@ form here is served from a page that issues `saphub.sid`, so a genuine submissio
 stale one — carries it; a POST without it is a scanner (`/xmlrpc.php`, `/graphql`, PHPUnit
 `eval-stdin.php`). The production log was 140 of those and nothing else, which is how a real
 form failing for real people gets buried. `isScannerCsrfRefusal` in the error handler decides;
-a refusal from a browser that HAS a session is still recorded.
+a refusal from a browser that HAS a session is still recorded. **The cookie alone was not
+enough** (2026-10-23): every response sets `saphub.sid`, a 404 included, so a scanner with a
+cookie jar that opens / first carried one and the log filled again with POSTs to /graphql,
+/api and /app. A refusal is recorded only with the cookie AND a person behind it — a signed-in
+session, or a browser's `Sec-Fetch-Site` header, which every current browser sends on a form
+post and scanning tools do not.
 
 **The error purge validates its window against a fixed set.** `INTERVAL ? DAY` with a zero
 deletes everything, and it is the one action on the admin surface that cannot be undone.
