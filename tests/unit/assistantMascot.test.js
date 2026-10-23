@@ -13,7 +13,8 @@ describe('the assistant mascot', () => {
 
   test('the launcher is the robot with an AI tag, and names the assistant for a screen reader', async () => {
     const out = await html();
-    expect(out).toContain('src="/images/hub-assistant.webp"');
+    // Versioned, so a new robot is not hidden behind a week of cache.
+    expect(out).toMatch(/src="\/images\/hub-assistant\.webp\?v=[^"]*"/);
     expect(out).toContain('class="assistant-launcher-ai"');
     expect(out).toContain('aria-label="Open Hubi, the AI Hub Assistant"');
   });

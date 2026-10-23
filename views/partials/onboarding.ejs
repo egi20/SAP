@@ -34,7 +34,7 @@
 
         <div class="onboarding-step text-center" data-onb-step hidden>
           <% if (assistantReady) { %>
-          <img class="onboarding-mascot mb-3" src="/images/hub-assistant-head.webp" alt="" width="64" height="64">
+          <img class="onboarding-mascot mb-3" src="/images/hub-assistant-head.webp?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" alt="" width="64" height="64">
           <h3 class="h4 mb-2">Meet <%= assistantName %>, your assistant</h3>
           <p class="text-muted mb-3">That's the tour. Whenever you are stuck, open <strong><%= assistantName %></strong> in the bottom-right corner and ask — it can also show you this tour again.</p>
           <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-onb-ask><i class="bi bi-stars me-1" aria-hidden="true"></i>Ask <%= assistantName %> anything</button>

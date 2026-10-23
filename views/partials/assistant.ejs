@@ -27,7 +27,7 @@
 
   <section class="assistant-panel" id="assistantPanel" hidden aria-labelledby="assistantTitle">
     <header class="assistant-head">
-      <img class="assistant-avatar" src="/images/hub-assistant-head.webp" alt="" width="40" height="40">
+      <img class="assistant-avatar" src="/images/hub-assistant-head.webp?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" alt="" width="40" height="40">
       <h2 class="assistant-title mb-0" id="assistantTitle">
         <%= assistantName %> <span class="assistant-sub">Hub Assistant</span> <span class="assistant-badge">AI</span>
       </h2>
@@ -69,7 +69,7 @@
   <button class="assistant-launcher" type="button" id="assistantLauncher"
           aria-expanded="false" aria-controls="assistantPanel"
           aria-label="Open <%= assistantName %>, the AI Hub Assistant">
-    <img class="assistant-launcher-img" src="/images/hub-assistant.webp" alt="" width="68" height="96" decoding="async">
+    <img class="assistant-launcher-img" src="/images/hub-assistant.webp?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" alt="" width="68" height="96" decoding="async">
     <span class="assistant-launcher-ai" aria-hidden="true">AI</span>
   </button>
 </div>
