@@ -630,12 +630,27 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
      bottom off-screen and page scrolling never reaches it: on a phone the user menu showed
      its header and notifications, and Messages, Admin Panel and Sign Out were unreachable.
      The collapse scrolls inside itself instead. */
-  .navbar-hub .navbar-collapse {
-    max-height: calc(100vh - 80px);
-    max-height: calc(100dvh - 80px);
+  /* 2026-10-23: that was not enough on a phone. Only a finger ON the list scrolled it — a
+     swipe on the logo row, or on the strip of page left visible below the list, moved the
+     page behind instead, and with `vh` on iOS Safari the last items sat under the browser's
+     own toolbar. While the menu is open the WHOLE navbar is now one full-height scroll
+     container (`nav-open`, set by main.js on Bootstrap's collapse events; `:has` for a
+     browser that runs no script), the page behind is locked, and the bottom clears the
+     toolbar and the home indicator. */
+  .navbar-hub.nav-open,
+  .navbar-hub:has(.navbar-collapse.show) {
+    max-height: 100vh;
+    max-height: 100dvh;
     overflow-y: auto;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
+  .navbar-hub.nav-open .navbar-collapse,
+  .navbar-hub:has(.navbar-collapse.show) .navbar-collapse {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  body.nav-locked { overflow: hidden; }
 }
 
 .notif-dot {

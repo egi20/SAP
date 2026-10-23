@@ -2353,6 +2353,13 @@ navigation. One row that scrolls sideways, with the same right-edge fade `.table
 now carries — a table that scrolls with nothing saying so is a table whose last columns do
 not exist, and the Void button on `/admin/rates` was off the edge.
 
+**The open mobile menu scrolls from anywhere on it** (2026-10-23). A menu taller than the
+phone hid Admin Panel and Sign Out: scrolling worked only with a finger ON the list, and with
+`vh` on iOS Safari the last items sat under the browser's toolbar. While it is open the whole
+navbar is one `100dvh` scroll container (`nav-open` from Bootstrap's collapse events in
+`main.js`, `:has` without script), the page behind is locked, and the bottom clears the home
+indicator. A test reads both files.
+
 **A `title` is a tooltip and a tooltip does not exist on a touch screen.** The superadmin
 mark was an unexplained "S"; it is an icon with hidden text and a legend under the strip.
 

@@ -617,6 +617,34 @@
 }());
 
 /*
+ * The open mobile menu is one scroll container (see "Collapsed navbar" in style.css): the
+ * navbar gets `nav-open` and the page behind is locked while the collapse is shown, so a
+ * swipe anywhere on the menu moves the menu and never the page under it.
+ */
+(function mobileMenuScroll() {
+  var collapse = document.getElementById('mainNav');
+  var nav = collapse && collapse.closest('.navbar-hub');
+  if (!collapse || !nav) return;
+  collapse.addEventListener('show.bs.collapse', function (e) {
+    if (e.target !== collapse) return;
+    nav.classList.add('nav-open');
+    document.body.classList.add('nav-locked');
+  });
+  collapse.addEventListener('hidden.bs.collapse', function (e) {
+    if (e.target !== collapse) return;
+    nav.classList.remove('nav-open');
+    document.body.classList.remove('nav-locked');
+    nav.scrollTop = 0;
+  });
+  // Back to a desktop width with the menu open: nothing is collapsed any more, so unlock.
+  window.matchMedia('(min-width: 992px)').addEventListener('change', function (m) {
+    if (!m.matches) return;
+    nav.classList.remove('nav-open');
+    document.body.classList.remove('nav-locked');
+  });
+}());
+
+/*
  * Copy-a-field buttons: `<span class="copy-field" data-copy-target="ID" data-copy-label="…">`.
  *
  * For text too long for a link — the clean list on /dedupe. The field itself stays
