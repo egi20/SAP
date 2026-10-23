@@ -83,14 +83,26 @@ describe('possible matches', () => {
     expect(r.possible).toHaveLength(1);
     expect(r.possible[0].reason).toBe('same-name-one-email');
     expect(r.possible[0].entries.map((e) => e.line)).toEqual([1, 2]);
+    expect(r.possible[0].a.email).toBe('john@a.example');
     expect(r.clean).toHaveLength(2);
   });
 
-  it('flags a typo and Muller/Mueller, and joins linked lines into one box', () => {
+  it('flags a typo and Muller/Mueller as PAIRS, never joining two different addresses', () => {
     expect(jaroWinkler('john smith', 'jon smith')).toBeGreaterThanOrEqual(POSSIBLE_THRESHOLD);
-    const r = findDuplicates('Anna Müller, anna@x.example\nAnna Muller\nJohn Smith\nJon Smith\nJohn Smith, js@x.example');
-    const boxes = r.possible.map((p) => p.entries.map((e) => e.line));
-    expect(boxes).toEqual([[1, 2], [3, 4, 5]]);
+    const r = findDuplicates('Anna Müller, anna@x.example\nAnna Muller\nJohn Smith\nJon Smith\nJohn Smith, js@x.example\nJohn Smith, other@x.example');
+    const pairs = r.possible.map((p) => [p.a.entries[0].line, p.b.entries[0].line]);
+    expect(pairs).toEqual(expect.arrayContaining([[2, 1], [4, 3], [5, 3], [6, 3], [5, 4], [6, 4]]));
+    // Lines 5 and 6 have different addresses: no box ever holds both.
+    r.possible.forEach((p) => {
+      const lines = p.entries.map((e) => e.line);
+      expect(lines.includes(5) && lines.includes(6)).toBe(false);
+    });
+  });
+
+  it('counts the blank lines between entries, and strips quotes wrapping a name', () => {
+    const r = findDuplicates('Anna One\n\n"O\'Brien, Pat" pat@x.example\n');
+    expect(r).toMatchObject({ total: 2, blank: 1 });
+    expect(r.csv.split('\r\n')[2]).toBe('"O\'Brien, Pat",pat@x.example');
   });
 
   it('does not flag two different addresses, nor two unrelated names', () => {

@@ -76,8 +76,23 @@ function parseLine(raw, lineNumber) {
     email,
     name: normaliseName(nameText),
     // The name as it was written, for the screen: "John Smith", never the key "john smith".
-    display: nameText.replace(/[,;]+\s*$/, '').replace(/^\s*[,;]+/, '').replace(/\s+/g, ' ').trim()
+    display: displayName(nameText)
   };
+}
+
+/**
+ * The name part of a line as written, minus the separators left behind by the email and
+ * minus quotes WRAPPING the whole name — `"O'Brien, Pat"` is a CSV cell, not a name with
+ * quotes in it. An apostrophe inside the name is the name.
+ */
+function displayName(nameText) {
+  let text = String(nameText).replace(/[,;]+\s*$/, '').replace(/^\s*[,;]+/, '').replace(/\s+/g, ' ').trim();
+  for (let i = 0; i < 2; i += 1) {
+    const wrapped = text.match(/^(["“'])(.*)(["”'])$/);
+    if (!wrapped || (wrapped[1] === "'") !== (wrapped[3] === "'")) break;
+    text = wrapped[2].replace(/[,;]+\s*$/, '').trim();
+  }
+  return text;
 }
 
 /** Jaro-Winkler similarity, 0..1. Prefix-weighted, which suits names. */
@@ -112,17 +127,14 @@ function jaroWinkler(a, b) {
 }
 
 /**
- * Clusters of groups that may be one person. Two groups are linked when at least one has no
- * email and the names are equal or close; linked groups are joined (union-find), so "John
- * Smith", two John Smiths with different addresses and "Jon Smith" are ONE box to check, not
- * six pairs saying the same thing. Candidates are found through a shared word, so a list of
- * two thousand is not two million comparisons — a typo in one word leaves the other in common.
+ * PAIRS of people who may be one person: at least one side has no email, and the names are
+ * equal or close. Pairs, not clusters: joining them transitively put "John Smith,
+ * john@a.example" and "John Smith, john@b.example" in one box through a third line, which
+ * says two people with different addresses may be one — the opposite of the rule above. A
+ * pair says exactly what was compared. Candidates come from a shared word, so a list of two
+ * thousand is not two million comparisons — a typo in one word leaves the other in common.
  */
 function possibleMatches(people) {
-  const parent = people.map((_, i) => i);
-  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  const similar = new Set();
-
   const byWord = new Map();
   people.forEach((p, index) => {
     for (const word of new Set(p.name.split(' ').filter(Boolean))) {
@@ -131,42 +143,41 @@ function possibleMatches(people) {
     }
   });
   const seen = new Set();
+  const out = [];
   let comparisons = 0;
   for (const indexes of byWord.values()) {
     for (let x = 0; x < indexes.length; x += 1) {
       for (let y = x + 1; y < indexes.length; y += 1) {
-        const i = indexes[x];
-        const j = indexes[y];
-        const pairKey = i < j ? `${i}:${j}` : `${j}:${i}`;
+        const i = Math.min(indexes[x], indexes[y]);
+        const j = Math.max(indexes[x], indexes[y]);
+        const pairKey = `${i}:${j}`;
         if (seen.has(pairKey)) continue;
         seen.add(pairKey);
         if (people[i].email && people[j].email) continue;
-        // A bound on work, not on results: a list where one word is on every line (a
-        // company name) would otherwise compare everything with everything.
+        // A bound on work, not on results: one word on every line (a company name) would
+        // otherwise compare everything with everything.
         comparisons += 1;
         if (comparisons > 200000) break;
         const score = jaroWinkler(people[i].name, people[j].name);
         if (score < POSSIBLE_THRESHOLD) continue;
-        if (people[i].name !== people[j].name) similar.add(i).add(j);
-        parent[find(i)] = find(j);
+        // Indexes only while scanning: a list where one word is on every line can produce many
+        // thousands of pairs, and only the first MAX_POSSIBLE are ever shown.
+        out.push([j, i, score]);
       }
     }
   }
-
-  const clusters = new Map();
-  people.forEach((p, i) => {
-    const root = find(i);
-    if (!clusters.has(root)) clusters.set(root, []);
-    clusters.get(root).push(i);
-  });
-  const out = [...clusters.values()]
-    .filter((members) => members.length > 1)
-    .map((members) => ({
-      reason: members.some((i) => similar.has(i)) ? 'similar-name' : 'same-name-one-email',
-      entries: members.flatMap((i) => people[i].entries).sort((p, q) => p.line - q.line)
-    }))
-    .sort((p, q) => p.entries[0].line - q.entries[0].line);
-  return { pairs: out.slice(0, MAX_POSSIBLE), capped: out.length > MAX_POSSIBLE };
+  // The later line first: it is the one being asked about. people[] is in first-line order,
+  // so sorting by index is sorting by line.
+  out.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const side = (p) => ({ label: p.display || p.name, email: p.email, entries: p.entries });
+  const pairs = out.slice(0, MAX_POSSIBLE).map(([j, i, score]) => ({
+    reason: people[i].name === people[j].name ? 'same-name-one-email' : 'similar-name',
+    score: Math.round(score * 100) / 100,
+    a: side(people[j]),
+    b: side(people[i]),
+    entries: [...people[i].entries, ...people[j].entries].sort((p, q) => p.line - q.line)
+  }));
+  return { pairs, capped: out.length > MAX_POSSIBLE };
 }
 
 /** RFC 4180 cell, and never a formula: a leading = + - @ is what a spreadsheet would run. */
@@ -187,10 +198,12 @@ function findDuplicates(input) {
   const allLines = text.split(/\r?\n/);
   const truncated = allLines.length > MAX_LINES || String(input || '').length > MAX_CHARS;
 
-  const records = allLines
-    .slice(0, MAX_LINES)
-    .map((raw, i) => parseLine(raw, i + 1))
-    .filter((r) => r.raw !== '');
+  const parsed = allLines.slice(0, MAX_LINES).map((raw, i) => parseLine(raw, i + 1));
+  const records = parsed.filter((r) => r.raw !== '');
+  // Blank lines BETWEEN entries, which is why the line numbers run past the count. Trailing
+  // ones (a final newline) are not worth a sentence.
+  const lastFilled = records.length ? records[records.length - 1].line : 0;
+  const blank = parsed.filter((r) => r.raw === '' && r.line < lastFilled).length;
 
   const byKey = new Map();
   records.forEach((r) => {
@@ -230,6 +243,7 @@ function findDuplicates(input) {
   const csv = ['name,email', ...people.map((g) => `${csvCell(g.display)},${csvCell(g.email)}`)].join('\r\n');
   return {
     total: records.length,
+    blank,
     unique: byKey.size,
     groups,
     possible: possible.pairs,

@@ -122,6 +122,8 @@ maybe()('pages the menus added', () => {
     const blocked = await agent.get('/dedupe');
     expect(blocked.status).toBe(200);
     expect(blocked.text).toContain('not switched on for your account');
+    // A signed-in member who is not an administrator is not shown the server note either.
+    expect(blocked.text).not.toContain('DH_DEDUPE_URL');
     expect(blocked.text).not.toContain('name="list"');
     const post = await agent.post('/dedupe').type('form').send({ _csrf: csrfFrom(blocked.text), list: 'a\na' });
     expect(post.status).toBe(403);

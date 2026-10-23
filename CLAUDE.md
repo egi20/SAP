@@ -765,9 +765,13 @@ one line per person as first written, copied by a `main.js`-built button, and a 
 built on the server (`csvCell` refuses a leading `= + - @`: a spreadsheet runs those).
 **Possible matches are FLAGGED, never merged** (the same day, owner's request): a line with
 no email whose name equals, or by Jaro-Winkler ≥ 0.92 nearly equals, another line's name.
-Linked lines are joined into one box (union-find), candidates come from a shared word so two
-thousand lines are not two million comparisons, and the clean list keeps every line until a
-person decides. German spelling is folded into the key (ü→ue, ö→oe, ä→ae, ß→ss) but never
+Each is shown as a PAIR — "line 7 Jon Smith ↔ line 3 John Smith" — never joined into
+groups: joining pairs transitively put two people with different addresses in one box through
+a third line, which contradicted the rule above (2026-10-23). Candidates come from a shared
+word so two thousand lines are not two million comparisons, and the clean list keeps every
+line until a person decides. The Lines card says how many blank lines between entries were
+skipped, because the line numbers count them; quotes wrapping a whole name (a CSV cell) are
+stripped from the name, an apostrophe inside it is not. German spelling is folded into the key (ü→ue, ö→oe, ä→ae, ß→ss) but never
 "ue" back to "u", which would make Michael and Michal one exact key — Muller/Mueller is a
 POSSIBLE match, which is what it is. A CSV file is read in the browser into the box
 (`public/js/dedupe.js`, column picker included) and sent only as pasted text; Excel is not
