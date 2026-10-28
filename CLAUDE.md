@@ -1132,6 +1132,12 @@ link" row has its own modal. The ring is `utils/donutSlices.js` + `views/admin/_
 (slice colours are SVG attributes from the util, so style.css stays hex-free), and the per-row
 modals are `_sales-agent-modals.ejs`, rendered AFTER the glass section — inside it they would
 paint under Bootstrap's backdrop.
+**The preview filter on `/s/:code` names FETCHERS, never apps** (2026-10-28). `LINK_PREVIEW`
+said `linkedin` and `twitter`, which also matched the LinkedIn and X IN-APP BROWSERS, so a
+person tapping an agent's link inside LinkedIn was credited at sign-up and never counted as an
+open — a row read 9 sign-ups from 6 opens. It now names `LinkedInBot`, `Twitterbot`,
+`WhatsApp/`, `Slackbot` and the rest; `tests/unit/agentLinkPreview.test.js` pins both sides.
+Opens missed before the fix are not recoverable, and the tab's footer says so.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";

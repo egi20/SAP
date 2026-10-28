@@ -498,7 +498,13 @@ router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
  *
  * 302, never 301: a cached permanent redirect would stop the opens being counted.
  */
-const LINK_PREVIEW = /whatsapp|facebookexternalhit|slack|telegram|discord|linkedin|twitter|skype|viber|embedly|vkshare/i;
+// The FETCHERS that draw a link's preview card, by their own names — never the app a person
+// is using. This used to say `linkedin` and `twitter`, which also matched the LinkedIn and X
+// IN-APP BROWSERS ("[LinkedInApp]", "Twitter for iPhone"): a real person tapping an agent's
+// link inside LinkedIn, where agents share it, was credited at sign-up and never counted as
+// an open — which is how a row read 9 sign-ups from 6 opens. LinkedIn's fetcher is
+// LinkedInBot, X's is Twitterbot.
+const LINK_PREVIEW = /whatsapp\/|facebookexternalhit|facebookcatalog|slackbot|slack-imgproxy|telegrambot|discordbot|linkedinbot|twitterbot|skypeuripreview|viber|embedly|vkshare|redditbot|pinterestbot/i;
 
 router.get(
   '/s/:code',
@@ -983,3 +989,4 @@ router.get('/healthz', (req, res) => {
 });
 
 module.exports = router;
+module.exports.LINK_PREVIEW = LINK_PREVIEW;
