@@ -101,6 +101,23 @@ maybe()('sales agents', () => {
     expect(page.text).toContain(`/s/${code}`);
     expect(page.text).toContain(email);
     expect(page.text).toContain('No agent link');
+
+    // The two 24-hour columns read the dated opens (migration 040) and the sign-up time.
+    const [agentRow] = (await SalesAgent.listAll()).filter((a) => a.user_id === agentUser.id);
+    expect(agentRow.opens_24h).toBe(1);
+    expect(agentRow.signups_24h).toBe(1);
+    expect(page.text).toContain('Opened (24h)');
+    expect(page.text).toContain('Signed up (24h)');
+    // The country modal exists for this agent, outside the glass section, and names the person.
+    expect(page.text).toContain(`data-bs-target="#agent-countries-${agentUser.id}"`);
+    const modalAt = page.text.indexOf(`id="agent-countries-${agentUser.id}"`);
+    expect(modalAt).toBeGreaterThan(page.text.lastIndexOf('</section>'));
+    expect(page.text.slice(modalAt)).toContain(email);
+    // An open older than a day still counts in the lifetime column and not in the 24h one.
+    await promisePool.query('UPDATE sales_agent_link_opens SET opened_at = NOW() - INTERVAL 2 DAY WHERE agent_user_id = ?', [agentUser.id]);
+    const [aged] = (await SalesAgent.listAll()).filter((a) => a.user_id === agentUser.id);
+    expect(aged.opens_24h).toBe(0);
+    expect(aged.link_opens).toBe(1);
   });
 
   it("the agent sees their link and who came through it on the dashboard, without email addresses", async () => {

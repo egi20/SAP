@@ -1,0 +1,14 @@
+<%#
+  The country most of a row's sign-ups came from, as the button that opens that row's
+  country modal. "Unknown" can honestly be the top country and is shown as such: promoting
+  the second-place real country over it would be a nicer-looking wrong answer.
+%>
+<% const _top = geo && geo.rows && geo.rows[0]; %>
+<% if (!_top) { %>
+  <span class="text-muted-2">—</span>
+<% } else { %>
+  <button type="button" class="btn btn-sm btn-outline-secondary agent-country-btn" data-bs-toggle="modal" data-bs-target="#<%= modalId %>">
+    <i class="bi bi-globe2 me-1"></i><%= countryLabel(_top.code) %> · <%= _top.count %>
+  </button>
+  <% if (geo.rows.length > 1) { %><span class="small text-muted-2 d-block">+<%= geo.rows.length - 1 %> more</span><% } %>
+<% } %>

@@ -1118,6 +1118,20 @@ site sets one and says so. An open is counted once per session and only for some
 looks like a person and is not a link preview; every open still stores the code, so a counter
 is never a gate. The tab ends with a "No agent link" row so the agents' sign-ups have a
 denominator. The privacy policy names both kinds of link (`2026-10-22`).
+**The tab carries "Opened (24h)" and "Signed up (24h)" and a country split per agent**
+(owner, 2026-10-28, as dynamicshub.net). A 24-hour opens figure needs a TIME per open, and
+`link_opens` is a bare counter, so migration 040 adds `sales_agent_link_opens` (agent and
+`opened_at`, nothing else) written by `countOpen` beside the counter, best-effort; the
+24-hour opens figure has no history before that day and the page says so. Sign-ups in 24h
+read `users.created_at`. The country is the one STATED on a profile and, where none is stated
+yet, the sign-up IP's — marked "sign-up IP" wherever shown, because most of these people
+signed up minutes ago and have stated nothing; the admin user list keeps its stated-only rule.
+`SalesAgent.countriesByAgent` is ONE query (pure `groupCountries` beside it); "Unknown" is its
+own bucket; the "Where agent-link sign-ups come from" card sums agents only, and the "No agent
+link" row has its own modal. The ring is `utils/donutSlices.js` + `views/admin/_country-donut.ejs`
+(slice colours are SVG attributes from the util, so style.css stays hex-free), and the per-row
+modals are `_sales-agent-modals.ejs`, rendered AFTER the glass section — inside it they would
+paint under Bootstrap's backdrop.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";

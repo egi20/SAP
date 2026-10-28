@@ -59,8 +59,18 @@ class SalesAgent {
     return result.affectedRows > 0;
   }
 
+  /**
+   * One counted open: the lifetime counter, and a dated row (migration 040) so the admin tab
+   * can say how many happened in the last 24 hours. The dated row is best-effort — a failure
+   * there must not cost the counter, and the visitor is redirected either way.
+   */
   static async countOpen(userId) {
     await promisePool.query('UPDATE sales_agents SET link_opens = link_opens + 1 WHERE user_id = ?', [userId]);
+    try {
+      await promisePool.query('INSERT INTO sales_agent_link_opens (agent_user_id) VALUES (?)', [userId]);
+    } catch (err) {
+      console.error(`Sales agent open not dated: ${err.message}`);
+    }
   }
 
   /**
@@ -92,7 +102,10 @@ class SalesAgent {
               COALESCE(SUM(s.is_consultant = 1), 0) AS consultants,
               COALESCE(SUM(s.is_company = 1), 0)    AS companies,
               COALESCE(SUM(s.email_verified = 1), 0) AS verified,
-              MAX(s.created_at)                    AS last_signup
+              MAX(s.created_at)                    AS last_signup,
+              COALESCE(SUM(s.created_at >= NOW() - INTERVAL 24 HOUR), 0) AS signups_24h,
+              (SELECT COUNT(*) FROM sales_agent_link_opens o
+                WHERE o.agent_user_id = sa.user_id AND o.opened_at >= NOW() - INTERVAL 24 HOUR) AS opens_24h
          FROM sales_agents sa
          JOIN users u ON u.id = sa.user_id
          LEFT JOIN users s ON s.sales_agent_id = sa.user_id
@@ -102,7 +115,8 @@ class SalesAgent {
     );
     return rows.map((r) => ({
       ...r,
-      signups: Number(r.signups), consultants: Number(r.consultants), companies: Number(r.companies), verified: Number(r.verified)
+      signups: Number(r.signups), consultants: Number(r.consultants), companies: Number(r.companies), verified: Number(r.verified),
+      signups_24h: Number(r.signups_24h), opens_24h: Number(r.opens_24h)
     }));
   }
 
@@ -138,7 +152,8 @@ class SalesAgent {
               COALESCE(SUM(u.is_consultant = 1), 0) AS consultants,
               COALESCE(SUM(u.is_company = 1), 0) AS companies,
               COALESCE(SUM(u.email_verified = 1), 0) AS verified,
-              COALESCE(SUM(ra.referred_user_id IS NOT NULL), 0) AS via_referrer
+              COALESCE(SUM(ra.referred_user_id IS NOT NULL), 0) AS via_referrer,
+              COALESCE(SUM(u.created_at >= NOW() - INTERVAL 24 HOUR), 0) AS signups_24h
          FROM users u
          LEFT JOIN referral_attributions ra ON ra.referred_user_id = u.id
         WHERE u.sales_agent_id IS NULL`,
@@ -155,8 +170,9 @@ class SalesAgent {
       `SELECT * FROM (
          SELECT u.sales_agent_id AS agent_id, u.id, u.name, u.email, u.created_at, u.is_active,
                 u.is_consultant, u.is_company, u.email_verified,
+                ${COUNTRY_SQL} AS country, ${COUNTRY_SOURCE_SQL} AS country_source,
                 ROW_NUMBER() OVER (PARTITION BY u.sales_agent_id ORDER BY u.created_at DESC, u.id DESC) AS rn
-           FROM users u WHERE u.sales_agent_id IN (?)
+           FROM users u ${COUNTRY_JOINS} WHERE u.sales_agent_id IN (?)
        ) ranked WHERE rn <= ?`,
       [agentIds, perAgent]
     );
@@ -165,6 +181,67 @@ class SalesAgent {
     });
     return out;
   }
+
+  /**
+   * Where each agent's sign-ups are from, for every agent AND the "No agent link" bucket, in
+   * ONE query. Keyed by agent user id; the no-link rows come back under `direct`, and
+   * `overall` sums the agents only — it feeds a card about agent-link sign-ups, and folding
+   * the no-link population into it would make that heading false.
+   *
+   * Every row is `{ code, count, fromIp }`: `code` is null for "Unknown", so the counts
+   * always add up to the sign-up totals beside them. `fromIp` says how many of that country
+   * were read from the sign-up address because the person has not stated one yet.
+   */
+  static async countriesByAgent() {
+    const [rows] = await promisePool.query(
+      `SELECT u.sales_agent_id AS agent_id, ${COUNTRY_SQL} AS code,
+              COUNT(*) AS n, COALESCE(SUM(${COUNTRY_SOURCE_SQL} = 'ip'), 0) AS from_ip
+         FROM users u ${COUNTRY_JOINS}
+        GROUP BY u.sales_agent_id, ${COUNTRY_SQL}`,
+      []
+    );
+    return SalesAgent.groupCountries(rows);
+  }
+
+  /** Pure: the grouping behind `countriesByAgent`, exported for the unit test. */
+  static groupCountries(rows) {
+    const byAgent = {};
+    const direct = [];
+    const overall = new Map();
+    const add = (list, code, n, fromIp) => {
+      const hit = list.find((r) => r.code === code);
+      if (hit) { hit.count += n; hit.fromIp += fromIp; } else list.push({ code, count: n, fromIp });
+    };
+    rows.forEach((r) => {
+      const code = r.code ? String(r.code).toUpperCase() : null;
+      const n = Number(r.n) || 0;
+      const fromIp = Number(r.from_ip) || 0;
+      if (r.agent_id == null) { add(direct, code, n, fromIp); return; }
+      add((byAgent[r.agent_id] = byAgent[r.agent_id] || []), code, n, fromIp);
+      const o = overall.get(code) || { code, count: 0, fromIp: 0 };
+      o.count += n; o.fromIp += fromIp;
+      overall.set(code, o);
+    });
+    // Biggest first; Unknown last among equals so a real country is never hidden behind it.
+    const order = (a, b) => (b.count - a.count) || ((a.code === null) - (b.code === null)) || String(a.code).localeCompare(String(b.code));
+    Object.values(byAgent).forEach((list) => list.sort(order));
+    direct.sort(order);
+    return { byAgent, direct, overall: [...overall.values()].sort(order) };
+  }
 }
+
+/*
+ * A person's country: the one they STATED on a profile when there is one, otherwise the
+ * country of the address they signed up from. The admin user list shows only the stated
+ * one (see models/User.js), and for a member's own row that rule stands. Here the question
+ * is where an agent's link reached, about people who mostly signed up minutes ago and have
+ * stated nothing, so the sign-up address is the only answer there is — and every surface
+ * that shows it says which of the two it was (`country_source`).
+ */
+const COUNTRY_JOINS = `LEFT JOIN consultant_profiles cp ON cp.user_id = u.id
+         LEFT JOIN company_profiles comp ON comp.user_id = u.id`;
+const COUNTRY_SQL = "NULLIF(COALESCE(NULLIF(cp.country, ''), NULLIF(comp.country, ''), u.signup_country), '')";
+const COUNTRY_SOURCE_SQL = `CASE WHEN NULLIF(COALESCE(NULLIF(cp.country, ''), NULLIF(comp.country, '')), '') IS NOT NULL THEN 'stated'
+              WHEN NULLIF(u.signup_country, '') IS NOT NULL THEN 'ip' ELSE NULL END`;
 
 module.exports = SalesAgent;

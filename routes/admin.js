@@ -14,6 +14,8 @@ const AppSetting = require('../models/AppSetting');
 const AccountClosure = require('../models/AccountClosure');
 const Referral = require('../models/Referral');
 const SalesAgent = require('../models/SalesAgent');
+const { countryName } = require('../utils/geo');
+const { donutSlices } = require('../utils/donutSlices');
 const config = require('../config/config');
 const SuccessStory = require('../models/SuccessStory');
 const SiteReview = require('../models/SiteReview');
@@ -870,16 +872,29 @@ router.get(
   asyncHandler(async (req, res) => {
     if (req.query.tab === 'agents') {
       const agents = await SalesAgent.listAll();
-      const [direct, agentPeople] = await Promise.all([
+      const [direct, agentPeople, countries] = await Promise.all([
         SalesAgent.unattributed(),
-        SalesAgent.peopleFor(agents.map((a) => a.user_id))
+        SalesAgent.peopleFor(agents.map((a) => a.user_id)),
+        SalesAgent.countriesByAgent()
       ]);
+      const countryLabel = (code) => (code ? countryName(code) : 'Unknown');
+      const geoOf = (rows) => ({
+        rows,
+        chart: donutSlices(rows.map((r) => ({ label: countryLabel(r.code), key: r.code, count: r.count })))
+      });
+      const agentCountries = {};
+      Object.entries(countries.byAgent).forEach(([id, rows]) => { agentCountries[id] = geoOf(rows); });
       return res.render('admin/referrals', {
         title: 'Sales agents',
         tab: 'agents',
         agents,
         direct,
         agentPeople,
+        agentCountries,
+        directCountries: geoOf(countries.direct),
+        overallCountries: geoOf(countries.overall),
+        countryLabel,
+        geoNote: 'The country stated on the profile; where none is stated yet, the country of the address they signed up from (marked "sign-up IP").',
         linkFor: (code) => `${config.app.baseUrl}/s/${code}`
       });
     }

@@ -1,0 +1,117 @@
+<%#
+  One modal per agent (and one for "No agent link"): their ring, headline figures, the full
+  country table and the people themselves, as dynamicshub.net's country breakdown modal.
+
+  Rendered AFTER the page's .glass-section, never inside it: `.glass-section > *` takes a
+  z-index and `.glass-card` a backdrop-filter, and either makes a stacking context that
+  paints a modal underneath Bootstrap's backdrop — the page dims and no dialog appears.
+%>
+<%
+  const _day = function (d) { return d ? new Date(d).toISOString().slice(0, 10) : '—'; };
+  const _role = function (p) { return [p.is_consultant ? 'Consultant' : null, p.is_company ? 'Company' : null].filter(Boolean).join(' + ') || '—'; };
+  const _modals = agents.map(function (a) {
+    return {
+      id: 'agent-countries-' + a.user_id,
+      title: (a.name || a.email) + ' — where their sign-ups are from',
+      geo: agentCountries[a.user_id] || { rows: [], chart: { hasData: false, slices: [], total: 0, distinct: 0 } },
+      people: agentPeople[a.user_id] || [],
+      signups: a.signups,
+      stats: [
+        { label: 'Opens', value: a.link_opens },
+        { label: 'Opened (24h)', value: a.opens_24h },
+        { label: 'Signed up', value: a.signups },
+        { label: 'Signed up (24h)', value: a.signups_24h }
+      ]
+    };
+  });
+  _modals.push({
+    id: 'agent-countries-direct',
+    title: 'No agent link — where these sign-ups are from',
+    geo: directCountries,
+    people: null,
+    signups: direct.signups,
+    stats: [
+      { label: 'Signed up', value: direct.signups },
+      { label: 'Signed up (24h)', value: direct.signups_24h },
+      { label: 'Verified', value: direct.verified },
+      { label: 'Via a referrer', value: direct.via_referrer }
+    ]
+  });
+%>
+<% _modals.forEach(function (m) { const total = m.geo.rows.reduce(function (n, r) { return n + r.count; }, 0); %>
+<div class="modal fade" id="<%= m.id %>" tabindex="-1" aria-labelledby="<%= m.id %>-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="<%= m.id %>-title"><i class="bi bi-globe2 me-2"></i><%= m.title %></h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <% m.stats.forEach(function (s) { %>
+            <div class="col-6 col-md-3"><div class="border rounded p-2 h-100">
+              <div class="small text-muted-2 text-truncate"><%= s.label %></div>
+              <div class="fw-semibold"><%= s.value %></div>
+            </div></div>
+          <% }); %>
+        </div>
+
+        <%- include('./_country-donut', { chart: m.geo.chart, title: 'Sign-ups by country', subject: 'sign-ups', note: geoNote, empty: 'Nobody has signed up this way yet.' }) %>
+
+        <% if (m.geo.rows.length) { %>
+          <%# The ring folds a long tail into "Other"; this is the complete list. %>
+          <div class="table-responsive mt-3 agent-modal-scroll">
+            <table class="table table-sm mb-0">
+              <thead><tr><th>Country</th><th class="text-end">Sign-ups</th><th class="text-end">Share</th></tr></thead>
+              <tbody>
+                <% m.geo.rows.forEach(function (r) { %>
+                  <tr>
+                    <td><%= countryLabel(r.code) %><% if (r.fromIp) { %> <span class="small text-muted-2" title="Not stated on a profile yet; read from the address they signed up from">(<%= r.fromIp === r.count ? 'sign-up IP' : r.fromIp + ' from sign-up IP' %>)</span><% } %></td>
+                    <td class="text-end"><%= r.count %></td>
+                    <td class="text-end text-muted-2"><%= total ? Math.round((r.count / total) * 100) : 0 %>%</td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+
+        <% if (m.people && m.people.length) { %>
+          <hr class="my-3">
+          <div class="d-flex justify-content-between align-items-baseline mb-2">
+            <h3 class="h6 mb-0"><i class="bi bi-people me-2"></i>Who signed up</h3>
+            <span class="small text-muted-2">
+              <% if (m.signups > m.people.length) { %>The <%= m.people.length %> most recent of <%= m.signups %><% } else { %><%= m.people.length %> <%= m.people.length === 1 ? 'account' : 'accounts' %><% } %>
+            </span>
+          </div>
+          <div class="table-responsive agent-modal-scroll">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr><th>Account</th><th>Role</th><th>Country</th><th class="text-end">Registered</th></tr></thead>
+              <tbody>
+                <% m.people.forEach(function (p) { %>
+                  <tr>
+                    <td class="text-break">
+                      <a href="/admin/users?q=<%= encodeURIComponent(p.email) %>" target="_blank" rel="noopener"><%= p.name || p.email %></a>
+                      <span class="small text-muted-2 d-block"><%= p.email %><%= p.is_active ? '' : ' · inactive' %></span>
+                    </td>
+                    <td class="small text-muted-2"><%= _role(p) %></td>
+                    <td class="small">
+                      <%= countryLabel(p.country) %>
+                      <% if (p.country_source === 'ip') { %><span class="text-muted-2" title="Not stated on a profile yet; read from the address they signed up from">· sign-up IP</span><% } %>
+                    </td>
+                    <td class="text-end small text-nowrap">
+                      <%= _day(p.created_at) %>
+                      <% if (p.email_verified) { %><i class="bi bi-patch-check-fill text-success ms-1" title="Email verified"></i><% } else { %><i class="bi bi-hourglass text-muted-2 ms-1" title="Email not verified yet"></i><% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+    </div>
+  </div>
+</div>
+<% }); %>

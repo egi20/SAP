@@ -1,7 +1,8 @@
 <%#
   The Sales agents tab of /admin/referrals, as on dynamicshub.net: the Hub's own people, each
   with a personal sign-up link that is MEASURED and pays nothing. Locals: agents, direct,
-  agentPeople, linkFor.
+  agentPeople, linkFor, agentCountries, directCountries, overallCountries, countryLabel, geoNote.
+  The per-agent country modals are rendered by _sales-agent-modals.ejs, outside the section.
 %>
 <%
   // Never rounds a part up to the whole or down to nothing: 266 of 267 is not "100%".
@@ -43,7 +44,10 @@
           <th>Agent</th>
           <th>Link</th>
           <th class="text-end" title="People, once per browser session; link previews and robots are not counted">Opens</th>
+          <th class="text-end" title="Opens in the last 24 hours. Counted from 28 October 2026; earlier opens carry no time">Opened (24h)</th>
           <th class="text-end">Signed up</th>
+          <th class="text-end" title="Accounts registered through this link in the last 24 hours">Signed up (24h)</th>
+          <th title="The country most of these sign-ups are from. Click it for the full split and the people">Top country</th>
           <th class="text-end" title="Sign-ups as a share of opens">Rate</th>
           <th class="text-end">Verified</th>
           <th>Last sign-up</th>
@@ -52,7 +56,7 @@
       </thead>
       <tbody>
         <% if (!agents.length) { %>
-          <tr><td colspan="8" class="text-muted-2">No sales agents yet. Add one above.</td></tr>
+          <tr><td colspan="11" class="text-muted-2">No sales agents yet. Add one above.</td></tr>
         <% } %>
         <% agents.forEach(function (a) { %>
           <tr class="<%= a.is_active ? '' : 'text-muted-2' %>">
@@ -67,13 +71,16 @@
               <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-copy="<%= linkFor(a.code) %>" aria-label="Copy the link"><i class="bi bi-clipboard"></i></button>
             </td>
             <td class="text-end"><%= a.link_opens %></td>
+            <td class="text-end"><%= a.opens_24h %></td>
             <td class="text-end">
               <strong><%= a.signups %></strong>
               <% if (a.signups) { %><span class="small text-muted-2 d-block"><%= a.consultants %> consultant · <%= a.companies %> company</span><% } %>
             </td>
+            <td class="text-end"><%= a.signups_24h %></td>
+            <td><%- include('./_top-country', { geo: agentCountries[a.user_id], modalId: 'agent-countries-' + a.user_id }) %></td>
             <td class="text-end"><%= pct(a.signups, a.link_opens) %></td>
             <td class="text-end"><%= a.verified %></td>
-            <td class="small"><%= day(a.last_signup) %></td>
+            <td class="small text-nowrap"><%= day(a.last_signup) %></td>
             <td class="text-end">
               <form method="post" action="/admin/referrals/agents/<%= a.user_id %>/active" class="d-inline">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -96,10 +103,13 @@
           </td>
           <td class="text-muted-2">—</td>
           <td class="text-end text-muted-2">—</td>
+          <td class="text-end text-muted-2">—</td>
           <td class="text-end">
             <strong><%= direct.signups %></strong>
             <span class="small text-muted-2 d-block"><%= pct(direct.signups, direct.all_accounts) %> of all <%= direct.all_accounts %> accounts</span>
           </td>
+          <td class="text-end"><%= direct.signups_24h %></td>
+          <td><%- include('./_top-country', { geo: directCountries, modalId: 'agent-countries-direct' }) %></td>
           <td class="text-end text-muted-2">—</td>
           <td class="text-end"><%= direct.verified %></td>
           <td></td>
@@ -112,30 +122,14 @@
     Agents brought in <strong><%= agentSignups %></strong> of <%= direct.all_accounts %> accounts (<%= pct(agentSignups, direct.all_accounts) %>).
     A sign-up is credited to the FIRST agent link the person opened, once; a later link never takes it.
     Opens are counted from the day an agent is added and only for something that looks like a person.
+    "Last 24h" columns are a rolling 24 hours to now; opens are timed only from 28 October 2026, so
+    the 24-hour opens figure has no history before that day.
   </div>
 </div>
 
-<% agents.forEach(function (a) {
-     const brought = agentPeople[a.user_id] || [];
-     if (!a.signups) return; %>
-  <details class="glass-card mb-2">
-    <summary class="card-body py-2"><strong><%= a.name || a.email %></strong> — people they brought in (<%= a.signups %>)</summary>
-    <div class="card-body pt-0">
-      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
-        <thead><tr><th>Person</th><th>Role</th><th>Signed up</th><th class="text-center">Verified</th></tr></thead>
-        <tbody>
-          <% brought.forEach(function (p) { %>
-            <tr>
-              <td><a href="/admin/users?q=<%= encodeURIComponent(p.email) %>"><%= p.name || p.email %></a>
-                <span class="small text-muted-2 d-block"><%= p.email %><%= p.is_active ? '' : ' · inactive' %></span></td>
-              <td class="small"><%= roleOf(p) %></td>
-              <td class="small"><%= day(p.created_at) %></td>
-              <td class="text-center"><% if (p.email_verified) { %><i class="bi bi-check-circle text-success" aria-label="verified"></i><% } else { %><span class="text-muted-2">—</span><% } %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table></div>
-      <% if (a.signups > brought.length) { %><p class="small text-muted-2 mt-2 mb-0">The <%= brought.length %> most recent of <%= a.signups %>.</p><% } %>
-    </div>
-  </details>
-<% }); %>
+<%# Where agent-link sign-ups come from, all agents together. The no-link population is
+    NOT folded in: it has its own modal on its row, and adding it here would make this
+    heading false. %>
+<div class="glass-card mb-3"><div class="card-body">
+  <%- include('./_country-donut', { chart: overallCountries.chart, title: 'Where agent-link sign-ups come from', subject: 'sign-ups', note: geoNote, empty: 'No agent has brought anybody in yet.' }) %>
+</div></div>
