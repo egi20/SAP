@@ -1571,12 +1571,14 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   .sf-assistant { display: none !important; }
 }
 
-/* The logo: mark and wordmark in one SVG. Fixed box so the navbar cannot reflow while it
-   loads — a brand that jumps on every page load is the first thing people notice. */
+/* The logo: mark and wordmark in one image (logo.webp, the owner's artwork of 2026-11-01,
+   background made transparent and shipped at 3x for dense screens). Fixed box so the
+   navbar cannot reflow while it loads — a brand that jumps on every page load is the
+   first thing people notice. */
 .navbar-hub .navbar-brand .brand-logo {
-  width: 151px;
+  width: 191px;
   height: 44px;
-  flex: 0 0 151px;
+  flex: 0 0 191px;
   display: block;
 }
 
