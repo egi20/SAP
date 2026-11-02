@@ -866,9 +866,14 @@ router.get(
  * columns: the first time a stored figure and its own history diverge, nobody can say
  * which one somebody is actually owed.
  */
+/*
+ * READ by every administrator (owner, 2026-11-02): who joined through whom, the agents'
+ * figures and the balances. Every POST below stays superadmin — paying out, adjusting,
+ * changing a rate and promoting somebody move money or roles, and the view hides those
+ * controls from an ordinary admin rather than offering buttons that answer 403.
+ */
 router.get(
   '/referrals',
-  isSuperadmin,
   asyncHandler(async (req, res) => {
     if (req.query.tab === 'agents') {
       const agents = await SalesAgent.listAll();

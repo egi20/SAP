@@ -433,7 +433,7 @@ maybe()('what the referrer and the admin can see', () => {
     await Referral.setActive(row.id, true);
   });
 
-  test('the admin overview is superadmin-only', async () => {
+  test('the admin overview is for administrators, not members', async () => {
     expect((await admin.get('/admin/referrals')).status).toBe(200);
 
     const plain = request.agent(app);

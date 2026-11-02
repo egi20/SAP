@@ -18,6 +18,8 @@
   const agentSignups = agents.reduce(function (sum, a) { return sum + a.signups; }, 0);
 %>
 
+<% const canManageAgents = Boolean(currentUser && currentUser.isSuperadmin); %>
+<% if (canManageAgents) { %>
 <div class="glass-card mb-4"><div class="card-body">
   <h2 class="h6 mb-1"><i class="bi bi-person-plus me-1"></i>Add a sales agent</h2>
   <p class="small text-muted-2 mb-3">
@@ -35,6 +37,7 @@
     <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Add sales agent</button></div>
   </form>
 </div></div>
+<% } %>
 
 <div class="glass-card mb-3">
   <div class="table-responsive">
@@ -82,11 +85,13 @@
             <td class="text-end"><%= a.verified %></td>
             <td class="small text-nowrap"><%= day(a.last_signup) %></td>
             <td class="text-end">
+              <% if (canManageAgents) { %>
               <form method="post" action="/admin/referrals/agents/<%= a.user_id %>/active" class="d-inline">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="is_active" value="<%= a.is_active ? 'false' : 'true' %>">
                 <button class="btn btn-sm <%= a.is_active ? 'btn-outline-secondary' : 'btn-outline-success' %>" type="submit"><%= a.is_active ? 'Pause' : 'Resume' %></button>
               </form>
+              <% } %>
             </td>
           </tr>
         <% }); %>

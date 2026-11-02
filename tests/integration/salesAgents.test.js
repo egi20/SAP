@@ -148,8 +148,17 @@ maybe()('sales agents', () => {
     expect((await request(app).get('/s/NOTACODE')).headers.location).toBe('/auth/register');
   });
 
-  it('is superadmin-only', async () => {
+  it('an ordinary admin reads the tab but cannot promote or pause anybody', async () => {
     const admin = await signIn(ADMIN);
-    expect((await admin.get('/admin/referrals?tab=agents')).headers.location).toBe('/');
+    const page = await admin.get('/admin/referrals?tab=agents');
+    expect(page.status).toBe(200);
+    expect(page.text).toContain('Opened (24h)');
+    expect(page.text).not.toContain('action="/admin/referrals/agents/add"');
+    expect(page.text).not.toMatch(/action="\/admin\/referrals\/agents\/\d+\/active"/);
+    // The write stays superadmin: the guard answers before any handler runs.
+    const res = await admin.post('/admin/referrals/agents/add').type('form')
+      .send({ _csrf: page.text.match(CSRF)[1], email: ADMIN });
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/');
   });
 });

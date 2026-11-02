@@ -1099,6 +1099,13 @@ The reference has no reversal at all, which leaves a refunded payment owing comm
 forever. A commission already paid out still reverses and the balance goes negative: the
 next payout settles less, which is the correct answer and a visible one.
 
+**`/admin/referrals` is READ by every administrator, WRITTEN by a superadmin** (owner,
+2026-11-02). Both tabs — referrers with their balances and the people they brought in, and the
+sales agents with their 24h columns and countries — are open to `isAdmin`. Every POST under
+`/admin/referrals` (add, payout, adjust, rate, pause, promote an agent) keeps `isSuperadmin`,
+and the view renders those forms only for a superadmin (`canManage` / `canManageAgents`), so an
+admin never sees a button that answers 403.
+
 **A superadmin can ADD a referrer, but only an existing, active account** (`POST
 /admin/referrals/add`, 2026-10-22). It never creates an account — a referrer is somebody who
 agreed to the scheme's terms by having a login — and it never touches somebody already in it:
