@@ -810,7 +810,12 @@ enough** (2026-10-23): every response sets `saphub.sid`, a 404 included, so a sc
 cookie jar that opens / first carried one and the log filled again with POSTs to /graphql,
 /api and /app. A refusal is recorded only with the cookie AND a person behind it — a signed-in
 session, or a browser's `Sec-Fetch-Site` header, which every current browser sends on a form
-post and scanning tools do not.
+post and scanning tools do not. **Headers were not enough either** (2026-11-05): scanners driving
+a headless browser send the cookie AND `Sec-Fetch-Site`, and POSTs to /graphql, /api/graphql and
+POST / were recorded again. A real form only ever posts to a route that exists, so a refusal on a
+path the router would not answer is never recorded — `utils/routeExists.js` walks Express's own
+router stack (no second route table) and answers YES whenever it cannot tell, so an unknown shape
+never hides a real failure.
 
 **The error purge validates its window against a fixed set.** `INTERVAL ? DAY` with a zero
 deletes everything, and it is the one action on the admin surface that cannot be undone.

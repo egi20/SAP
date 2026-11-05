@@ -18,7 +18,7 @@
   const agentSignups = agents.reduce(function (sum, a) { return sum + a.signups; }, 0);
 %>
 
-<% const canManageAgents = Boolean(currentUser && currentUser.isSuperadmin); %>
+<% const canManageAgents = Boolean(typeof currentUser !== 'undefined' && currentUser && currentUser.isSuperadmin); %>
 <% if (canManageAgents) { %>
 <div class="glass-card mb-4"><div class="card-body">
   <h2 class="h6 mb-1"><i class="bi bi-person-plus me-1"></i>Add a sales agent</h2>

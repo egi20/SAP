@@ -63,6 +63,15 @@ maybe()('the error log and scanners', () => {
     expect(await logged(path)).toBe(0);
   });
 
+  it('does not record a headless browser posting to a path with no route (2026-11-05)', async () => {
+    const agent = request.agent(app);
+    await agent.get('/');
+    const path = `/api/graphql?headless=${run}`;
+    const res = await agent.post(path).set('Sec-Fetch-Site', 'same-origin').type('json').send({ query: '{__typename}' });
+    expect([302, 403]).toContain(res.status);
+    expect(await logged(path)).toBe(0);
+  });
+
   it('still records a refusal from a browser that has a session', async () => {
     const agent = request.agent(app);
     await agent.get('/contact');

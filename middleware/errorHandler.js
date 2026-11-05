@@ -4,6 +4,7 @@ const ErrorLog = require('../models/ErrorLog');
 const config = require('../config/config');
 const { isNavigation } = require('./auth');
 const { returnTo } = require('../utils/returnTo');
+const { routeExists } = require('../utils/routeExists');
 
 function notFound(req, res) {
   if (!isNavigation(req)) {
@@ -35,9 +36,16 @@ function notFound(req, res) {
  * recorded only when it has the cookie AND came from a person: a signed-in session, or a
  * browser, which sends `Sec-Fetch-Site` with every form post and fetch (all current ones
  * do; scanning tools do not). A stale form a real visitor submits still shows up.
+ *
+ * Headers stopped being enough on 2026-11-05: scanners driving a headless browser send the
+ * cookie AND `Sec-Fetch-Site`, and POSTs to /graphql, /api/graphql, /v1/graphql and POST /
+ * kept arriving. None of those paths has a route here, and a real form only ever posts to
+ * one that does — so a refusal on a path the router would not answer is a scanner whatever
+ * it sent. `routeExists` asks the router itself, and answers yes when unsure.
  */
 function isScannerCsrfRefusal(err, req) {
   if (!err || err.code !== 'EBADCSRFTOKEN') return false;
+  if (req.app && !routeExists(req.app, req.method, req.path)) return true;
   if (!/(?:^|;\s*)saphub\.sid=/.test(req.get('cookie') || '')) return true;
   const signedIn = Boolean(req.session && req.session.user);
   return !signedIn && !req.get('sec-fetch-site');

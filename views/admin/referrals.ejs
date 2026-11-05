@@ -47,7 +47,7 @@
   </div>
 
   <%# Add an existing account, like dynamicshub.net's "Promote existing user". Never creates an account. %>
-  <% const canManage = Boolean(currentUser && currentUser.isSuperadmin); %>
+  <% const canManage = Boolean(typeof currentUser !== 'undefined' && currentUser && currentUser.isSuperadmin); %>
   <% if (canManage) { %>
   <div class="glass-card mb-4"><div class="card-body">
     <h2 class="h6 mb-1"><i class="bi bi-person-plus me-1"></i>Add a referrer</h2>
