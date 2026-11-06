@@ -817,6 +817,13 @@ path the router would not answer is never recorded — `utils/routeExists.js` wa
 router stack (no second route table) and answers YES whenever it cannot tell, so an unknown shape
 never hides a real failure.
 
+**Fixed errors are deleted by filter** (`POST /admin/errors/delete-matching`, 2026-11-06,
+owner). A superadmin filters the log to the entries that are fixed and presses "Delete these N":
+`ErrorLog.deleteMatching` goes through the same builder as the list, refuses without a filter
+(clearing everything is the purge's job), and deletes nothing if the filter no longer matches
+the N the page showed. It is bounded by the highest id counted, so an error recorded after the
+page loaded is never removed unseen.
+
 **The error purge validates its window against a fixed set.** `INTERVAL ? DAY` with a zero
 deletes everything, and it is the one action on the admin surface that cannot be undone.
 

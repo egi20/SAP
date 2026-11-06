@@ -84,6 +84,35 @@
     </div>
   <% } %>
 
+  <% const anyErrorFilter = Boolean(filters.q || filters.statusCode || filters.from || filters.to); %>
+  <% if (currentUser && currentUser.isSuperadmin && anyErrorFilter && pagination.total > 0) { %>
+    <%#
+      Deletes exactly what the filter above lists, and nothing without a filter. The count goes
+      with the form: if the filter matches a different number by the time it is pressed, the
+      server deletes nothing.
+    -%>
+    <div class="glass-card mb-4">
+      <div class="card-body d-flex flex-wrap align-items-center gap-3">
+        <form method="post" action="/admin/errors/delete-matching" class="m-0"
+              data-confirm="Permanently delete the <%= pagination.total %> entries this filter shows? This cannot be undone.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="q" value="<%= filters.q %>">
+          <input type="hidden" name="status_code" value="<%= filters.statusCode %>">
+          <input type="hidden" name="from" value="<%= filters.from %>">
+          <input type="hidden" name="to" value="<%= filters.to %>">
+          <input type="hidden" name="expected_count" value="<%= pagination.total %>">
+          <button class="btn btn-outline-danger" type="submit">
+            <i class="bi bi-trash"></i> Delete these <%= pagination.total %>
+          </button>
+        </form>
+        <p class="small text-muted-2 mb-0">
+          For entries already fixed. Deletes only what is filtered here, and nothing if the
+          count has changed since this page loaded.
+        </p>
+      </div>
+    </div>
+  <% } %>
+
   <% if (currentUser && currentUser.isSuperadmin) { %>
     <div class="glass-card mb-4">
       <div class="card-body">

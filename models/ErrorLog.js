@@ -137,6 +137,51 @@ class ErrorLog {
     return rows;
   }
 
+  /**
+   * Delete exactly the rows the screen showed under a filter (2026-11-06, owner: "once the
+   * errors are fixed, delete them in prod"). Through the ONE builder, like the list and the
+   * export, so the rows removed are provably the rows listed.
+   *
+   * Two guards, both from rules elsewhere here. An unfiltered call is REFUSED — clearing the
+   * whole log is a different decision, and the age-window purge is the one for it. And the
+   * screen posts the count it showed: if the filter now matches a different number, nothing is
+   * deleted (the CRM's interlock). The delete is bounded by the highest id counted, so an error
+   * recorded a second after the page loaded is never removed unseen.
+   */
+  static async deleteMatching(filters = {}, expectedCount) {
+    const { clause, params } = ErrorLog.buildFilter(filters);
+    if (clause === '1 = 1') {
+      const err = new Error('Choose a filter first: deleting the whole log is what the age-window purge is for.');
+      err.code = 'ERROR_LOG_NO_FILTER';
+      throw err;
+    }
+    const conn = await promisePool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[{ n, maxId }]] = await conn.query(
+        `SELECT COUNT(*) AS n, MAX(id) AS maxId FROM error_logs WHERE ${clause}`,
+        params
+      );
+      if (Number(n) !== Number(expectedCount)) {
+        await conn.rollback();
+        const err = new Error(`The filter now matches ${n} entries, not the ${expectedCount} shown. Nothing was deleted; reload and check.`);
+        err.code = 'ERROR_LOG_COUNT_MISMATCH';
+        throw err;
+      }
+      const [result] = await conn.query(
+        `DELETE FROM error_logs WHERE ${clause} AND id <= ?`,
+        [...params, maxId || 0]
+      );
+      await conn.commit();
+      return result.affectedRows;
+    } catch (err) {
+      try { await conn.rollback(); } catch (e) { /* already rolled back */ }
+      throw err;
+    } finally {
+      conn.release();
+    }
+  }
+
   static async purgeOlderThan(days = 90) {
     const [result] = await promisePool.query('DELETE FROM error_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)', [days]);
     return result.affectedRows;

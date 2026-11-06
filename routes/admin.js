@@ -1179,6 +1179,40 @@ router.post(
   })
 );
 
+/**
+ * POST /admin/errors/delete-matching — delete the entries the current filter shows.
+ *
+ * Superadmin, like the purge: it cannot be undone. See ErrorLog.deleteMatching for the two
+ * guards (a filter is required, and the count shown must still be the count matched).
+ */
+router.post(
+  '/errors/delete-matching',
+  isSuperadmin,
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const filters = errorFiltersFrom(req.body);
+    const back = `/admin/errors?${new URLSearchParams({
+      q: filters.q, status_code: filters.statusCode, from: filters.from, to: filters.to
+    }).toString()}`;
+    const expected = Number.parseInt(req.body.expected_count, 10);
+    if (!Number.isInteger(expected) || expected < 1) {
+      req.flash('error', 'Nothing to delete.');
+      return res.redirect(back);
+    }
+    try {
+      const removed = await ErrorLog.deleteMatching(filters, expected);
+      req.flash('success', `Deleted ${removed} error ${removed === 1 ? 'entry' : 'entries'}.`);
+      return res.redirect('/admin/errors');
+    } catch (err) {
+      if (err.code === 'ERROR_LOG_NO_FILTER' || err.code === 'ERROR_LOG_COUNT_MISMATCH') {
+        req.flash('error', err.message);
+        return res.redirect(back);
+      }
+      throw err;
+    }
+  })
+);
+
 /* ------------------------------------------------- automated tests */
 
 /**
