@@ -1541,8 +1541,9 @@ at once; a recompute never unlists anybody. Completeness still ranks the directo
 "finish your profile" prompts and pays `profile_completed` at 60%. Migration 041 listed every
 hidden profile under 60% (none of those could have chosen to be hidden) and LEFT HIDDEN the ones
 at 60% or more, because "never pressed Publish" and "pressed Hide" were stored the same way and a
-consultant who unlisted themselves must not reappear because the rule changed. The privacy policy
-says the directory lists by default (`2026-11-08`).
+consultant who unlisted themselves must not reappear because the rule changed. The owner then
+chose to list those too (migration 042, same day): anyone can hide again with the switch. The
+privacy policy says the directory lists by default (`2026-11-08`).
 
 **Names and photographs are behind an account; everything else is not.** The consultants
 most worth talking to are the ones currently working, and they are the ones with most to
