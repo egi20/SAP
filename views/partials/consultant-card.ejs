@@ -1,3 +1,11 @@
+<%#
+  Since 2026-11-08 every consultant is listed, including people who registered and never
+  filled anything in. Such a card gets a generic subtitle (as dynamicshub.net shows
+  "Dynamics 365 Consultant") and says the profile is not finished, rather than printing
+  "Not available": `availability` defaults to not_available, so on an empty profile that
+  line is the column default, not something the person said.
+-%>
+<% const cardStarted = Boolean(c.headline || c.primary_role || c.day_rate || c.country || c.seniority); %>
 <a class="glass-card d-block h-100 text-reset" href="/consultants/<%= c.user_id %>">
   <div class="card-body">
     <div class="d-flex gap-3 align-items-center mb-2">
@@ -10,7 +18,7 @@
             <span class="text-muted-2">Sign in to view name</span>
           <% } %>
         </h3>
-        <p class="small text-muted-2 mb-0 text-truncate"><%= c.headline || roleLabel(c.primary_role) %></p>
+        <p class="small text-muted-2 mb-0 text-truncate"><%= c.headline || roleLabel(c.primary_role) || 'SAP Consultant' %></p>
       </div>
     </div>
     <div class="d-flex flex-wrap gap-1 mb-2">
@@ -26,9 +34,13 @@
       %>
       <% if (c.linkedin_verified) { %><span class="badge-hub ok"><i class="bi bi-patch-check"></i> LinkedIn</span><% } %>
     </div>
+    <% if (!cardStarted) { %>
+    <p class="small text-muted-2 mb-0"><i class="bi bi-hourglass-split"></i> Profile not completed yet</p>
+    <% } else { %>
     <p class="small text-muted-2 mb-0">
       <% if (c.day_rate) { %><strong><%= Math.round(c.day_rate) %> <%= c.currency %></strong>/day · <% } %>
       <%= { immediate: 'Available now', two_weeks: 'Available in 2 weeks', one_month: 'Available in a month', not_available: 'Not available' }[c.availability] %>
     </p>
+    <% } %>
   </div>
 </a>
