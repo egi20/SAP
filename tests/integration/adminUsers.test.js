@@ -85,6 +85,8 @@ maybe()('the admin user list', () => {
     await ConsultantProfile.ensureExists(ids.listed);
     await promisePool.query('UPDATE consultant_profiles SET is_public = 1 WHERE user_id = ?', [ids.listed]);
     await ConsultantProfile.ensureExists(ids.unlisted);
+    // Listed by default since migration 041; "unlisted" is a member who hid themselves.
+    await ConsultantProfile.setPublic(ids.unlisted, false);
 
     superAgent = await signIn('owner');
     adminAgent = await signIn('plainadmin');

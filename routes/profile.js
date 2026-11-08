@@ -392,12 +392,14 @@ router.post(
   writeLimiter,
   asyncHandler(async (req, res) => {
     const wantPublic = req.body.is_public === 'on';
-    const { published, completeness } = await ConsultantProfile.setPublic(req.session.user.id, wantPublic);
+    const { published, adminHidden } = await ConsultantProfile.setPublic(req.session.user.id, wantPublic);
 
     if (wantPublic && !published) {
       req.flash(
         'error',
-        `Your profile is ${completeness}% complete. It needs ${ConsultantProfile.MIN_COMPLETENESS_TO_PUBLISH}% before it can be listed.`
+        adminHidden
+          ? 'An administrator has taken your profile out of the directory, so it cannot be listed again from here.'
+          : 'Your profile could not be listed.'
       );
     } else {
       req.flash('success', published ? 'Your profile is now listed in the directory.' : 'Your profile is hidden from the directory.');

@@ -10,9 +10,11 @@ const { POINT_AWARDS } = require('../config/community');
 
 /**
  * Fields that count towards profile completeness, with their weights.
- * A profile must reach MIN_COMPLETENESS_TO_PUBLISH before it can be listed publicly:
- * an empty profile in the talent directory wastes an employer's time and makes the
- * whole directory look thin.
+ *
+ * Since 2026-11-08 completeness no longer decides who is LISTED (owner's decision: the
+ * directory works as on dynamicshub.net — every active consultant is listed unless they
+ * hide themselves). It still orders the directory, drives the "finish your profile"
+ * prompts, and pays `profile_completed` once a profile reaches MIN_COMPLETENESS_TO_PUBLISH.
  *
  * The weights are not the reference's. `full_lifecycles` is here, and `bio`, `seniority`
  * and `country` each gave up a point or two to pay for it, because in this ecosystem the
@@ -67,11 +69,23 @@ function completenessOf(profile, { skillCount = 0, certificationCount = 0, proje
  * "Talent" column and filter read the same constant — so "Listed" there can never mean
  * something the directory disagrees with.
  */
-const LISTED_CONDITIONS = Object.freeze(['cp.is_public = 1', 'cp.admin_hidden_at IS NULL', 'u.is_active = 1']);
+/*
+ * Since 2026-11-08 this mirrors dynamicshub.net's BROWSEABLE_WHERE: an active account that
+ * still holds the consultant role, not hidden by its owner (`is_public` is now an opt-OUT,
+ * default 1, migration 041) and not taken down by a moderator. There is no completeness
+ * floor: an account that lost the consultant role keeps its profile row, which is why the
+ * role is a condition here rather than assumed.
+ */
+const LISTED_CONDITIONS = Object.freeze([
+  'cp.is_public = 1',
+  'cp.admin_hidden_at IS NULL',
+  'u.is_active = 1',
+  'u.is_consultant = 1'
+]);
 
 function buildFilter(filters = {}) {
   /*
-   * THREE conditions, not two. `is_public` is the member's own switch and
+   * FOUR conditions. `is_public` is the member's own switch and
    * `admin_hidden_at` is a moderator's; the directory, the search sources and the feed all
    * come through here, so a profile taken down by an administrator leaves every one of
    * them without any of those pages knowing why.
@@ -246,7 +260,8 @@ class ConsultantProfile {
   }
 
   /**
-   * Publishing is gated on completeness, and un-publishing is always allowed.
+   * Listing and hiding are both always allowed (2026-11-08: no completeness floor), except
+   * that a profile an administrator took down cannot be listed again by its owner.
    * @returns {{published:boolean, completeness:number}}
    */
   static async setPublic(userId, isPublic) {
@@ -267,9 +282,6 @@ class ConsultantProfile {
         return { published: false, completeness: row.completeness, adminHidden: true };
       }
 
-      if (isPublic && row.completeness < MIN_COMPLETENESS_TO_PUBLISH) {
-        return { published: false, completeness: row.completeness };
-      }
       await conn.query('UPDATE consultant_profiles SET is_public = ? WHERE user_id = ?', [isPublic ? 1 : 0, userId]);
       return { published: Boolean(isPublic), completeness: row.completeness };
     });
@@ -293,14 +305,10 @@ class ConsultantProfile {
       projectCount: counts.project_count
     });
 
-    // Falling below the publishing floor un-publishes the profile rather than leaving a
-    // hollow entry in the directory.
-    const stayPublic = profile.is_public && completeness >= MIN_COMPLETENESS_TO_PUBLISH ? 1 : 0;
-    await promisePool.query('UPDATE consultant_profiles SET completeness = ?, is_public = ? WHERE user_id = ?', [
-      completeness,
-      stayPublic,
-      userId
-    ]);
+    // Completeness no longer unlists anybody (2026-11-08): whether a profile is listed is
+    // the member's own switch, and an edit that removes a certification must not quietly
+    // take somebody out of the directory they asked to be in.
+    await promisePool.query('UPDATE consultant_profiles SET completeness = ? WHERE user_id = ?', [completeness, userId]);
 
     /*
      * `profile_completed` is the other award config/community.js declared with nothing
@@ -308,9 +316,8 @@ class ConsultantProfile {
      * the only place it can be paid without a second definition of "complete".
      *
      * Settled rather than awarded, because completeness moves in both directions: a
-     * consultant who deletes their certifications drops below the floor and is
-     * un-published two lines above, and a ledger that paid for a profile the directory no
-     * longer shows would be paying for nothing. A repeat call computes a difference of
+     * consultant who deletes their certifications drops below the floor, and a ledger
+     * that paid for a profile that is no longer complete would be paying for nothing. A repeat call computes a difference of
      * zero, so the ordinary case of an unrelated edit writes no row at all.
      */
     await Points.settleTo(

@@ -13,9 +13,12 @@
         <div>
           <h2 class="h6 mb-1">Profile completeness — <%= profile.completeness %>%</h2>
           <p class="small text-muted-2 mb-0">
-            <%= profile.completeness >= minCompleteness
-                ? 'Complete enough to be listed publicly.'
-                : 'Reach ' + minCompleteness + '% to be listed in the directory.' %>
+            <%= profile.is_public
+                ? 'You are listed in the talent directory. Turn the switch off to hide your profile.'
+                : 'Your profile is hidden from the talent directory. Turn the switch on to be listed.' %>
+            <% if (profile.completeness < minCompleteness) { %>
+              A fuller profile ranks higher and is easier to choose.
+            <% } %>
           </p>
         </div>
         <form method="post" action="/profile/consultant/visibility" class="d-flex align-items-center gap-2">

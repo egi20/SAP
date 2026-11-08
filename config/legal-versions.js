@@ -21,7 +21,9 @@ module.exports = {
   // confirmation email and published ideas with their votes.
   // 2026-10-21.3: Visitor analytics now says the tax pages note, per signed-in account,
   // which of three steps was reached — a record about a named person it did not cover.
-  PRIVACY_VERSION: '2026-10-22',
+  // 2026-11-08: the talent directory lists every consultant unless they hide themselves
+  // (it used to list only profiles the member published), and the policy now says so.
+  PRIVACY_VERSION: '2026-11-08',
   // 2026-10-20: rewritten — who operates the service and under which law, minimum age,
   // licence over content, scraping, closure and suspension, notice of changes, reporting
   // content under the DSA, payments, and liability limited only as far as the law allows.

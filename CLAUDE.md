@@ -1533,6 +1533,17 @@ completeness floor.
 
 ## The talent directory is anonymous
 
+**Every consultant is listed unless they hide themselves** (owner's decision, 2026-11-08, as on
+dynamicshub.net). `LISTED_CONDITIONS` is an active account that still holds the consultant role,
+`is_public = 1` and `admin_hidden_at IS NULL` — there is NO completeness floor any more.
+`is_public` is now the member's opt-OUT (default 1, migration 041) and `setPublic` lists or hides
+at once; a recompute never unlists anybody. Completeness still ranks the directory, drives the
+"finish your profile" prompts and pays `profile_completed` at 60%. Migration 041 listed every
+hidden profile under 60% (none of those could have chosen to be hidden) and LEFT HIDDEN the ones
+at 60% or more, because "never pressed Publish" and "pressed Hide" were stored the same way and a
+consultant who unlisted themselves must not reappear because the rule changed. The privacy policy
+says the directory lists by default (`2026-11-08`).
+
 **Names and photographs are behind an account; everything else is not.** The consultants
 most worth talking to are the ones currently working, and they are the ones with most to
 lose from a public listing their employer can read. So everything that makes somebody

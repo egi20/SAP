@@ -212,7 +212,11 @@ maybe()('every conversation is about something', () => {
 
   test('an employer cannot message a consultant who is not listed', async () => {
     const hidden = await signUp({ email: 'msg-hidden@example.test', name: 'Hidden Person', roles: 'consultant' });
-    expect(hidden).toBeDefined(); // the account exists; the profile is simply not public
+    expect(hidden).toBeDefined();
+    // Listed by default since migration 041, so this is a consultant who hid themselves.
+    await promisePool.query('UPDATE consultant_profiles SET is_public = 0 WHERE user_id = ?', [
+      await userId('msg-hidden@example.test')
+    ]);
 
     const page = await company.get(`/jobs/${jobSlug}`);
     const res = await company

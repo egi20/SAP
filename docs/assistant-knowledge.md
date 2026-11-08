@@ -23,8 +23,9 @@ of them is a real page — a test opens all of them.
 ## Your profile
 
 - `/profile/consultant` — the consultant profile: skills, SAP certifications, work
-  history, delivered engagements, day rate and availability. A profile must reach 60%
-  completeness before it can be listed publicly.
+  history, delivered engagements, day rate and availability. Every consultant is listed in
+  the talent directory unless they turn off the "Listed in the directory" switch there; a
+  fuller profile ranks higher.
 - `/profile/company` — the company profile and logo.
 - `/profile/settings` — account settings, password, and adding a consultant, company or
   recruiter role to an existing account.
