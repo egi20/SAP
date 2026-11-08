@@ -115,7 +115,8 @@ maybe()('one box, four sources', () => {
       `${TERM} implementation partner`,
       await userId('search-co@example.test')
     ]);
-    await promisePool.query('UPDATE consultant_profiles SET headline = ?, is_public = 0 WHERE user_id = ?', [
+    // completeness 10 is what the headline alone scores; the directory lists nothing at 0.
+    await promisePool.query('UPDATE consultant_profiles SET headline = ?, completeness = 10, is_public = 0 WHERE user_id = ?', [
       `${TERM} specialist`,
       await userId('search-con@example.test')
     ]);

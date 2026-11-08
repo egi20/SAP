@@ -83,6 +83,8 @@ maybe()('the admin user list', () => {
 
     // Listed by the directory's own conditions — a published profile on an active account.
     await ConsultantProfile.ensureExists(ids.listed);
+    // Something filled in: the directory lists nothing still at completeness 0.
+    await ConsultantProfile.update(ids.listed, { headline: 'SAP FI consultant' });
     await promisePool.query('UPDATE consultant_profiles SET is_public = 1 WHERE user_id = ?', [ids.listed]);
     await ConsultantProfile.ensureExists(ids.unlisted);
     // Listed by default since migration 041; "unlisted" is a member who hid themselves.

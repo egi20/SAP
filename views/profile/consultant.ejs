@@ -13,7 +13,9 @@
         <div>
           <h2 class="h6 mb-1">Profile completeness — <%= profile.completeness %>%</h2>
           <p class="small text-muted-2 mb-0">
-            <%= profile.is_public
+            <%= profile.is_public && profile.completeness === 0
+                ? 'You will appear in the talent directory as soon as you fill anything in below.'
+                : profile.is_public
                 ? 'You are listed in the talent directory. Turn the switch off to hide your profile.'
                 : 'Your profile is hidden from the talent directory. Turn the switch on to be listed.' %>
             <% if (profile.completeness < minCompleteness) { %>

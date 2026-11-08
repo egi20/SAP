@@ -80,7 +80,11 @@ const LISTED_CONDITIONS = Object.freeze([
   'cp.is_public = 1',
   'cp.admin_hidden_at IS NULL',
   'u.is_active = 1',
-  'u.is_consultant = 1'
+  'u.is_consultant = 1',
+  // Owner, 2026-11-08: not until they have filled something in. `completeness` is the one
+  // measure of "filled in" this model already keeps current on every edit, so a profile
+  // that is still exactly what registration created (0) is not listed.
+  'cp.completeness > 0'
 ]);
 
 function buildFilter(filters = {}) {

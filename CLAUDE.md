@@ -1543,7 +1543,9 @@ hidden profile under 60% (none of those could have chosen to be hidden) and LEFT
 at 60% or more, because "never pressed Publish" and "pressed Hide" were stored the same way and a
 consultant who unlisted themselves must not reappear because the rule changed. The owner then
 chose to list those too (migration 042, same day): anyone can hide again with the switch. The
-privacy policy says the directory lists by default (`2026-11-08`).
+privacy policy says the directory lists by default (`2026-11-08`). A profile still at
+completeness 0 — nothing filled in since registration — is not listed (`cp.completeness > 0`,
+same day, owner): an empty card is a name and nothing else.
 
 **Names and photographs are behind an account; everything else is not.** The consultants
 most worth talking to are the ones currently working, and they are the ones with most to
