@@ -72,6 +72,17 @@ function assertSocialIntegrity() {
  * for a deployment that configured them before the form existed. Both are host-checked
  * again here, so a value that slipped past either check is dropped rather than rendered.
  */
+/*
+ * The envelope's address: the one saved on /admin/settings (2026-11-08), else
+ * SUPPORT_EMAIL. Re-checked here, like the links, so a value that slipped past the form
+ * is ignored rather than put in a mailto: link. Required lazily: config/settings.js
+ * requires this module.
+ */
+function emailFor(settings) {
+  const saved = String(settings.social_email || '').trim();
+  return saved && require('./settings').isPlainEmail(saved) ? saved : config.app.supportEmail;
+}
+
 function socialLinks(settings = {}) {
   const links = PLATFORMS
     .map((platform) => ({
@@ -90,7 +101,7 @@ function socialLinks(settings = {}) {
     key: 'email',
     label: 'Email',
     icon: 'bi-envelope',
-    href: `mailto:${config.app.supportEmail}`
+    href: `mailto:${emailFor(settings)}`
   });
 
   return links;

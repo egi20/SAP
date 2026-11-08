@@ -63,7 +63,21 @@ const DEFINITIONS = Object.freeze({
     label: 'Community is read-only',
     help: 'Existing posts stay visible; new posts and replies are refused. A blunt instrument for a bad day.'
   },
-  ...SOCIAL_DEFINITIONS
+  ...SOCIAL_DEFINITIONS,
+  /*
+   * The address behind the envelope icon in the social rail and the footer (owner,
+   * 2026-11-08). Only what visitors SEE: mail the site sends, the reports queue and the
+   * legal pages keep using SUPPORT_EMAIL, which is the inbox somebody actually reads.
+   */
+  social_email: {
+    type: 'email',
+    default: '',
+    maxLength: 254,
+    group: 'social',
+    icon: 'bi-envelope',
+    label: 'Email address',
+    help: 'The address behind the envelope icon in the social rail and the footer. Leave empty to use SUPPORT_EMAIL.'
+  }
 });
 
 const KEYS = Object.freeze(Object.keys(DEFINITIONS));
@@ -104,9 +118,21 @@ function coerce(key, raw) {
 function problemFor(key, value) {
   if (!isValidKey(key)) return null;
   const definition = DEFINITIONS[key];
-  if (definition.type !== 'url' || !value) return null;
+  if (!value) return null;
+  if (definition.type === 'email') {
+    return isPlainEmail(value) ? null : `${definition.label} is not an email address`;
+  }
+  if (definition.type !== 'url') return null;
   const platform = PLATFORMS.find((p) => p.key === definition.platform);
   return problemWith(platform, value, definition.label);
+}
+
+/*
+ * One plain address. It lands in a `mailto:` link, so anything that could add a second
+ * recipient or a header (`?`, `&`, `,`, whitespace) is refused, not encoded.
+ */
+function isPlainEmail(value) {
+  return /^[^\s@?&,;:<>()\[\]"\\]+@[^\s@?&,;:<>()\[\]"\\]+\.[A-Za-z]{2,}$/.test(String(value));
 }
 
 /** Serialise for storage. One representation, so a read never has to guess. */
@@ -133,7 +159,7 @@ function defaults() {
 /** Boot assertion, in the same spirit as the other catalogues. */
 function assertSettingsIntegrity() {
   for (const [key, definition] of Object.entries(DEFINITIONS)) {
-    if (!['boolean', 'text', 'url'].includes(definition.type)) {
+    if (!['boolean', 'text', 'url', 'email'].includes(definition.type)) {
       throw new Error(`Settings: "${key}" has an unknown type "${definition.type}"`);
     }
     if (definition.type === 'boolean' && typeof definition.default !== 'boolean') {
@@ -156,6 +182,7 @@ module.exports = {
   isValidKey,
   coerce,
   problemFor,
+  isPlainEmail,
   serialise,
   deserialise,
   defaults,

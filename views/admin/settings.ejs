@@ -56,13 +56,13 @@
                 The Hub's own accounts, shown in the social rail, the footer and on the Contact
                 page. Leave a field empty to hide that icon — unless the same account is set in
                 the environment, which is used when the field here is empty. The email icon
-                always uses the support address.
+                uses the address below, or the support address when it is empty.
               </p>
               <% social.forEach(function ([key, def]) { const err = fieldError(key); %>
                 <div class="mb-3">
                   <label class="form-label" for="<%= key %>"><i class="bi <%= def.icon %> me-1" aria-hidden="true"></i><%= def.label %></label>
-                  <input class="form-control<%= err ? ' is-invalid' : '' %>" type="url" inputmode="url" id="<%= key %>" name="<%= key %>"
-                         value="<%= values[key] %>" maxlength="<%= def.maxLength %>" placeholder="https://…"
+                  <input class="form-control<%= err ? ' is-invalid' : '' %>" type="<%= def.type === 'email' ? 'email' : 'url' %>" inputmode="<%= def.type === 'email' ? 'email' : 'url' %>" id="<%= key %>" name="<%= key %>"
+                         value="<%= values[key] %>" maxlength="<%= def.maxLength %>" placeholder="<%= def.type === 'email' ? 'contact@…' : 'https://…' %>"
                          <% if (err) { %>aria-invalid="true" aria-describedby="<%= key %>-error"<% } %>>
                   <% if (err) { %><div class="invalid-feedback" id="<%= key %>-error"><%= err %></div><% } %>
                 </div>

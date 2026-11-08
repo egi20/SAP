@@ -70,7 +70,10 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   owner's request, as on dynamicshub.net) each one is a `url` setting on `/admin/settings`,
   declared from `PLATFORMS` and host-checked on save by `problemFor` — a wrong host is
   refused and the form re-renders; the environment variable is the fallback when the field
-  is empty, and is still asserted at boot.
+  is empty, and is still asserted at boot. The envelope icon's address is `social_email` (2026-11-08,
+  owner): it changes only what visitors see in the rail and footer; mail the site sends and
+  the legal pages keep `SUPPORT_EMAIL`. It is checked as one plain address, because it lands
+  in a `mailto:` where a `?` or `,` would add a recipient.
 - **The server refuses a database the code has outgrown.** `npm start` migrates first;
   `npm run dev` does not, and the failure that produces is the worst-shaped one available —
   every page touching a new column answers 500 with `Unknown column 'j.admin_hidden_at'`,
