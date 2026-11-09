@@ -1,0 +1,45 @@
+'use strict';
+
+const SalesAgent = require('../models/SalesAgent');
+const { looksLikeAPerson } = require('../middleware/visitGeo');
+
+/*
+ * The FETCHERS that draw a link's preview card, by their own names — never the app a person
+ * is using. This used to say `linkedin` and `twitter`, which also matched the LinkedIn and X
+ * IN-APP BROWSERS ("[LinkedInApp]", "Twitter for iPhone"): a real person tapping an agent's
+ * link inside LinkedIn was credited at sign-up and never counted as an open. LinkedIn's
+ * fetcher is LinkedInBot, X's is Twitterbot.
+ */
+const LINK_PREVIEW = /whatsapp\/|facebookexternalhit|facebookcatalog|slackbot|slack-imgproxy|telegrambot|discordbot|linkedinbot|twitterbot|skypeuripreview|viber|embedly|vkshare|redditbot|pinterestbot/i;
+
+/**
+ * Count one open of an agent's link for this session, if it looks like a person and this
+ * session has not been counted for that agent yet.
+ *
+ * WHY THIS IS CALLED FROM TWO PLACES (2026-11-09). An open used to be counted only on
+ * `/s/<code>`, while a sign-up is credited from the code on `/auth/register?a=<code>` too.
+ * The second address is what sits in the address bar after the first redirects, so when an
+ * agent copied THAT and shared it, every sign-up through it was credited and none of the
+ * visits was counted: a row read 27 sign-ups from 7 opens. An open is now "a session that
+ * arrived carrying the agent's code", by either address — the same set of visits that can
+ * produce a credited sign-up, so sign-ups can no longer outrun opens by construction. The
+ * per-session list stops the redirect from `/s/` to `/auth/register?a=` counting twice.
+ *
+ * Best-effort: a counting failure is logged and never stops the page.
+ */
+async function countAgentOpen(req, agent) {
+  try {
+    if (!agent || !req.session) return false;
+    const ua = req.get('user-agent') || '';
+    const counted = Array.isArray(req.session.salesAgentOpens) ? req.session.salesAgentOpens : [];
+    if (!looksLikeAPerson(ua) || LINK_PREVIEW.test(ua) || counted.includes(agent.code)) return false;
+    req.session.salesAgentOpens = [...counted, agent.code].slice(-10);
+    await SalesAgent.countOpen(agent.user_id);
+    return true;
+  } catch (err) {
+    console.error(`Sales agent open not counted: ${err.message}`);
+    return false;
+  }
+}
+
+module.exports = { LINK_PREVIEW, countAgentOpen };

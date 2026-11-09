@@ -1,7 +1,5 @@
 'use strict';
 
-const config = require('./config');
-
 /**
  * The Hub's own social accounts, and the one place that knows them.
  *
@@ -74,13 +72,16 @@ function assertSocialIntegrity() {
  */
 /*
  * The envelope's address: the one saved on /admin/settings (2026-11-08), else
- * SUPPORT_EMAIL. Re-checked here, like the links, so a value that slipped past the form
+ * info@saphub.net (owner, 2026-11-09: the panel writes to info@, not to SUPPORT_EMAIL —
+ * an empty field, which is what a save of the settings form stores, must mean that too). Re-checked here, like the links, so a value that slipped past the form
  * is ignored rather than put in a mailto: link. Required lazily: config/settings.js
  * requires this module.
  */
+const DEFAULT_CONTACT_EMAIL = 'info@saphub.net';
+
 function emailFor(settings) {
   const saved = String(settings.social_email || '').trim();
-  return saved && require('./settings').isPlainEmail(saved) ? saved : config.app.supportEmail;
+  return saved && require('./settings').isPlainEmail(saved) ? saved : DEFAULT_CONTACT_EMAIL;
 }
 
 function socialLinks(settings = {}) {

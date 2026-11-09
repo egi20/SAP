@@ -498,13 +498,7 @@ router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
  *
  * 302, never 301: a cached permanent redirect would stop the opens being counted.
  */
-// The FETCHERS that draw a link's preview card, by their own names — never the app a person
-// is using. This used to say `linkedin` and `twitter`, which also matched the LinkedIn and X
-// IN-APP BROWSERS ("[LinkedInApp]", "Twitter for iPhone"): a real person tapping an agent's
-// link inside LinkedIn, where agents share it, was credited at sign-up and never counted as
-// an open — which is how a row read 9 sign-ups from 6 opens. LinkedIn's fetcher is
-// LinkedInBot, X's is Twitterbot.
-const LINK_PREVIEW = /whatsapp\/|facebookexternalhit|facebookcatalog|slackbot|slack-imgproxy|telegrambot|discordbot|linkedinbot|twitterbot|skypeuripreview|viber|embedly|vkshare|redditbot|pinterestbot/i;
+const { LINK_PREVIEW, countAgentOpen } = require('../utils/agentOpens');
 
 router.get(
   '/s/:code',
@@ -512,12 +506,7 @@ router.get(
     const agent = await SalesAgent.findActiveByCode(req.params.code);
     if (!agent) return res.redirect(302, '/auth/register');
     if (!req.session.salesAgentCode) req.session.salesAgentCode = agent.code;
-    const ua = req.get('user-agent') || '';
-    const counted = Array.isArray(req.session.salesAgentOpens) ? req.session.salesAgentOpens : [];
-    if (looksLikeAPerson(ua) && !LINK_PREVIEW.test(ua) && !counted.includes(agent.code)) {
-      req.session.salesAgentOpens = [...counted, agent.code].slice(-10);
-      await SalesAgent.countOpen(agent.user_id);
-    }
+    await countAgentOpen(req, agent);
     return res.redirect(302, `/auth/register?a=${encodeURIComponent(agent.code)}`);
   })
 );

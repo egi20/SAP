@@ -71,12 +71,13 @@ const DEFINITIONS = Object.freeze({
    */
   social_email: {
     type: 'email',
+    // Empty means info@saphub.net (owner, 2026-11-09) — see `emailFor` in config/social.js.
     default: '',
     maxLength: 254,
     group: 'social',
     icon: 'bi-envelope',
     label: 'Email address',
-    help: 'The address behind the envelope icon in the social rail and the footer. Leave empty to use SUPPORT_EMAIL.'
+    help: 'The address behind the envelope icon in the social rail and the footer. Leave empty to use info@saphub.net.'
   }
 });
 

@@ -120,6 +120,24 @@ maybe()('sales agents', () => {
     expect(aged.link_opens).toBe(1);
   });
 
+  it('a visit to the copied sign-up address counts as an open too, once per session', async () => {
+    /*
+     * /auth/register?a=<code> is what sits in the address bar after /s/<code>, and agents
+     * copy and share it. Its sign-ups were credited while its visits were never counted, so
+     * a row read 27 sign-ups from 7 opens (2026-11-09).
+     */
+    const agentUser = await User.findByEmail(AGENT);
+    const { code } = await SalesAgent.findByUserId(agentUser.id);
+    const before = (await SalesAgent.findByUserId(agentUser.id)).link_opens;
+    const visitor = request.agent(app);
+    expect((await visitor.get(`/auth/register?a=${code}`).set('User-Agent', BROWSER)).status).toBe(200);
+    await visitor.get(`/auth/register?a=${code}`).set('User-Agent', BROWSER);
+    await visitor.get(`/s/${code}`).set('User-Agent', BROWSER);
+    await request(app).get(`/auth/register?a=${code}`).set('User-Agent', 'WhatsApp/2.23.20.0');
+    await request(app).get('/auth/register?a=NOTACODE').set('User-Agent', BROWSER);
+    expect((await SalesAgent.findByUserId(agentUser.id)).link_opens).toBe(before + 1);
+  });
+
   it("the agent sees their link and who came through it on the dashboard, without email addresses", async () => {
     const agentUser = await User.findByEmail(AGENT);
     const { code } = await SalesAgent.findByUserId(agentUser.id);

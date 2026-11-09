@@ -71,8 +71,9 @@ wrong produced a real bug, in this repository or in one of the two it was ported
   declared from `PLATFORMS` and host-checked on save by `problemFor` — a wrong host is
   refused and the form re-renders; the environment variable is the fallback when the field
   is empty, and is still asserted at boot. The envelope icon's address is `social_email` (2026-11-08,
-  owner): it changes only what visitors see in the rail and footer; mail the site sends and
-  the legal pages keep `SUPPORT_EMAIL`. It is checked as one plain address, because it lands
+  owner): empty means `info@saphub.net` (2026-11-09), never `SUPPORT_EMAIL`. It changes only
+  what visitors see in the rail and footer; mail the site sends and the legal pages keep
+  `SUPPORT_EMAIL`. It is checked as one plain address, because it lands
   in a `mailto:` where a `?` or `,` would add a recipient.
 - **The server refuses a database the code has outgrown.** `npm start` migrates first;
   `npm run dev` does not, and the failure that produces is the worst-shaped one available —
@@ -1160,6 +1161,12 @@ person tapping an agent's link inside LinkedIn was credited at sign-up and never
 open — a row read 9 sign-ups from 6 opens. It now names `LinkedInBot`, `Twitterbot`,
 `WhatsApp/`, `Slackbot` and the rest; `tests/unit/agentLinkPreview.test.js` pins both sides.
 Opens missed before the fix are not recoverable, and the tab's footer says so.
+**An open is a session that ARRIVED CARRYING THE CODE, by either address** (2026-11-09). Opens
+were counted only on `/s/<code>`, but sign-ups are credited from `/auth/register?a=<code>` too —
+the address left in the bar after the redirect, which agents copy and share — so a row read 27
+sign-ups from 7 opens. `utils/agentOpens.js` `countAgentOpen` is called from both routes, once
+per session per agent (the redirect cannot count twice), with the same person/preview filters.
+Opens through the copied address before that day were never recorded and are not recoverable.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";

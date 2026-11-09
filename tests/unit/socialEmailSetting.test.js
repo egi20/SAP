@@ -2,7 +2,6 @@
 
 const { coerce, problemFor, isPlainEmail, assertSettingsIntegrity } = require('../../config/settings');
 const { socialLinks } = require('../../config/social');
-const config = require('../../config/config');
 
 describe('the email address on /admin/settings', () => {
   it('is a declared setting the boot assertion accepts', () => {
@@ -17,10 +16,11 @@ describe('the email address on /admin/settings', () => {
       .forEach((bad) => expect(isPlainEmail(bad)).toBe(false));
   });
 
-  it('drives the envelope icon, and falls back to SUPPORT_EMAIL', () => {
+  it('drives the envelope icon, and falls back to info@saphub.net', () => {
     const icon = (settings) => socialLinks(settings).find((l) => l.key === 'email').href;
     expect(icon({ social_email: 'hello@saphub.net' })).toBe('mailto:hello@saphub.net');
-    expect(icon({})).toBe(`mailto:${config.app.supportEmail}`);
-    expect(icon({ social_email: 'a@b.com?bcc=x@y.com' })).toBe(`mailto:${config.app.supportEmail}`);
+    expect(icon({})).toBe('mailto:info@saphub.net');
+    expect(icon({ social_email: '' })).toBe('mailto:info@saphub.net');
+    expect(icon({ social_email: 'a@b.com?bcc=x@y.com' })).toBe('mailto:info@saphub.net');
   });
 });

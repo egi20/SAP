@@ -7,6 +7,7 @@ const User = require('../models/User');
 const Token = require('../models/Token');
 const Referral = require('../models/Referral');
 const SalesAgent = require('../models/SalesAgent');
+const { countAgentOpen } = require('../utils/agentOpens');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const { isGuest, isAuthenticated } = require('../middleware/auth');
@@ -54,11 +55,17 @@ const registerValidators = [
     })
 ];
 
-router.get('/register', isGuest, registrationOpen, (req, res) => {
+router.get('/register', isGuest, registrationOpen, async (req, res) => {
   // A sales agent's code arriving on the URL (`/s/<code>` sends it, and it is the copy an
   // in-app browser passes on). Shape-checked before it is kept or echoed; first touch wins.
   const agentCode = SalesAgent.normaliseCode(req.query.a);
   if (agentCode && !req.session.salesAgentCode) req.session.salesAgentCode = agentCode;
+  // Counted here too, not only on /s/<code>: this address is the one people copy from the
+  // address bar and share, and its sign-ups are credited (utils/agentOpens.js says why).
+  if (agentCode) {
+    const agent = await SalesAgent.findActiveByCode(agentCode).catch(() => null);
+    await countAgentOpen(req, agent);
+  }
   res.render('auth/register', {
     signupSources: SIGNUP_SOURCES,
     title: 'Create an account',
