@@ -901,7 +901,11 @@ the edges so the dark visor inside stays opaque; the head crop is the panel avat
 `config.assistant.name` (`ASSISTANT_NAME`, default "Asap"; the widget greets with "WhatSAP?" on a line of its own), read by BOTH the widget and the
 system prompt, so the two cannot introduce it differently — and it is a per-process constant,
 so the cached prefix stays byte-identical. The opening message is written on one line:
-messages are `pre-wrap`, and template indentation showed inside the bubble.
+messages are `pre-wrap`, and template indentation showed inside the bubble. **The suggested
+questions live INSIDE the log, under the greeting, and the launcher hides while the panel is
+open** (`.assistant.is-open`, 2026-11-10): with the chips below the log and the launcher
+stacked under the panel, a short viewport left the log about 150px and cut the greeting off
+mid-sentence. The panel has a fixed height (capped by the viewport) and a navy header.
 
 **A 400 is logged as its own thing.** Every other failure here is transient and "try again
 in a moment" is true; a 400 is the request shape being wrong, which fails identically

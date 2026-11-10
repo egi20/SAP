@@ -1754,75 +1754,124 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--primary-navy);
+  background: var(--bg-white);
+  border: 2px solid rgba(255, 255, 255, 0.55);
   object-fit: cover;
   flex-shrink: 0;
 }
 
-.assistant-title { flex-grow: 1; font-size: 1rem; font-weight: 700; }
-.assistant-sub { font-weight: 400; color: var(--text-light); font-size: 0.8rem; }
+.assistant-title { flex-grow: 1; font-size: 1rem; font-weight: 700; color: var(--bg-white); line-height: 1.2; }
+.assistant-sub { font-weight: 400; color: rgba(255, 255, 255, 0.82); font-size: 0.8rem; }
 
 .assistant-badge {
   padding: 0.1rem 0.35rem;
   border-radius: var(--radius-full);
-  background: var(--accent-gradient);
-  color: var(--bg-white);
+  background: var(--bg-white);
+  color: var(--primary-navy);
   font-size: 0.6rem;
   font-weight: 800;
   vertical-align: middle;
 }
 
-.assistant-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1rem 0.5rem; }
+/* The suggestions sit inside the log, under the greeting, and go once a conversation starts. */
+.assistant-chips {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.assistant-chips[hidden] { display: none; }
+
+.assistant-chips-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
 
 .assistant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   border: 1px solid var(--glass-border-tinted);
   border-radius: var(--radius-full);
   background: var(--bg-white);
   color: var(--primary-blue);
-  font-size: 0.78rem;
-  padding: 0.25rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.3rem 0.5rem 0.3rem 0.8rem;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.assistant-chip:hover { background: var(--bg-light); }
+.assistant-chip .bi { font-size: 1.1rem; line-height: 1; }
+.assistant-chip:hover,
+.assistant-chip:focus-visible { background: var(--bg-light); border-color: var(--primary-blue); }
 
 .assistant-panel {
   display: flex;
   flex-direction: column;
-  width: min(23rem, calc(100vw - 2rem));
-  max-height: min(32rem, calc(100vh - 6rem));
-  background: var(--glass-bg-heavy);
-  backdrop-filter: var(--glass-blur-md);
-  -webkit-backdrop-filter: var(--glass-blur-md);
+  width: min(24rem, calc(100vw - 2rem));
+  height: min(36rem, calc(100vh - 2rem));
+  height: min(36rem, calc(100dvh - 2rem));
+  background: var(--bg-white);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--glass-shadow);
+  box-shadow: 0 24px 48px -12px rgba(0, 38, 91, 0.35), 0 4px 12px rgba(0, 38, 91, 0.08);
   overflow: hidden;
+  animation: assistant-in 0.18s ease-out;
 }
+
+@keyframes assistant-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* While the panel is open the launcher and teaser step aside; the header's close button
+   and Escape close it, and focus returns to the launcher. */
+.assistant.is-open .assistant-launcher,
+.assistant.is-open .assistant-teaser { display: none; }
 
 .assistant-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--glass-border);
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%);
+  flex-shrink: 0;
 }
+
+.assistant-head .btn-close { opacity: 0.85; }
+.assistant-head .btn-close:hover { opacity: 1; }
 
 .assistant-log {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  padding: 0.75rem 1rem;
+  overscroll-behavior: contain;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.65rem;
+  background: var(--bg-light);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 38, 91, 0.25) transparent;
 }
 
+.assistant-log::-webkit-scrollbar { width: 6px; }
+.assistant-log::-webkit-scrollbar-thumb { background: rgba(0, 38, 91, 0.25); border-radius: var(--radius-full); }
+.assistant-log::-webkit-scrollbar-track { background: transparent; }
+
 .assistant-msg {
-  max-width: 90%;
-  padding: 0.55rem 0.8rem;
+  max-width: 88%;
+  padding: 0.6rem 0.85rem;
   border-radius: var(--radius-lg);
-  font-size: 0.925rem;
-  line-height: 1.45;
+  font-size: 0.9rem;
+  line-height: 1.5;
   /* The model's reply is inserted with textContent, so its own line breaks are the
      only formatting it has; a pasted path must wrap rather than widen the panel. */
   white-space: pre-wrap;
@@ -1831,15 +1880,21 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 
 .assistant-msg-bot {
   align-self: flex-start;
-  background: var(--bg-light);
+  background: var(--bg-white);
   color: var(--text-dark);
+  border: 1px solid var(--glass-border);
+  border-bottom-left-radius: 0.25rem;
+  box-shadow: 0 1px 2px rgba(0, 38, 91, 0.06);
 }
 
 .assistant-msg-user {
   align-self: flex-end;
   background: var(--primary-blue);
-  color: #fff;
+  color: var(--bg-white);
+  border-bottom-right-radius: 0.25rem;
 }
+
+.assistant-greeting { font-weight: 700; color: var(--primary-navy); }
 
 .assistant-note {
   margin-top: 0.35rem;
@@ -1849,16 +1904,39 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 
 .assistant-form {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem 0.5rem;
   border-top: 1px solid var(--glass-border);
+  background: var(--bg-white);
+  flex-shrink: 0;
+}
+
+.assistant-form .form-control {
+  border-radius: var(--radius-full);
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.assistant-form .btn {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .assistant-foot {
   margin: 0;
-  padding: 0 1rem 0.75rem;
-  font-size: 0.75rem;
+  padding: 0 1rem 0.65rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
   color: var(--text-light);
+  background: var(--bg-white);
+  flex-shrink: 0;
 }
 
 @media (max-width: 575.98px) {
@@ -1870,7 +1948,15 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   }
 
   .assistant-launcher { width: 56px; height: 78px; }
-  .assistant-panel { width: 100%; }
+  .assistant-panel {
+    width: 100%;
+    height: calc(100vh - 1.5rem);
+    height: calc(100dvh - 1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-panel { animation: none; }
 }
 
 @media print {
@@ -2202,7 +2288,8 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .onboarding-mascot { display: block; margin-left: auto; margin-right: auto; border-radius: 50%; }
 .onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); transition: background .15s, width .15s; }
 .onboarding-dot.on { width: 22px; border-radius: 99px; background: var(--primary-blue); }
-.assistant-tour { display: block; margin: 0 auto .25rem; font-size: .8rem; }
+.assistant-tour { display: block; width: 100%; flex-shrink: 0; margin: 0; padding: .35rem 1rem; font-size: .8rem; text-align: left; background: var(--bg-white); border-top: 1px solid var(--glass-border); border-radius: 0; text-decoration: none; }
+.assistant-tour + .assistant-form { border-top: 0; }
 @media (prefers-reduced-motion: reduce) { .onboarding-dot { transition: none; } }
 
 /* ------------------------------------------------- /games/challenges ("the arena") */

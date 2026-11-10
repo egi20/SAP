@@ -78,6 +78,8 @@
 
   function setOpen(open) {
     panel.hidden = !open;
+    /* The launcher steps aside while the panel is open, so the panel can use its height. */
+    root.classList.toggle('is-open', open);
     launcher.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) input.focus();
   }
