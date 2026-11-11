@@ -1635,6 +1635,11 @@ would be a second answer about money with nothing reconciling the two.
 only lists benefits is a sales sheet; the caveat is the one thing the reader cannot get
 anywhere else.
 
+**A hub offers only what the reader can open** (owner, 2026-11-11). Company Hub's "Post a role"
+card goes to `/jobs/new`, guarded by the company role, so it renders only for an account with
+that flag; anybody else sees the other three cards and one line saying what would add it (the
+roles form when signed in, sign-up otherwise). A card that lands on a refusal reads as broken.
+
 **No landing page carries a number that moves** — no consultant count, no average rate.
 Same rule as `/about`: a figure nobody owns is a figure nobody updates.
 

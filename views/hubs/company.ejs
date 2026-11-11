@@ -19,9 +19,18 @@
         { href: '/rates', icon: 'bi-graph-up', tone: 'icon-info', title: 'Check the market',
           body: 'Day rates by role, experience and region: our published benchmark beside what consultants report.' }
       ];
+      /*
+       * Only what this account can actually open (owner, 2026-11-11). "Post a role" goes to
+       * /jobs/new, which is guarded by the company role: offering it to anybody else sent
+       * them to a refusal on the settings page. A company account sees it; everybody else
+       * sees the three cards they can use and, below, one line saying what would add it.
+       */
+      const canPost = Boolean(typeof currentUser !== 'undefined' && currentUser && currentUser.isCompany);
+      const shown = cards.filter(function (c) { return c.href !== '/jobs/new' || canPost; });
+      const colClass = shown.length === 3 ? 'col-md-4' : 'col-md-6';
     %>
-    <% cards.forEach(function (c) { %>
-      <div class="col-md-6">
+    <% shown.forEach(function (c) { %>
+      <div class="<%= colClass %>">
         <a class="glass-card d-block h-100 text-reset" href="<%= c.href %>">
           <div class="card-body">
             <span class="icon-tile icon-tile-sm <%= c.tone %> mb-2"><i class="bi <%= c.icon %>"></i></span>
@@ -32,6 +41,17 @@
       </div>
     <% }) %>
   </div>
+  <% if (!canPost) { %>
+    <p class="small text-muted-2 mb-4">
+      <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+      <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+        Posting a role needs the company role on your account —
+        <a href="/profile/settings#roles">add “Hire SAP talent” in Settings</a>.
+      <% } else { %>
+        Posting a role needs a company account — <a href="/auth/register">create one</a>, it is free.
+      <% } %>
+    </p>
+  <% } %>
 
   <h2 class="h5 mb-3">Three ways to buy delivery</h2>
   <div class="row g-3 mb-4">
