@@ -1738,7 +1738,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   color: var(--text-medium);
 }
 
-.assistant-teaser-body strong { display: block; color: var(--primary-navy); }
+.assistant-teaser-body { line-height: 1.45; color: var(--text-dark); }
+.assistant-teaser-body strong { color: var(--primary-navy); }
 
 .assistant-teaser-close {
   position: absolute;
@@ -1750,86 +1751,68 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   line-height: 1;
 }
 
+/* The panel is dynamicshub.net's Dynamo template (owner, 2026-11-11): the same sizes,
+   bubbles, pill suggestions, round send button and centred footnote, in SAP Hub's blue
+   where Dynamo uses teal. Sizes are copied from its stylesheet, not approximated. */
 .assistant-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--bg-white);
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  object-fit: cover;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
   flex-shrink: 0;
 }
-
-.assistant-title { flex-grow: 1; font-size: 1rem; font-weight: 700; color: var(--bg-white); line-height: 1.2; }
-.assistant-sub { font-weight: 400; color: rgba(255, 255, 255, 0.82); font-size: 0.8rem; }
-
-.assistant-badge {
-  padding: 0.1rem 0.35rem;
-  border-radius: var(--radius-full);
-  background: var(--bg-white);
-  color: var(--primary-navy);
-  font-size: 0.6rem;
-  font-weight: 800;
-  vertical-align: middle;
-}
-
-/* The suggestions sit inside the log, under the greeting, and go once a conversation starts. */
-.assistant-chips {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  margin-top: 0.15rem;
-}
-
-.assistant-chips[hidden] { display: none; }
-
-.assistant-chips-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-light);
-}
-
-.assistant-chip {
+.assistant-title {
+  flex-grow: 1;
   display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border: 1px solid var(--glass-border-tinted);
-  border-radius: var(--radius-full);
-  background: var(--bg-white);
-  color: var(--primary-blue);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.3rem 0.5rem 0.3rem 0.8rem;
-  text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--bg-white);
+  line-height: 1.2;
 }
-
-.assistant-chip .bi { font-size: 1.1rem; line-height: 1; }
-.assistant-chip:hover,
-.assistant-chip:focus-visible { background: var(--bg-light); border-color: var(--primary-blue); }
+.assistant-sub { font-weight: 500; font-size: 0.78rem; color: rgba(255, 255, 255, 0.75); }
+.assistant-badge {
+  align-self: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--bg-white);
+}
+.assistant-close {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--radius-md);
+}
+.assistant-close:hover,
+.assistant-close:focus-visible { color: var(--bg-white); }
 
 .assistant-panel {
   display: flex;
   flex-direction: column;
-  width: min(24rem, calc(100vw - 2rem));
-  height: min(36rem, calc(100vh - 2rem));
-  height: min(36rem, calc(100dvh - 2rem));
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  max-height: min(540px, calc(100vh - 2rem));
+  max-height: min(540px, calc(100dvh - 2rem));
   background: var(--bg-white);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-2xl);
   box-shadow: 0 24px 48px -12px rgba(0, 38, 91, 0.35), 0 4px 12px rgba(0, 38, 91, 0.08);
   overflow: hidden;
   animation: assistant-in 0.18s ease-out;
 }
-
+.assistant-panel[hidden] { display: none; }
 @keyframes assistant-in {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
-
 /* While the panel is open the launcher and teaser step aside; the header's close button
    and Escape close it, and focus returns to the launcher. */
 .assistant.is-open .assistant-launcher,
@@ -1839,105 +1822,136 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.75rem 0.9rem 0.75rem 1rem;
-  background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-blue) 100%);
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--navy-gradient);
   flex-shrink: 0;
 }
 
-.assistant-head .btn-close { opacity: 0.85; }
-.assistant-head .btn-close:hover { opacity: 1; }
-
 .assistant-log {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 180px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  background: var(--bg-light);
+  gap: 0.5rem;
+  background: var(--bg-white);
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 38, 91, 0.25) transparent;
 }
-
 .assistant-log::-webkit-scrollbar { width: 6px; }
 .assistant-log::-webkit-scrollbar-thumb { background: rgba(0, 38, 91, 0.25); border-radius: var(--radius-full); }
 .assistant-log::-webkit-scrollbar-track { background: transparent; }
 
 .assistant-msg {
-  max-width: 88%;
-  padding: 0.6rem 0.85rem;
+  max-width: 85%;
+  padding: 0.55rem 0.8rem;
   border-radius: var(--radius-lg);
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.45;
+  color: var(--text-dark);
   /* A reply keeps its own line breaks (renderReply in public/js/assistant.js adds only
      bold, headings and links); a pasted path must wrap rather than widen the panel. */
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-
 .assistant-msg-bot {
   align-self: flex-start;
-  background: var(--bg-white);
-  color: var(--text-dark);
+  background: var(--bg-light);
   border: 1px solid var(--glass-border);
-  border-bottom-left-radius: 0.25rem;
-  box-shadow: 0 1px 2px rgba(0, 38, 91, 0.06);
 }
-
 .assistant-msg-user {
   align-self: flex-end;
-  background: var(--primary-blue);
-  color: var(--bg-white);
-  border-bottom-right-radius: 0.25rem;
+  background: rgba(0, 100, 217, 0.1);
+  border: 1px solid rgba(0, 100, 217, 0.18);
 }
-
-.assistant-greeting { font-weight: 700; color: var(--primary-navy); }
-.assistant-link { color: var(--primary-blue-dark); text-decoration: underline; }
+.assistant-link {
+  color: var(--primary-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.assistant-link:hover { color: var(--primary-blue-dark); }
 .assistant-heading { display: inline-block; color: var(--primary-navy); }
-
 .assistant-note {
   margin-top: 0.35rem;
   font-size: 0.8rem;
   color: var(--text-light);
 }
 
+.assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 1rem 0.5rem;
+  flex-shrink: 0;
+}
+.assistant-chips[hidden] { display: none; }
+.assistant-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(0, 100, 217, 0.3);
+  background: rgba(0, 100, 217, 0.06);
+  color: var(--primary-blue);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.assistant-chip:hover,
+.assistant-chip:focus-visible { background: rgba(0, 100, 217, 0.12); border-color: var(--primary-blue); }
+.assistant-actions { padding: 6px 14px 2px; flex-shrink: 0; }
+.assistant-tour { width: 100%; justify-content: center; }
+
 .assistant-form {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.6rem 1rem;
   border-top: 1px solid var(--glass-border);
-  background: var(--bg-white);
   flex-shrink: 0;
 }
-
-.assistant-form .form-control {
+.assistant-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.9rem;
   font-size: 0.9rem;
+  color: var(--text-dark);
 }
-
-.assistant-form .btn {
+.assistant-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 0.25rem rgba(0, 100, 217, 0.3);
+}
+.assistant-send {
   flex-shrink: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border-radius: 50%;
-  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: var(--bg-white);
+  font-size: 0.95rem;
+  display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease;
 }
+.assistant-send:hover { transform: translateY(-2px); }
+.assistant-send:disabled { opacity: 0.6; transform: none; }
 
 .assistant-foot {
   margin: 0;
-  padding: 0 1rem 0.65rem;
-  font-size: 0.7rem;
-  line-height: 1.35;
+  padding: 0.4rem 1rem 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-light);
-  background: var(--bg-white);
+  text-align: center;
   flex-shrink: 0;
 }
 
@@ -1952,8 +1966,9 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   .assistant-launcher { width: 56px; height: 78px; }
   .assistant-panel {
     width: 100%;
-    height: calc(100vh - 1.5rem);
-    height: calc(100dvh - 1.5rem);
+    max-width: none;
+    max-height: min(540px, calc(100vh - 1.5rem));
+    max-height: min(540px, calc(100dvh - 1.5rem));
   }
 }
 
@@ -2194,6 +2209,10 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 
 body.has-cookie-notice { padding-bottom: 7rem; }
 @media (min-width: 576px) { body.has-cookie-notice { padding-bottom: 5.5rem; } }
+/* The assistant lifts above the notice while it is up, as Dynamo lifts above
+   dynamicshub.net's banner: otherwise the notice covers the input and the footnote. */
+body.has-cookie-notice .assistant { bottom: 7.5rem; }
+@media (min-width: 576px) { body.has-cookie-notice .assistant { bottom: 6rem; } }
 
 /*
  * Touch targets.
@@ -2290,8 +2309,6 @@ body.has-cookie-notice { padding-bottom: 7rem; }
 .onboarding-mascot { display: block; margin-left: auto; margin-right: auto; border-radius: 50%; }
 .onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); transition: background .15s, width .15s; }
 .onboarding-dot.on { width: 22px; border-radius: 99px; background: var(--primary-blue); }
-.assistant-tour { display: block; width: 100%; flex-shrink: 0; margin: 0; padding: .35rem 1rem; font-size: .8rem; text-align: left; background: var(--bg-white); border-top: 1px solid var(--glass-border); border-radius: 0; text-decoration: none; }
-.assistant-tour + .assistant-form { border-top: 0; }
 @media (prefers-reduced-motion: reduce) { .onboarding-dot { transition: none; } }
 
 /* ------------------------------------------------- /games/challenges ("the arena") */

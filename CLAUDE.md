@@ -901,8 +901,11 @@ the edges so the dark visor inside stays opaque; the head crop is the panel avat
 `config.assistant.name` (`ASSISTANT_NAME`, default "Asap"; the widget greets with "WhatSAP?" on a line of its own), read by BOTH the widget and the
 system prompt, so the two cannot introduce it differently — and it is a per-process constant,
 so the cached prefix stays byte-identical. The opening message is written on one line:
-messages are `pre-wrap`, and template indentation showed inside the bubble. **The widget's
-wording is Dynamo's, for SAP Hub, and a reply is rendered like Dynamo's** (2026-11-11): bold,
+messages are `pre-wrap`, and template indentation showed inside the bubble. **The widget is
+Dynamo's template, for SAP Hub** (2026-11-11): the greeting is one plain bubble opening
+"WhatSAP?" on its own line, the suggestions are pills under the messages, and the panel's
+sizes, bubbles, round send button and centred footnote are copied from dynamicshub.net's
+stylesheet in SAP blue; it lifts above the cookie notice. **A reply is rendered like Dynamo's**: bold,
 `##` headings, `[label](/path)` and bare `/paths` become `<strong>` and links, built from DOM
 nodes only (`renderReply` in `public/js/assistant.js`) — never `innerHTML`, and a link only for a
 same-origin relative path; the visitor's own text stays `textContent`. **The suggested

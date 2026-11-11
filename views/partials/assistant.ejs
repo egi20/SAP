@@ -20,44 +20,47 @@
       <i class="bi bi-x" aria-hidden="true"></i>
     </button>
     <button class="assistant-teaser-body" type="button" id="assistantTeaserOpen">
-      <strong>WhatSAP?</strong>
-      <span>I'm <%= assistantName %>, SAP Hub's AI assistant — ask me anything about the site.</span>
+      <strong>WhatSAP?</strong><br>I'm <%= assistantName %>, SAP Hub's AI assistant — ask me anything about the site.
     </button>
   </div>
 
   <section class="assistant-panel" id="assistantPanel" hidden aria-labelledby="assistantTitle">
     <header class="assistant-head">
-      <img class="assistant-avatar" src="/images/hub-assistant-head.webp?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" alt="" width="40" height="40">
+      <img class="assistant-avatar" src="/images/hub-assistant-head.webp?v=<%= typeof assetVersion !== 'undefined' ? assetVersion : '' %>" alt="" width="34" height="34">
       <h2 class="assistant-title mb-0" id="assistantTitle">
         <%= assistantName %> <span class="assistant-sub">Hub Assistant</span> <span class="assistant-badge">AI</span>
       </h2>
-      <button class="btn-close btn-close-white" type="button" id="assistantClose" aria-label="Close the assistant"></button>
+      <button class="assistant-close" type="button" id="assistantClose" aria-label="Close the assistant"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
     </header>
 
     <div class="assistant-log" id="assistantLog" role="log" aria-live="polite">
-      <%# One line on purpose: messages keep their whitespace (pre-wrap), so indentation would show. %>
-      <div class="assistant-msg assistant-msg-bot"><p class="assistant-greeting mb-1">WhatSAP?</p><p class="mb-0">I'm <%= assistantName %> — SAP Hub's AI assistant! I can help you find your way around: jobs, consultants, the rate index, the SOW and CV generators, pricing and more. What are you looking for?</p></div>
-      <%# Inside the log, under the greeting, so they scroll with it instead of eating the panel's height. %>
-      <div class="assistant-chips" id="assistantChips">
-        <span class="assistant-chips-label">Try asking</span>
-        <% ['How do I get started?', 'What does SAP Hub cost?', 'How does the SOW generator work?'].forEach(function (q) { %>
-          <button class="assistant-chip" type="button" data-ask="<%= q %>"><span><%= q %></span><i class="bi bi-arrow-right-short" aria-hidden="true"></i></button>
-        <% }); %>
-      </div>
+      <%# Dynamo's greeting for SAP Hub (owner, 2026-11-11), one bubble. Messages keep their whitespace (pre-wrap), so the
+          second line starts at column 0 and nothing else is indented inside it. %>
+      <div class="assistant-msg assistant-msg-bot"><p class="mb-0">WhatSAP?
+I'm <%= assistantName %>, SAP Hub's AI assistant! I can help you find your way around: jobs, talent, the SOW and CV generators, pricing and more. What are you looking for?</p></div>
+    </div>
+
+    <%# Under the messages, as on dynamicshub.net; they go once a conversation starts. %>
+    <div class="assistant-chips" id="assistantChips">
+      <% ['How do I get started?', 'What does SAP Hub cost?', 'How does the SOW generator work?'].forEach(function (q) { %>
+        <button class="assistant-chip" type="button" data-ask="<%= q %>"><%= q %></button>
+      <% }); %>
     </div>
 
     <% if (typeof currentUser !== 'undefined' && currentUser) { %>
       <%# Outside the chips, which go once a conversation starts: this is the only way back to the tour. %>
-      <button class="assistant-tour btn btn-link btn-sm" type="button" id="assistantTour"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>Replay the welcome tour</button>
+      <div class="assistant-actions">
+        <button class="assistant-chip assistant-tour" type="button" id="assistantTour"><i class="bi bi-compass me-1" aria-hidden="true"></i>Replay the welcome tour</button>
+      </div>
     <% } %>
 
     <form class="assistant-form" id="assistantForm" data-no-guard="true">
       <label class="visually-hidden" for="assistantInput">Your question</label>
-      <input class="form-control" type="text" id="assistantInput" name="message"
+      <input class="assistant-input" type="text" id="assistantInput" name="message"
              maxlength="<%= assistantMaxChars %>" autocomplete="off"
              placeholder="Ask about SAP Hub...">
-      <button class="btn btn-primary" type="submit" id="assistantSend">
-        <i class="bi bi-send" aria-hidden="true"></i>
+      <button class="assistant-send" type="submit" id="assistantSend">
+        <i class="bi bi-send-fill" aria-hidden="true"></i>
         <span class="visually-hidden">Send</span>
       </button>
     </form>
