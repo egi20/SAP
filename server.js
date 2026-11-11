@@ -54,7 +54,7 @@ const { isUploadPath } = require('./middleware/fileUpload');
 const { captureReferralCode } = require('./middleware/referral');
 const { notFound, errorHandler, asyncHandler } = require('./middleware/errorHandler');
 const { visitGeo, isOwnTraffic } = require('./middleware/visitGeo');
-const { sanitizeRichText, toPlainText, jsonForScript } = require('./utils/sanitize');
+const { sanitizeRichText, sanitizePostBody, toPlainText, jsonForScript } = require('./utils/sanitize');
 
 /*
  * Fail fast rather than degrade silently.
@@ -337,6 +337,14 @@ app.use(
     immutable: config.isProduction
   })
 );
+// Quill, the formatted editor on "Write a post". Only its dist folder is exposed.
+app.use(
+  '/vendor/quill',
+  express.static(path.join(__dirname, 'node_modules', 'quill', 'dist'), {
+    maxAge: '30d',
+    immutable: config.isProduction
+  })
+);
 app.use(
   '/vendor/bootstrap-icons',
   express.static(path.join(__dirname, 'node_modules', 'bootstrap-icons', 'font'), {
@@ -463,6 +471,7 @@ app.use((req, res, next) => {
     info: req.flash('info')
   };
   res.locals.sanitizeRichText = sanitizeRichText;
+  res.locals.sanitizePostBody = sanitizePostBody;
   res.locals.toPlainText = toPlainText;
   res.locals.jsonForScript = jsonForScript;
   res.locals.countryName = countryName;

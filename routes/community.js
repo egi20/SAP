@@ -13,7 +13,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { requireIdParam } = require('../utils/ids');
 const { returnTo } = require('../utils/returnTo');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
-const { sanitizeRichText, toPlainText } = require('../utils/sanitize');
+const { sanitizeRichText, sanitizePostBody, toPlainText } = require('../utils/sanitize');
 const { POST_KINDS, isPostKind, postKind } = require('../config/community');
 
 const router = express.Router();
@@ -112,7 +112,7 @@ router.post(
       categoryId: Number(req.body.category_id),
       kind: req.body.kind,
       title: req.body.title.trim(),
-      body: sanitizeRichText(req.body.body),
+      body: sanitizePostBody(req.body.body),
       /*
        * The flag is read from the form and then checked HERE against the session, never
        * trusted from the body. A posted `is_editorial=on` from an ordinary member is

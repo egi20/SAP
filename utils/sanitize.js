@@ -37,6 +37,59 @@ function sanitizeRichText(html) {
   return sanitizeHtml(String(html), RICH_TEXT_OPTIONS);
 }
 
+/*
+ * Community post bodies additionally keep <img>, so an article can carry a diagram
+ * (typically an SVG embedded as a data: URI). Only the post body, not replies, bios or
+ * job adverts: those fields never needed pictures and widening them widens every page
+ * that renders one.
+ *
+ * An SVG loaded through <img> is a picture, not a document: the browser runs none of its
+ * scripts and fetches none of its external resources, so the data: URI is safe. Only
+ * image media types are let through. A src that is anything else is removed, and an <img>
+ * left without a src is dropped entirely rather than rendered as a broken box.
+ */
+const IMAGE_DATA_URI = /^data:image\/(?:svg\+xml|png|jpeg|gif|webp)(?:;[a-z0-9=._+-]+)*,/i;
+const IMAGE_DIMENSION = /^\d{1,4}$/;
+
+function isAllowedImageSrc(src) {
+  const value = String(src || '').trim();
+  if (IMAGE_DATA_URI.test(value)) return true;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+const POST_BODY_OPTIONS = {
+  ...RICH_TEXT_OPTIONS,
+  allowedTags: [...RICH_TEXT_OPTIONS.allowedTags, 'img'],
+  allowedAttributes: {
+    ...RICH_TEXT_OPTIONS.allowedAttributes,
+    img: ['src', 'alt', 'title', 'width', 'height']
+  },
+  allowedSchemesByTag: { img: ['https', 'data'] },
+  transformTags: {
+    ...RICH_TEXT_OPTIONS.transformTags,
+    img: (tagName, attribs) => {
+      const out = {};
+      if (isAllowedImageSrc(attribs.src)) out.src = String(attribs.src).trim();
+      if (attribs.alt) out.alt = attribs.alt;
+      if (attribs.title) out.title = attribs.title;
+      for (const dim of ['width', 'height']) {
+        if (IMAGE_DIMENSION.test(String(attribs[dim] || ''))) out[dim] = attribs[dim];
+      }
+      return { tagName, attribs: out };
+    }
+  },
+  exclusiveFilter: (frame) => frame.tag === 'img' && !frame.attribs.src
+};
+
+function sanitizePostBody(html) {
+  if (!html) return '';
+  return sanitizeHtml(String(html), POST_BODY_OPTIONS);
+}
+
 /** Strip all markup, e.g. for meta descriptions and list previews. */
 function toPlainText(html, maxLength = 0) {
   if (!html) return '';
@@ -65,4 +118,4 @@ function jsonForScript(value) {
     .replace(/\u2029/g, '\\u2029');
 }
 
-module.exports = { sanitizeRichText, toPlainText, jsonForScript };
+module.exports = { sanitizeRichText, sanitizePostBody, toPlainText, jsonForScript };

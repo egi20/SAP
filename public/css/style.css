@@ -2614,3 +2614,18 @@ body.has-cookie-notice .assistant { bottom: 7.5rem; }
 .country-donut .cd-pct { font-variant-numeric: tabular-nums; text-align: right; }
 .agent-country-btn { white-space: nowrap; }
 .agent-modal-scroll { max-height: 280px; overflow-y: auto; }
+
+/* "Write a post": the Quill editor, and pictures (SVG diagrams) in a published post. */
+.post-editor .ql-container {
+  min-height: 22rem;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.post-editor .ql-editor {
+  min-height: 22rem;
+}
+.post-editor .ql-editor img,
+.post-body img {
+  max-width: 100%;
+  height: auto;
+}
