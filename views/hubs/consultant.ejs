@@ -24,9 +24,24 @@
         { href: '/community', icon: 'bi-people', tone: 'icon-info', title: 'Ask and answer',
           body: 'Questions, discussions and write-ups from people doing the same work. Answering builds a standing that shows on your profile.' }
       ];
+      /*
+       * Only what this account can actually open (owner, 2026-11-11), as on Company Hub.
+       * "Build a profile" pointed at /auth/register for everybody, which bounces anybody
+       * already signed in. A visitor keeps it (sign-up is the way in); a consultant is sent
+       * to their own profile; any other signed-in account loses the card and gets one line
+       * saying what would add it, because /profile/consultant would refuse them.
+       */
+      const viewer = typeof currentUser !== 'undefined' ? currentUser : null;
+      const canBuild = Boolean(viewer && viewer.isConsultant);
+      const shown = cards
+        .filter(function (c) { return c.href !== '/auth/register' || !viewer || canBuild; })
+        .map(function (c) {
+          return c.href === '/auth/register' && canBuild ? Object.assign({}, c, { href: '/profile/consultant' }) : c;
+        });
+      const colClass = shown.length === 3 ? 'col-md-4' : 'col-md-6';
     %>
-    <% cards.forEach(function (c) { %>
-      <div class="col-md-6">
+    <% shown.forEach(function (c) { %>
+      <div class="<%= colClass %>">
         <a class="glass-card d-block h-100 text-reset" href="<%= c.href %>">
           <div class="card-body">
             <span class="icon-tile icon-tile-sm <%= c.tone %> mb-2"><i class="bi <%= c.icon %>"></i></span>
@@ -37,6 +52,13 @@
       </div>
     <% }) %>
   </div>
+  <% if (viewer && !canBuild) { %>
+    <p class="small text-muted-2 mb-4">
+      <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+      Building a profile needs the consultant role on your account —
+      <a href="/profile/settings#roles">add “Find work as a consultant” in Settings</a>.
+    </p>
+  <% } %>
 
   <div class="glass-card mb-4"><div class="card-body">
     <h2 class="h5 mb-3">Why a profile here is different</h2>

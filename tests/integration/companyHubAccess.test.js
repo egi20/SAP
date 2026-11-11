@@ -32,6 +32,7 @@ async function signUp(email, roles) {
 }
 
 const POST_CARD = /href="\/jobs\/new">\s*<div class="card-body">/;
+const card = (href) => new RegExp(`href="${href}">\\s*<div class="card-body">`);
 
 maybe()('Company Hub', () => {
   beforeAll(() => {
@@ -58,5 +59,33 @@ maybe()('Company Hub', () => {
     expect(res.text).toMatch(POST_CARD);
     expect(res.text).not.toContain('Posting a role needs');
     expect((await agent.get('/jobs/new')).status).toBe(200);
+  });
+});
+
+maybe()('Consultant Hub', () => {
+  beforeAll(() => {
+    app = require('../../server');
+  });
+
+  test('a visitor is sent to sign-up to build a profile', async () => {
+    const res = await request(app).get('/consultant-hub');
+    expect(res.text).toMatch(card('/auth/register'));
+    expect(res.text).not.toContain('Building a profile needs');
+  });
+
+  test('a consultant is sent to their own profile, which opens', async () => {
+    const agent = await signUp(`hub2-consultant-${run}@example.test`, 'consultant');
+    const res = await agent.get('/consultant-hub');
+    expect(res.text).toMatch(card('/profile/consultant'));
+    expect(res.text).not.toMatch(card('/auth/register'));
+    expect((await agent.get('/profile/consultant')).status).toBe(200);
+  });
+
+  test('a company account is pointed at the roles form instead', async () => {
+    const agent = await signUp(`hub2-company-${run}@example.test`, 'company');
+    const res = await agent.get('/consultant-hub');
+    expect(res.text).not.toMatch(card('/auth/register'));
+    expect(res.text).not.toMatch(card('/profile/consultant'));
+    expect(res.text).toContain('Building a profile needs the consultant role');
   });
 });

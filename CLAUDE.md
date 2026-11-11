@@ -1642,6 +1642,8 @@ anywhere else.
 card goes to `/jobs/new`, guarded by the company role, so it renders only for an account with
 that flag; anybody else sees the other three cards and one line saying what would add it (the
 roles form when signed in, sign-up otherwise). A card that lands on a refusal reads as broken.
+Consultant Hub's "Build a profile" follows the same rule: sign-up for a visitor, the member's own
+`/profile/consultant` for a consultant, and the line pointing at the roles form for anybody else.
 
 **No landing page carries a number that moves** — no consultant count, no average rate.
 Same rule as `/about`: a figure nobody owns is a figure nobody updates.
