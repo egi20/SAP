@@ -44,7 +44,7 @@
     }).catch(function () { /* best-effort: the next page asks again, which is the honest failure */ });
   }
 
-  /* The assistant's "Show me the welcome tour" calls this — the only way back to it. */
+  /* The assistant's "Replay the welcome tour" calls this — the only way back to it. */
   window.saphubOpenOnboarding = function () {
     show(0);
     modal.show();

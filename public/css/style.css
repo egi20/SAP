@@ -1872,8 +1872,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
   border-radius: var(--radius-lg);
   font-size: 0.9rem;
   line-height: 1.5;
-  /* The model's reply is inserted with textContent, so its own line breaks are the
-     only formatting it has; a pasted path must wrap rather than widen the panel. */
+  /* A reply keeps its own line breaks (renderReply in public/js/assistant.js adds only
+     bold, headings and links); a pasted path must wrap rather than widen the panel. */
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -1895,6 +1895,8 @@ a.glass-card:hover, .glass-card-hover:hover { transform: translateY(-4px); text-
 }
 
 .assistant-greeting { font-weight: 700; color: var(--primary-navy); }
+.assistant-link { color: var(--primary-blue-dark); text-decoration: underline; }
+.assistant-heading { display: inline-block; color: var(--primary-navy); }
 
 .assistant-note {
   margin-top: 0.35rem;

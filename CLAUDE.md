@@ -901,7 +901,11 @@ the edges so the dark visor inside stays opaque; the head crop is the panel avat
 `config.assistant.name` (`ASSISTANT_NAME`, default "Asap"; the widget greets with "WhatSAP?" on a line of its own), read by BOTH the widget and the
 system prompt, so the two cannot introduce it differently — and it is a per-process constant,
 so the cached prefix stays byte-identical. The opening message is written on one line:
-messages are `pre-wrap`, and template indentation showed inside the bubble. **The suggested
+messages are `pre-wrap`, and template indentation showed inside the bubble. **The widget's
+wording is Dynamo's, for SAP Hub, and a reply is rendered like Dynamo's** (2026-11-11): bold,
+`##` headings, `[label](/path)` and bare `/paths` become `<strong>` and links, built from DOM
+nodes only (`renderReply` in `public/js/assistant.js`) — never `innerHTML`, and a link only for a
+same-origin relative path; the visitor's own text stays `textContent`. **The suggested
 questions live INSIDE the log, under the greeting, and the launcher hides while the panel is
 open** (`.assistant.is-open`, 2026-11-10): with the chips below the log and the launcher
 stacked under the panel, a short viewport left the log about 150px and cut the greeting off
@@ -1973,7 +1977,7 @@ script or a failed request turn the next sign-in into another "first" one. `publ
 posts `/dashboard/onboarded` as the modal opens, which only clears the session flag, so the
 next page of the same visit does not open it again. Step buttons open a new tab, and a 15-second
 localStorage marker keeps that tab from opening it too. **There is no URL that opens it** — no
-`?tour=1`, no menu item: the assistant's "Show me the welcome tour" button (outside the chips,
+`?tour=1`, no menu item: the assistant's "Replay the welcome tour" button (outside the chips,
 which go once a conversation starts) is the only way back, and a test greps the script for a
 query-string trigger. Migration 036 dated every account that had already signed in to its
 `last_login_at`, so nobody is shown a "first sign-in" tour on their hundredth; an account that

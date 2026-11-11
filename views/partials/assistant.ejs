@@ -36,11 +36,11 @@
 
     <div class="assistant-log" id="assistantLog" role="log" aria-live="polite">
       <%# One line on purpose: messages keep their whitespace (pre-wrap), so indentation would show. %>
-      <div class="assistant-msg assistant-msg-bot"><p class="assistant-greeting mb-1">WhatSAP?</p><p class="mb-0">I'm <%= assistantName %>, SAP Hub's AI assistant. I can help you find your way around — jobs, consultants, the rate index, the scope estimator, quotes and the community. I cannot see your account, and I do not give SAP consulting advice.</p></div>
+      <div class="assistant-msg assistant-msg-bot"><p class="assistant-greeting mb-1">WhatSAP?</p><p class="mb-0">I'm <%= assistantName %> — SAP Hub's AI assistant! I can help you find your way around: jobs, consultants, the rate index, the SOW and CV generators, pricing and more. What are you looking for?</p></div>
       <%# Inside the log, under the greeting, so they scroll with it instead of eating the panel's height. %>
       <div class="assistant-chips" id="assistantChips">
         <span class="assistant-chips-label">Try asking</span>
-        <% ['How do I get started?', 'How does the rate index work?', 'How do I get an SOW quote?'].forEach(function (q) { %>
+        <% ['How do I get started?', 'What does SAP Hub cost?', 'How does the SOW generator work?'].forEach(function (q) { %>
           <button class="assistant-chip" type="button" data-ask="<%= q %>"><span><%= q %></span><i class="bi bi-arrow-right-short" aria-hidden="true"></i></button>
         <% }); %>
       </div>
@@ -48,24 +48,22 @@
 
     <% if (typeof currentUser !== 'undefined' && currentUser) { %>
       <%# Outside the chips, which go once a conversation starts: this is the only way back to the tour. %>
-      <button class="assistant-tour btn btn-link btn-sm" type="button" id="assistantTour"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>Show me the welcome tour</button>
+      <button class="assistant-tour btn btn-link btn-sm" type="button" id="assistantTour"><i class="bi bi-signpost-2 me-1" aria-hidden="true"></i>Replay the welcome tour</button>
     <% } %>
 
     <form class="assistant-form" id="assistantForm" data-no-guard="true">
       <label class="visually-hidden" for="assistantInput">Your question</label>
       <input class="form-control" type="text" id="assistantInput" name="message"
              maxlength="<%= assistantMaxChars %>" autocomplete="off"
-             placeholder="Ask about SAP Hub…">
+             placeholder="Ask about SAP Hub...">
       <button class="btn btn-primary" type="submit" id="assistantSend">
         <i class="bi bi-send" aria-hidden="true"></i>
         <span class="visually-hidden">Send</span>
       </button>
     </form>
 
-    <p class="assistant-foot">
-      Answers come from a language model and can be wrong. Nothing you type here is stored
-      on the server.
-    </p>
+    <%# Dynamo's footnote, word for word, for SAP Hub (owner, 2026-11-11). %>
+    <p class="assistant-foot">AI assistant &mdash; may make mistakes. For account issues use <a href="/contact">Contact</a>.</p>
   </section>
 
   <button class="assistant-launcher" type="button" id="assistantLauncher"

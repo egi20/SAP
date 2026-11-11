@@ -50,14 +50,95 @@
     }
   }
 
-  /** Text only. Nothing the model returns is ever inserted as markup. */
+  /*
+   * The model writes light markdown — **bold**, "## " headings, [label](/path) links and
+   * bare /paths — and dynamicshub.net's Dynamo shows it formatted, while this panel printed
+   * the asterisks and hashes (owner, 2026-11-11: "the same writing as dynamicshub.net").
+   *
+   * It is built from DOM nodes ONLY — createElement and createTextNode, never innerHTML —
+   * because model output is steerable by whoever types into the box, and parsing it as
+   * markup would be a stored XSS one prompt away. A link is made only for a same-origin
+   * RELATIVE path (no scheme, no `//host`); anything else stays plain text.
+   */
+  var SAFE_PATH = /^\/(?!\/)[A-Za-z0-9\-._~\/]*(?:\?[A-Za-z0-9\-._~=&]*)?(?:#[A-Za-z0-9\-._~]*)?$/;
+
+  function appendLink(parent, label, href) {
+    if (!SAFE_PATH.test(href)) {
+      parent.appendChild(document.createTextNode(label));
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = href;
+    a.className = 'assistant-link';
+    a.textContent = label;
+    parent.appendChild(a);
+  }
+
+  // Bare site paths inside plain text become links: " /jobs." -> an anchor.
+  function appendLinkified(parent, text) {
+    var pathRe = /(^|[\s(])(\/[a-z][a-z0-9\-_]*(?:\/[a-z0-9\-_]+)*)/gi;
+    var last = 0;
+    var m;
+    while ((m = pathRe.exec(text)) !== null) {
+      var start = m.index + m[1].length;
+      parent.appendChild(document.createTextNode(text.slice(last, start)));
+      appendLink(parent, m[2], m[2]);
+      last = start + m[2].length;
+    }
+    parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+
+  function appendRichText(parent, text) {
+    var boldRe = /\*\*([^*\n]{1,120})\*\*/g;
+    var last = 0;
+    var m;
+    while ((m = boldRe.exec(text)) !== null) {
+      appendLinkified(parent, text.slice(last, m.index));
+      var strong = document.createElement('strong');
+      appendLinkified(strong, m[1]);
+      parent.appendChild(strong);
+      last = m.index + m[0].length;
+    }
+    appendLinkified(parent, text.slice(last));
+  }
+
+  function renderInline(parent, text) {
+    var mdLinkRe = /\[([^\]\n]{1,100})\]\((\/[^\s)]{0,200})\)/g;
+    var last = 0;
+    var m;
+    while ((m = mdLinkRe.exec(text)) !== null) {
+      appendRichText(parent, text.slice(last, m.index));
+      appendLink(parent, m[1], m[2]);
+      last = m.index + m[0].length;
+    }
+    appendRichText(parent, text.slice(last));
+  }
+
+  function renderReply(parent, text) {
+    var lines = String(text).split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      if (i > 0) parent.appendChild(document.createTextNode('\n'));
+      var heading = lines[i].match(/^#{1,4}\s+(.*)$/);
+      if (heading) {
+        var strong = document.createElement('strong');
+        strong.className = 'assistant-heading';
+        renderInline(strong, heading[1]);
+        parent.appendChild(strong);
+      } else {
+        renderInline(parent, lines[i]);
+      }
+    }
+  }
+
+  /** The visitor's own text stays textContent; a reply goes through renderReply. */
   function bubble(role, text, options) {
     var wrap = document.createElement('div');
     wrap.className = 'assistant-msg assistant-msg-' + (role === 'user' ? 'user' : 'bot');
 
     var p = document.createElement('p');
     p.className = 'mb-0';
-    p.textContent = text;
+    if (role === 'user') p.textContent = text;
+    else renderReply(p, text);
     wrap.appendChild(p);
 
     if (options && options.note) {
