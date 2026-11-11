@@ -7,7 +7,7 @@ const User = require('../models/User');
 const Token = require('../models/Token');
 const Referral = require('../models/Referral');
 const SalesAgent = require('../models/SalesAgent');
-const { countAgentOpen } = require('../utils/agentOpens');
+const { countAgentOpen, countOpenForSignup } = require('../utils/agentOpens');
 const ConsultantProfile = require('../models/ConsultantProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const { isGuest, isAuthenticated } = require('../middleware/auth');
@@ -151,7 +151,11 @@ router.post(
     // A sales agent's link, the same way round: the session (from the link followed) before
     // the posted field. Measured, never paid — this is not the referral scheme.
     const agentCode = req.session.salesAgentCode || SalesAgent.normaliseCode(req.body.a) || null;
-    if (agentCode) await SalesAgent.attribute(agentCode, user.id);
+    if (agentCode) {
+      const credited = await SalesAgent.attribute(agentCode, user.id);
+      // A credited sign-up is an open by definition; count it if this session's was missed.
+      if (credited) await countOpenForSignup(req, credited);
+    }
     delete req.session.salesAgentCode;
 
 

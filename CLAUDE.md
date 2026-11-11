@@ -1178,6 +1178,14 @@ the address left in the bar after the redirect, which agents copy and share — 
 sign-ups from 7 opens. `utils/agentOpens.js` `countAgentOpen` is called from both routes, once
 per session per agent (the redirect cannot count twice), with the same person/preview filters.
 Opens through the copied address before that day were never recorded and are not recoverable.
+**A credited sign-up IS an open, so Opens can never read below Signed up** (2026-11-11). The
+row still read 27 from 10: the hidden `a` field carries the code when the session that opened
+the link is gone, and the user-agent filters can misjudge an in-app browser. `SalesAgent.attribute`
+returns the agent it credited, and `countOpenForSignup` counts that session's open if it was
+missed — without the UA filters, because a fetcher does not fill in a registration form.
+Migration 043 raised every lifetime counter to at least its credited sign-ups: the smallest
+figure the rows prove, invented nothing; no dated row is written, so the 24h column stays what
+was seen. Missed opens that never became a sign-up stay unrecoverable, so an old Rate is high.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";

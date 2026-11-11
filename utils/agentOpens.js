@@ -42,4 +42,27 @@ async function countAgentOpen(req, agent) {
   }
 }
 
-module.exports = { LINK_PREVIEW, countAgentOpen };
+/**
+ * A sign-up has just been credited to `agent`. If this session never had its open counted
+ * (2026-11-11), count it now. A credited sign-up IS a person who arrived carrying the code —
+ * the definition of an open — so the user-agent filters do not apply here: they exist to
+ * keep fetchers and bots out, and a fetcher does not fill in a registration form. Without
+ * this, a session the filters misjudged, or one that lost its cookie between the link and
+ * the form (the hidden `a` field still carries the code), produced a sign-up with no open,
+ * and the row read more sign-ups than opens.
+ */
+async function countOpenForSignup(req, agent) {
+  try {
+    if (!agent || !req.session) return false;
+    const counted = Array.isArray(req.session.salesAgentOpens) ? req.session.salesAgentOpens : [];
+    if (counted.includes(agent.code)) return false;
+    req.session.salesAgentOpens = [...counted, agent.code].slice(-10);
+    await SalesAgent.countOpen(agent.user_id);
+    return true;
+  } catch (err) {
+    console.error(`Sales agent open not counted: ${err.message}`);
+    return false;
+  }
+}
+
+module.exports = { LINK_PREVIEW, countAgentOpen, countOpenForSignup };

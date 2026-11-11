@@ -131,7 +131,10 @@
     the 24-hour opens figure has no history before that day.
     Until 28 October 2026 opens made inside the LinkedIn app were not counted (the filter took
     LinkedIn's in-app browser for its link-preview robot) while the sign-ups behind them were, so an
-    older row can show more sign-ups than opens; new opens from LinkedIn are counted.
+    older row could show more sign-ups than opens. Since 11 November 2026 every credited sign-up
+    counts as an open if its visit was missed, and older rows were raised to at least their
+    sign-ups, so Opens is never below Signed up. Opens that did not end in a sign-up and were
+    missed before then are not recoverable, so an older Rate still reads high.
   </div>
 </div>
 

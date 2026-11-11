@@ -75,7 +75,8 @@ class SalesAgent {
 
   /**
    * Credit a new account to the agent whose link it came through. First touch: the WHERE
-   * refuses to overwrite, and an agent cannot be credited with their own account.
+   * refuses to overwrite, and an agent cannot be credited with their own account. Returns
+   * the agent credited (truthy) or false.
    */
   static async attribute(rawCode, newUserId) {
     try {
@@ -85,7 +86,7 @@ class SalesAgent {
         'UPDATE users SET sales_agent_id = ? WHERE id = ? AND sales_agent_id IS NULL',
         [agent.user_id, newUserId]
       );
-      return result.affectedRows > 0;
+      return result.affectedRows > 0 ? agent : false;
     } catch (err) {
       // A sign-up has already succeeded; failing to note whose link it was must not undo it.
       console.error(`Sales agent attribution failed: ${err.message}`);

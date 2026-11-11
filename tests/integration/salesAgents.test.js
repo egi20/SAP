@@ -138,6 +138,29 @@ maybe()('sales agents', () => {
     expect((await SalesAgent.findByUserId(agentUser.id)).link_opens).toBe(before + 1);
   });
 
+  it('a credited sign-up whose session never counted an open counts one, so sign-ups never outrun opens', async () => {
+    /*
+     * The hidden `a` field carries the code even when the session that opened the link is
+     * gone, and the user-agent filters can misjudge an in-app browser. Either way the
+     * sign-up was credited with no open behind it, and a row read 27 sign-ups from 10
+     * opens (2026-11-11). A credited sign-up is an open by definition.
+     */
+    const agentUser = await User.findByEmail(AGENT);
+    const { code } = await SalesAgent.findByUserId(agentUser.id);
+    const before = (await SalesAgent.findByUserId(agentUser.id)).link_opens;
+    const visitor = request.agent(app);
+    const page = await visitor.get('/auth/register').set('User-Agent', BROWSER);
+    const email = `agents-visitor-late-${run}@example.test`;
+    await visitor.post('/auth/register').set('User-Agent', BROWSER).type('form').send({
+      _csrf: page.text.match(CSRF)[1], email, name: 'Agent Visitor', password: 'Sup3rSecret', confirm_password: 'Sup3rSecret',
+      user_types: 'consultant', terms: 'on', a: code
+    });
+    expect((await User.findByEmail(email)).sales_agent_id).toBe(agentUser.id);
+    expect((await SalesAgent.findByUserId(agentUser.id)).link_opens).toBe(before + 1);
+    const [row] = (await SalesAgent.listAll()).filter((a) => a.user_id === agentUser.id);
+    expect(row.link_opens).toBeGreaterThanOrEqual(row.signups);
+  });
+
   it("the agent sees their link and who came through it on the dashboard, without email addresses", async () => {
     const agentUser = await User.findByEmail(AGENT);
     const { code } = await SalesAgent.findByUserId(agentUser.id);
