@@ -232,6 +232,17 @@ class User {
   }
 
   /** Admin-only: set the exact role set, including removal and privileged roles. */
+  /**
+   * The roles a user row holds, read from its flags plus the admin primary type. Used where
+   * a role is ADDED from a shell, so adding one never removes the others.
+   */
+  static rolesHeld(row) {
+    if (!row) return [];
+    const held = Object.keys(ROLE_FLAG_COLUMN).filter((r) => Number(row[ROLE_FLAG_COLUMN[r]]) === 1);
+    if (row.user_type === 'admin') held.push('admin');
+    return held;
+  }
+
   static async adminSetRoles(userId, roles, { primary = null } = {}) {
     const finalRoles = ALL_ROLES.filter((r) => (roles || []).includes(r));
     const primaryRole = primary && finalRoles.includes(primary) ? primary : resolvePrimaryRole(finalRoles);

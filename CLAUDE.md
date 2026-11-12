@@ -646,6 +646,12 @@ nothing to do with validation. Assert the limiter's configuration from the sourc
 screens add `isSuperadmin` on top of that. Per-route guards on a surface this size is how
 one route ends up without one.
 
+**`npm run create-admin` ADDS admin; it never takes a role away** (2026-11-12). On an existing
+account it used to set the roles to `['admin']` alone, so promoting an account that was a
+consultant and a company silently removed both. It now keeps what `User.rolesHeld` reads from
+the row and adds admin + superadmin, password untouched. One account holding all three is the
+owner's way to walk the whole site (`create-user … consultant,company`, then `create-admin`).
+
 **Superadmin is not decoration.** It gates the three things an ordinary admin account
 should not be able to do alone: change anybody's roles or active state, read contributed
 rates next to the people who gave them, and flip the switches that close registration or

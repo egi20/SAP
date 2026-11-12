@@ -51,10 +51,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
        * on a machine where this script can run, that would be an account takeover with a
        * convenient wrapper.
        */
-      await User.adminSetRoles(existing.id, ['admin'], { primary: 'admin' });
+      // ADD admin to what the account already holds (2026-11-12). This used to set the
+      // roles to ['admin'] alone, which silently took the consultant and company roles off
+      // an account somebody wanted to walk the whole site with.
+      const kept = User.rolesHeld(existing).filter((r) => r !== 'admin');
+      await User.adminSetRoles(existing.id, [...kept, 'admin'], { primary: 'admin' });
       await User.setSuperadmin(existing.id, true);
       await User.setEmailVerified(existing.id);
-      console.log(`${email} already existed and is now a superadmin. Its password is unchanged.`);
+      console.log(`${email} already existed and is now a superadmin${kept.length ? `, keeping: ${kept.join(', ')}` : ''}. Its password is unchanged.`);
       return;
     }
 
