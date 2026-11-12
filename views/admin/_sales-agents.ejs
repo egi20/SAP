@@ -50,6 +50,8 @@
           <th class="text-end" title="Opens in the last 24 hours. Counted from 28 October 2026; earlier opens carry no time">Opened (24h)</th>
           <th class="text-end">Signed up</th>
           <th class="text-end" title="Accounts registered through this link in the last 24 hours">Signed up (24h)</th>
+          <th class="text-end" title="People who opened this agent's tax optimisation link (/t/&lt;code&gt;), once per browser session; link previews and robots are not counted. Counted from 12 November 2026">Tax opens</th>
+          <th class="text-end" title="Tax link opens in the last 24 hours, by the same rules">Tax opens (24h)</th>
           <th title="The country most of these sign-ups are from. Click it for the full split and the people">Top country</th>
           <th class="text-end" title="Sign-ups as a share of opens">Rate</th>
           <th class="text-end">Verified</th>
@@ -59,7 +61,7 @@
       </thead>
       <tbody>
         <% if (!agents.length) { %>
-          <tr><td colspan="11" class="text-muted-2">No sales agents yet. Add one above.</td></tr>
+          <tr><td colspan="13" class="text-muted-2">No sales agents yet. Add one above.</td></tr>
         <% } %>
         <% agents.forEach(function (a) { %>
           <tr class="<%= a.is_active ? '' : 'text-muted-2' %>">
@@ -72,6 +74,10 @@
             <td>
               <code class="small"><%= linkFor(a.code) %></code>
               <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-copy="<%= linkFor(a.code) %>" aria-label="Copy the link"><i class="bi bi-clipboard"></i></button>
+              <span class="d-block small mt-1" title="Tax optimisation link: the same code, landing on /tax">
+                <i class="bi bi-calculator me-1" aria-hidden="true"></i><code class="small"><%= taxLinkFor(a.code) %></code>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-copy="<%= taxLinkFor(a.code) %>" aria-label="Copy the tax link"><i class="bi bi-clipboard"></i></button>
+              </span>
             </td>
             <td class="text-end"><%= a.link_opens %></td>
             <td class="text-end"><%= a.opens_24h %></td>
@@ -80,6 +86,8 @@
               <% if (a.signups) { %><span class="small text-muted-2 d-block"><%= a.consultants %> consultant · <%= a.companies %> company</span><% } %>
             </td>
             <td class="text-end"><%= a.signups_24h %></td>
+            <td class="text-end"><%= a.tax_opens %></td>
+            <td class="text-end"><%= a.tax_opens_24h %></td>
             <td><%- include('./_top-country', { geo: agentCountries[a.user_id], modalId: 'agent-countries-' + a.user_id }) %></td>
             <td class="text-end"><%= pct(a.signups, a.link_opens) %></td>
             <td class="text-end"><%= a.verified %></td>
@@ -114,6 +122,8 @@
             <span class="small text-muted-2 d-block"><%= pct(direct.signups, direct.all_accounts) %> of all <%= direct.all_accounts %> accounts</span>
           </td>
           <td class="text-end"><%= direct.signups_24h %></td>
+          <td class="text-end text-muted-2">—</td>
+          <td class="text-end text-muted-2">—</td>
           <td><%- include('./_top-country', { geo: directCountries, modalId: 'agent-countries-direct' }) %></td>
           <td class="text-end text-muted-2">—</td>
           <td class="text-end"><%= direct.verified %></td>

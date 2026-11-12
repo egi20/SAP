@@ -65,4 +65,27 @@ async function countOpenForSignup(req, agent) {
   }
 }
 
-module.exports = { LINK_PREVIEW, countAgentOpen, countOpenForSignup };
+/**
+ * Count one open of an agent's TAX link (`/t/<code>`, 2026-11-12) — the same person and
+ * preview filters as the sign-up link, once per session per agent, but in its OWN session
+ * list: opening the sign-up link must not use up the tax link's open, nor the other way
+ * round. Best-effort, like the sign-up counter.
+ */
+async function countAgentTaxOpen(req, agent) {
+  try {
+    if (!agent || !req.session) return false;
+    // The agent checking their own link is not somebody looking at the programme.
+    if (req.session.user && req.session.user.id === agent.user_id) return false;
+    const ua = req.get('user-agent') || '';
+    const counted = Array.isArray(req.session.salesAgentTaxOpens) ? req.session.salesAgentTaxOpens : [];
+    if (!looksLikeAPerson(ua) || LINK_PREVIEW.test(ua) || counted.includes(agent.code)) return false;
+    req.session.salesAgentTaxOpens = [...counted, agent.code].slice(-10);
+    await SalesAgent.countTaxOpen(agent.user_id);
+    return true;
+  } catch (err) {
+    console.error(`Sales agent tax-link open not counted: ${err.message}`);
+    return false;
+  }
+}
+
+module.exports = { LINK_PREVIEW, countAgentOpen, countOpenForSignup, countAgentTaxOpen };

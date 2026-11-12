@@ -900,7 +900,8 @@ router.get(
         overallCountries: geoOf(countries.overall),
         countryLabel,
         geoNote: 'The country stated on the profile; where none is stated yet, the country of the address they signed up from (marked "sign-up IP").',
-        linkFor: (code) => `${config.app.baseUrl}/s/${code}`
+        linkFor: (code) => `${config.app.baseUrl}/s/${code}`,
+        taxLinkFor: (code) => `${config.app.baseUrl}/t/${code}`
       });
     }
 

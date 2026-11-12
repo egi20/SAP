@@ -92,7 +92,7 @@ router.get(
     let salesAgent = null;
     if (agentStats && activeTab.key === 'agent') {
       const people = (await SalesAgent.peopleFor([user.id], { perAgent: AGENT_LIST_CAP }))[user.id] || [];
-      salesAgent = { ...agentStats, link: `${config.app.baseUrl}/s/${agentStats.code}`, people, cap: AGENT_LIST_CAP };
+      salesAgent = { ...agentStats, link: `${config.app.baseUrl}/s/${agentStats.code}`, taxLink: `${config.app.baseUrl}/t/${agentStats.code}`, people, cap: AGENT_LIST_CAP };
     }
 
     const badges = [

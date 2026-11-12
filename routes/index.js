@@ -498,7 +498,7 @@ router.post('/dedupe', hasDedupeAccess, dedupeLimiter, (req, res) => {
  *
  * 302, never 301: a cached permanent redirect would stop the opens being counted.
  */
-const { LINK_PREVIEW, countAgentOpen } = require('../utils/agentOpens');
+const { LINK_PREVIEW, countAgentOpen, countAgentTaxOpen } = require('../utils/agentOpens');
 
 router.get(
   '/s/:code',
@@ -508,6 +508,26 @@ router.get(
     if (!req.session.salesAgentCode) req.session.salesAgentCode = agent.code;
     await countAgentOpen(req, agent);
     return res.redirect(302, `/auth/register?a=${encodeURIComponent(agent.code)}`);
+  })
+);
+
+/**
+ * GET /t/:code — the same agent's personal link to the tax optimisation page (2026-11-12,
+ * owner, as on dynamicshub.net). Same code as /s/, a different landing page. The code is
+ * remembered in the session exactly as /s/ does, so somebody who reads about the programme
+ * and registers later is still credited to that colleague; the open is counted separately
+ * (utils/agentOpens.js). An unknown or paused code still lands on /tax — the page it
+ * promised. 302 for the same reason as /s/.
+ */
+router.get(
+  '/t/:code',
+  asyncHandler(async (req, res) => {
+    const agent = await SalesAgent.findActiveByCode(req.params.code);
+    if (agent) {
+      if (!req.session.salesAgentCode) req.session.salesAgentCode = agent.code;
+      await countAgentTaxOpen(req, agent);
+    }
+    return res.redirect(302, '/tax');
   })
 );
 
