@@ -2629,3 +2629,17 @@ body.has-cookie-notice .assistant { bottom: 7.5rem; }
   max-width: 100%;
   height: auto;
 }
+
+/* Admin > Referrals > Sales agents: 13 columns, set compact enough to fit the page without a
+   sideways scroll (owner, 2026-11-12, as on dynamicshub.net). Headers may wrap, the two links
+   show their short path (Copy puts the full address on the clipboard), and an email stays on
+   ONE line in a smaller size rather than splitting. */
+.agents-table { font-size: 0.85rem; }
+.agents-table > :not(caption) > * > * { padding: 0.45rem 0.35rem; }
+.agents-table th { white-space: normal; vertical-align: bottom; line-height: 1.2; font-size: 0.8rem; }
+.agents-table .agent-email { font-size: 0.75rem; white-space: nowrap; }
+.agents-table .agent-link-row { white-space: nowrap; line-height: 1.7; }
+.agents-table .agent-link-row code { font-size: 0.75rem; }
+.agents-table .agent-breakdown { max-width: 7rem; margin-left: auto; line-height: 1.3; }
+.agents-table .agent-country-btn { white-space: nowrap; padding: 0.15rem 0.5rem; font-size: 0.8rem; }
+.agents-table .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
