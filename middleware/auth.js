@@ -88,6 +88,18 @@ function isCompany(req, res, next) {
  * file, which meant it redirected a background fetch to a login page instead of answering
  * 401/403 JSON, because a route-local guard does not know about `Sec-Fetch-Dest`.
  */
+/**
+ * Posting a role: a company account, or an administrator posting FOR one (2026-11-12, as on
+ * dynamicshub.net). The route then makes the administrator name the company; this guard
+ * only decides who may open the form.
+ */
+function isCompanyOrAdmin(req, res, next) {
+  const user = req.session && req.session.user;
+  if (!user) return denyAuth(req, res, 'Please sign in to continue.');
+  if (user.isCompany || user.isAdmin) return next();
+  return denyRole(req, res, 'That area is for company accounts. Tick “Hire SAP talent” below to add it.', ROLES_PAGE);
+}
+
 function isRecruiter(req, res, next) {
   const user = req.session && req.session.user;
   if (!user) return denyAuth(req, res, 'Please sign in to continue.');
@@ -181,6 +193,7 @@ module.exports = {
   isGuest,
   isConsultant,
   isCompany,
+  isCompanyOrAdmin,
   isRecruiter,
   isAdmin,
   isSuperadmin,

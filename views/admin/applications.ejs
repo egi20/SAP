@@ -11,6 +11,10 @@
   <%- include('./_tabs', { current: 'applications' }) %>
   <%- include('../partials/flash') %>
 
+  <div class="d-flex justify-content-end mb-3">
+    <a class="btn btn-primary" href="/jobs/new"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Post a job for a company</a>
+  </div>
+
   <%#
     The state, never the content. The cover letter and the day rate are on the
     application's own page, behind the same guard — this screen exists to answer whether

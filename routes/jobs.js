@@ -13,7 +13,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const CompanyProfile = require('../models/CompanyProfile');
 const ConsultantProfile = require('../models/ConsultantProfile');
-const { isAuthenticated, isCompany, isConsultant, isEmailVerified } = require('../middleware/auth');
+const { isAuthenticated, isCompany, isCompanyOrAdmin, isConsultant, isEmailVerified } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { paginationFrom, paginationMeta, pageUrl } = require('../utils/pagination');
@@ -114,25 +114,54 @@ router.get(
 );
 
 // Declared before `/:slug` so "new" is never treated as a job slug.
+/*
+ * An administrator may post a role FOR a company account (2026-11-12, owner, as on
+ * dynamicshub.net) and must name which one. The advert still belongs to that account — its
+ * "About the company" box, its pipeline and its threads hang off it — so there is no house
+ * profile to file it under: the reference did that, and two administrators made two
+ * companies of the same name with adverts their real owners could not see. A company
+ * account posting for itself never sees the picker, and a `company_user_id` it posts is
+ * ignored rather than honoured.
+ */
+async function renderNewJobForm(req, res, { status = 200, errors = [], values = {} } = {}) {
+  const user = req.session.user;
+  const companies = user.isAdmin ? await CompanyProfile.postableAccounts() : null;
+  return res.status(status).render('jobs/form', {
+    sections: Job.SECTIONS,
+    title: 'Post a job',
+    job: null,
+    jobSkills: [],
+    jobModules: status === 200 ? [] : selectedModules(values),
+    roleCategories: ROLE_CATEGORIES,
+    productLines: PRODUCT_LINES,
+    countries,
+    companies,
+    errors,
+    values
+  });
+}
+
+/** Whose advert this is: the signed-in company, or the account an administrator chose. */
+async function jobOwnerFor(req) {
+  const user = req.session.user;
+  if (!user.isAdmin) return { ownerId: user.id, byAdmin: null };
+  const chosen = Number(req.body.company_user_id);
+  if (!Number.isInteger(chosen) || chosen <= 0) return { error: 'Choose the company this role is posted for.' };
+  const account = (await CompanyProfile.postableAccounts()).find((a) => a.user_id === chosen);
+  if (!account) return { error: 'That company account is not active or does not hold the company role.' };
+  return { ownerId: account.user_id, byAdmin: account.user_id === user.id ? null : user.id, account };
+}
+
 router.get(
   '/new',
   isAuthenticated,
-  isCompany,
+  isCompanyOrAdmin,
   isEmailVerified,
   asyncHandler(async (req, res) => {
-    await CompanyProfile.ensureExists(req.session.user.id, req.session.user.name);
-    res.render('jobs/form', {
-      sections: Job.SECTIONS,
-      title: 'Post a job',
-      job: null,
-      jobSkills: [],
-      jobModules: [],
-      roleCategories: ROLE_CATEGORIES,
-      productLines: PRODUCT_LINES,
-      countries,
-      errors: [],
-      values: {}
-    });
+    const user = req.session.user;
+    if (!user.isAdmin) await CompanyProfile.ensureExists(user.id, user.name);
+    const forId = Number(req.query.for);
+    return renderNewJobForm(req, res, { values: Number.isInteger(forId) && forId > 0 ? { company_user_id: forId } : {} });
   })
 );
 
@@ -227,33 +256,36 @@ function skillNames(body_) {
 router.post(
   '/',
   isAuthenticated,
-  isCompany,
+  isCompanyOrAdmin,
   isEmailVerified,
   writeLimiter,
   jobValidators,
   asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(422).render('jobs/form', {
-        sections: Job.SECTIONS,
-        title: 'Post a job',
-        job: null,
-        jobSkills: [],
-        jobModules: selectedModules(req.body),
-        roleCategories: ROLE_CATEGORIES,
-        productLines: PRODUCT_LINES,
-        countries,
-        errors: errors.array(),
-        values: req.body
-      });
-    }
+    const errors = validationResult(req).array();
+    const owner = await jobOwnerFor(req);
+    if (owner.error) errors.unshift({ msg: owner.error });
+    if (errors.length) return renderNewJobForm(req, res, { status: 422, errors, values: req.body });
 
-    const job = await Job.create(req.session.user.id, jobFieldsFrom(req.body));
+    if (owner.byAdmin) await CompanyProfile.ensureExists(owner.ownerId, owner.account.company_name || owner.account.name);
+    const job = await Job.create(owner.ownerId, { ...jobFieldsFrom(req.body), posted_by_admin_id: owner.byAdmin });
     const skills = await Skill.findOrCreateMany(skillNames(req.body));
     await Skill.setForJob(job.id, skills.map((s) => s.id));
     await Job.setModules(job.id, selectedModules(req.body));
 
-    req.flash('success', job.status === 'open' ? 'Job published.' : 'Job saved as a draft.');
+    if (owner.byAdmin) {
+      // The company hears it from us, not from a candidate's application.
+      Notification.emit({
+        userId: owner.ownerId,
+        type: 'job_posted_for_you',
+        title: `An administrator posted "${job.title}" for your company`,
+        body: job.status === 'open' ? 'It is live on the board. You can edit or close it from your adverts.' : 'It is saved as a draft. Publish it when you are ready.',
+        link: `/jobs/${job.slug}`,
+        dedupeKey: `job-posted-for:${job.id}`
+      });
+    }
+
+    const where = owner.byAdmin ? ` for ${owner.account.company_name || owner.account.name}` : '';
+    req.flash('success', job.status === 'open' ? `Job published${where}.` : `Job saved as a draft${where}.`);
     return res.redirect(`/jobs/${job.slug}`);
   })
 );

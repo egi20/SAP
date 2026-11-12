@@ -20,6 +20,26 @@
         <div class="card-body">
           <h2 class="h6 mb-3">The role</h2>
 
+          <%# An administrator posts FOR a company account and has to name it; the email sits
+              beside the name because two accounts can share a company name. -%>
+          <% if (!job && locals.companies) { %>
+            <div class="mb-3">
+              <label class="form-label" for="company_user_id">Post for company <span aria-hidden="true">*</span></label>
+              <select class="form-select" id="company_user_id" name="company_user_id" required>
+                <option value="">Choose the company account…</option>
+                <% locals.companies.forEach(function (c) { %>
+                  <option value="<%= c.user_id %>" <%= String(values.company_user_id) === String(c.user_id) ? 'selected' : '' %>>
+                    <%= c.company_name || c.name %> — <%= c.email %>
+                  </option>
+                <% }); %>
+              </select>
+              <div class="form-text">
+                The advert belongs to that account: its applications land in their pipeline and they
+                are told you posted it. <% if (!locals.companies.length) { %><strong>No active company account exists yet.</strong><% } %>
+              </div>
+            </div>
+          <% } %>
+
           <div class="mb-3">
             <label class="form-label" for="title">Title <span aria-hidden="true">*</span></label>
             <input class="form-control" id="title" name="title" required maxlength="200"

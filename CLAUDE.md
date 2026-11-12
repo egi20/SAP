@@ -708,10 +708,20 @@ reappears is still the member's own switch — an administrator undoing a remova
 publish somebody's profile for them, exactly as restoring a reply gives back the writing
 points but not the accepted-answer mark.
 
-**There is no admin path that creates or edits a job advert.** An advert belongs to a
-company account: it carries that company's "About the company" box, its applications land
-in that account's pipeline, and the threads about it are anchored to that account. An
-advert written from the admin screen would name a company that did not write it.
+**An administrator can POST a job advert, but only FOR a company account they name**
+(2026-11-12, owner, as on dynamicshub.net — this paragraph used to say there was no admin
+path at all). An advert belongs to a company account: it carries that company's "About the
+company" box, its applications land in that account's pipeline, and the threads about it are
+anchored to it. So `/jobs/new` (guard `isCompanyOrAdmin`, linked from `/admin/jobs` and
+`/admin/applications`) shows an administrator a REQUIRED "Post for company" select of active
+accounts holding the company role (`CompanyProfile.postableAccounts`, email beside each name
+because two accounts can share a company name), and `jobOwnerFor` refuses with a 422 when none
+is chosen or the account is not a company. There is NO house profile to fall back to — the
+reference filed admin adverts under the posting admin's own "Dynamics Hub" profile, and two
+admins made two same-named companies whose adverts their real owners could not see. A company
+account never sees the picker and a `company_user_id` it posts is ignored. `jobs.posted_by_admin_id`
+(migration 044) records who actually wrote it, and the company gets a `job_posted_for_you`
+notification. Editing stays the owner's: there is still no admin EDIT of somebody's advert.
 
 **The user list shows the country the member STATED, never `users.signup_country`.** That
 column is derived from the address a request arrived from and the member has never seen it;

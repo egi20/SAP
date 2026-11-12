@@ -237,13 +237,14 @@ class Job {
     const slug = await uniqueSlug(`${data.title}`, Job.slugTaken);
     const [result] = await promisePool.query(
       `INSERT INTO jobs
-         (company_user_id, title, slug, description, responsibilities, requirements, what_we_offer,
+         (company_user_id, posted_by_admin_id, title, slug, description, responsibilities, requirements, what_we_offer,
           role, seniority, engagement_type, work_mode,
           country, city, rate_min, rate_max, currency, rate_visible, duration_months, starts_on,
           activate_phase, deployment, transition_approach, status, published_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         companyUserId,
+        data.posted_by_admin_id || null,
         data.title,
         slug,
         data.description,

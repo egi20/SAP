@@ -50,6 +50,22 @@ class CompanyProfile {
     return CompanyProfile.findByUserId(userId);
   }
 
+  /**
+   * The company accounts an administrator may post a role for: active, holding the company
+   * role. The owner's email is shown beside the name because two accounts can carry the same
+   * company name, and the reference filed adverts under the wrong one exactly that way.
+   */
+  static async postableAccounts() {
+    const [rows] = await promisePool.query(
+      `SELECT u.id AS user_id, u.name, u.email, cp.company_name
+         FROM users u
+         LEFT JOIN company_profiles cp ON cp.user_id = u.id
+        WHERE u.is_active = 1 AND u.is_company = 1
+        ORDER BY COALESCE(cp.company_name, u.name), u.id`
+    );
+    return rows;
+  }
+
   static async update(userId, fields) {
     const allowed = [
       'company_name', 'tagline', 'about', 'industry', 'company_size',
