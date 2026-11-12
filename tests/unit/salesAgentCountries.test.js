@@ -60,7 +60,7 @@ describe('the Sales agents tab', () => {
   const geo = (rows) => ({ rows, chart: donutSlices(rows.map((r) => ({ label: r.code || 'Unknown', count: r.count }))) });
   const locals = {
     csrfToken: 't',
-    agents: [{ user_id: 7, code: 'ABCDEFGH', is_active: 1, account_active: 1, link_opens: 12, opens_24h: 3, name: 'Ana <b>', email: 'ana@x.test',
+    agents: [{ user_id: 7, code: 'ABCDEFGH', is_active: 1, account_active: 1, link_opens: 12, opens_24h: 3, tax_opens: 5, tax_opens_24h: 2, name: 'Ana <b>', email: 'ana@x.test',
       signups: 2, signups_24h: 1, consultants: 2, companies: 0, verified: 1, last_signup: new Date() }],
     direct: { all_accounts: 50, signups: 48, signups_24h: 4, consultants: 30, companies: 10, verified: 40, via_referrer: 2 },
     agentPeople: { 7: [{ id: 1, name: 'Bea', email: 'bea@x.test', is_active: 1, is_consultant: 1, is_company: 0, email_verified: 1,
@@ -70,7 +70,8 @@ describe('the Sales agents tab', () => {
     overallCountries: geo([{ code: 'AL', count: 2, fromIp: 2 }]),
     countryLabel: (c) => (c === 'AL' ? 'Albania' : c || 'Unknown'),
     geoNote: 'note',
-    linkFor: (code) => `https://x.test/s/${code}`
+    linkFor: (code) => `https://x.test/s/${code}`,
+    taxLinkFor: (code) => `https://x.test/t/${code}`
   };
 
   it('shows both 24-hour columns and a top-country button that opens the modal', async () => {
@@ -81,6 +82,14 @@ describe('the Sales agents tab', () => {
     expect(html).toContain('data-bs-target="#agent-countries-direct"');
     expect(html).toContain('Where agent-link sign-ups come from');
     expect(html).not.toContain('Ana <b>');
+  });
+
+  it('carries each agent\'s tax link (same code, /t/) and its opens, total and 24h', async () => {
+    const html = await ejs.renderFile(path.join(views, '_sales-agents.ejs'), locals);
+    expect(html).toContain('https://x.test/t/ABCDEFGH');
+    expect(html).toContain('>Tax opens<');
+    expect(html).toContain('>Tax opens (24h)<');
+    expect(html).toMatch(/<td class="text-end">5<\/td>\s*<td class="text-end">2<\/td>/);
   });
 
   it('modals list each person with their country and say when it came from the sign-up IP', async () => {

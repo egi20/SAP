@@ -1202,6 +1202,17 @@ missed — without the UA filters, because a fetcher does not fill in a registra
 Migration 043 raised every lifetime counter to at least its credited sign-ups: the smallest
 figure the rows prove, invented nothing; no dated row is written, so the 24h column stays what
 was seen. Missed opens that never became a sign-up stay unrecoverable, so an old Rate is high.
+**Each agent also has a TAX link, `/t/<code>`** (owner, 2026-11-12, on all three hubs): the
+SAME code as the sign-up link, landing on `/tax`. It remembers the code in the session exactly
+as `/s/` does (so a later registration is still credited) and an unknown or paused code still
+lands on `/tax`. Its opens go to `sales_agent_tax_opens` (migration 045, agent + `opened_at`
+only) via `countAgentTaxOpen` in `utils/agentOpens.js` — the same person/preview filters, once
+per session per agent, but its OWN session list (`salesAgentTaxOpens`), so opening one link
+never uses up the other; the agent opening their own link is not counted. There is no lifetime counter: the table IS the count, and
+`SalesAgent.listAll`/`statsFor` read `tax_opens` + `tax_opens_24h` from it. Shown as "Tax opens"
+/ "Tax opens (24h)" on the agents tab (with the copyable `/t/` link under the sign-up one), in
+each agent's modal, and on the agent's own dashboard. Pinned by `tests/unit/agentTaxLink.test.js`
+and `tests/unit/salesAgentCountries.test.js`.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";

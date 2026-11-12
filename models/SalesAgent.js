@@ -74,6 +74,14 @@ class SalesAgent {
   }
 
   /**
+   * One counted open of the agent's TAX link (`/t/<code>`, migration 045). The table is the
+   * count — there is no lifetime counter to keep beside it, because the link started with it.
+   */
+  static async countTaxOpen(userId) {
+    await promisePool.query('INSERT INTO sales_agent_tax_opens (agent_user_id) VALUES (?)', [userId]);
+  }
+
+  /**
    * Credit a new account to the agent whose link it came through. First touch: the WHERE
    * refuses to overwrite, and an agent cannot be credited with their own account. Returns
    * the agent credited (truthy) or false.
@@ -106,7 +114,10 @@ class SalesAgent {
               MAX(s.created_at)                    AS last_signup,
               COALESCE(SUM(s.created_at >= NOW() - INTERVAL 24 HOUR), 0) AS signups_24h,
               (SELECT COUNT(*) FROM sales_agent_link_opens o
-                WHERE o.agent_user_id = sa.user_id AND o.opened_at >= NOW() - INTERVAL 24 HOUR) AS opens_24h
+                WHERE o.agent_user_id = sa.user_id AND o.opened_at >= NOW() - INTERVAL 24 HOUR) AS opens_24h,
+              (SELECT COUNT(*) FROM sales_agent_tax_opens t WHERE t.agent_user_id = sa.user_id) AS tax_opens,
+              (SELECT COUNT(*) FROM sales_agent_tax_opens t
+                WHERE t.agent_user_id = sa.user_id AND t.opened_at >= NOW() - INTERVAL 24 HOUR) AS tax_opens_24h
          FROM sales_agents sa
          JOIN users u ON u.id = sa.user_id
          LEFT JOIN users s ON s.sales_agent_id = sa.user_id
@@ -117,7 +128,8 @@ class SalesAgent {
     return rows.map((r) => ({
       ...r,
       signups: Number(r.signups), consultants: Number(r.consultants), companies: Number(r.companies), verified: Number(r.verified),
-      signups_24h: Number(r.signups_24h), opens_24h: Number(r.opens_24h)
+      signups_24h: Number(r.signups_24h), opens_24h: Number(r.opens_24h),
+      tax_opens: Number(r.tax_opens), tax_opens_24h: Number(r.tax_opens_24h)
     }));
   }
 
@@ -129,7 +141,10 @@ class SalesAgent {
               COALESCE(SUM(s.is_consultant = 1), 0) AS consultants,
               COALESCE(SUM(s.is_company = 1), 0) AS companies,
               COALESCE(SUM(s.email_verified = 1), 0) AS verified,
-              MAX(s.created_at) AS last_signup
+              MAX(s.created_at) AS last_signup,
+              (SELECT COUNT(*) FROM sales_agent_tax_opens t WHERE t.agent_user_id = sa.user_id) AS tax_opens,
+              (SELECT COUNT(*) FROM sales_agent_tax_opens t
+                WHERE t.agent_user_id = sa.user_id AND t.opened_at >= NOW() - INTERVAL 24 HOUR) AS tax_opens_24h
          FROM sales_agents sa
          LEFT JOIN users s ON s.sales_agent_id = sa.user_id
         WHERE sa.user_id = ?
@@ -137,7 +152,7 @@ class SalesAgent {
       [userId]
     );
     if (!row) return null;
-    ['signups', 'consultants', 'companies', 'verified'].forEach((k) => { row[k] = Number(row[k]); });
+    ['signups', 'consultants', 'companies', 'verified', 'tax_opens', 'tax_opens_24h'].forEach((k) => { row[k] = Number(row[k]); });
     return row;
   }
 
