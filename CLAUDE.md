@@ -1213,6 +1213,12 @@ never uses up the other; the agent opening their own link is not counted. There 
 / "Tax opens (24h)" on the agents tab (with the copyable `/t/` link under the sign-up one), in
 each agent's modal, and on the agent's own dashboard. Pinned by `tests/unit/agentTaxLink.test.js`
 and `tests/unit/salesAgentCountries.test.js`.
+**The agents table must fit the page without a sideways scroll** (owner, 2026-11-12): it is
+`.agents-table` (rules at the end of `public/css/style.css`) — headers wrap, the two links show
+their short path (`/s/<code>`, `/t/<code>`; Copy puts the full address on the clipboard), an
+email stays on ONE line in a smaller size (never split), and the breakdown lines under the
+counts wrap. Measured to fit a 1280px viewport with seven agents; a new column needs room
+taken from somewhere.
 An agent sees their own link and figures on the dashboard's Sales Agent tab, with the people
 who came through it by NAME, role and date — never their email addresses: those people did not
 sign up to be contacted by a colleague. The dashboard badge for a referrer is now "Referrer";
