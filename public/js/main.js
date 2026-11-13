@@ -753,6 +753,43 @@
 }());
 
 /*
+ * Copy buttons the SERVER rendered: `<button data-copy="URL">`.
+ *
+ * The sales-agent links (the admin Sales agents table and the agent's own dashboard) render
+ * a real button because the address sits beside it, and nothing listened for it: every one
+ * of those Copy buttons did nothing. `.copy-link` is a span slot built above, so the
+ * `button` selector keeps the two apart. A `.copy-state` glyph inside turns into a tick.
+ */
+(function copyButtons() {
+  document.querySelectorAll('button[data-copy]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var url = button.getAttribute('data-copy');
+      if (!url) return;
+      var state = button.querySelector('.copy-state');
+      var label = button.getAttribute('aria-label');
+
+      function confirm(text) {
+        button.classList.add('is-copied');
+        button.setAttribute('aria-label', text);
+        if (state) state.classList.replace('bi-clipboard', 'bi-check2');
+        window.setTimeout(function () {
+          button.classList.remove('is-copied');
+          if (label) button.setAttribute('aria-label', label); else button.removeAttribute('aria-label');
+          if (state) state.classList.replace('bi-check2', 'bi-clipboard');
+        }, 1500);
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(function () { confirm('Copied'); },
+          function () { window.prompt('Copy this link:', url); });
+        return;
+      }
+      window.prompt('Copy this link:', url);
+    });
+  });
+}());
+
+/*
  * Confirm before a form that destroys something.
  *
  * A quote draft was deleted by one click with nothing in between, and the community's
