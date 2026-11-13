@@ -74,14 +74,14 @@
             <td>
               <%# The short path is shown, the full address is what Copy puts on the clipboard: two
                   full URLs made this one column wider than four number columns together. %>
-              <span class="d-block agent-link-row" title="Sign-up link">
-                <i class="bi bi-link-45deg me-1" aria-hidden="true"></i><code class="small">/s/<%= a.code %></code>
-                <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-copy="<%= linkFor(a.code) %>" aria-label="Copy the sign-up link"><i class="bi bi-clipboard"></i></button>
-              </span>
-              <span class="d-block agent-link-row" title="Tax optimisation link: the same code, landing on /tax">
-                <i class="bi bi-calculator me-1" aria-hidden="true"></i><code class="small">/t/<%= a.code %></code>
-                <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-copy="<%= taxLinkFor(a.code) %>" aria-label="Copy the tax link"><i class="bi bi-clipboard"></i></button>
-              </span>
+              <%# The WHOLE row copies: icon, path and clipboard glyph. The glyph on its own was too
+                  small a target, and the calculator icon read as the thing to click. %>
+              <button type="button" class="d-flex agent-link-row" data-copy="<%= linkFor(a.code) %>" title="Click to copy the full sign-up link" aria-label="Copy the sign-up link">
+                <i class="bi bi-link-45deg" aria-hidden="true"></i><code class="small">/s/<%= a.code %></code><i class="bi bi-clipboard copy-state" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="d-flex agent-link-row" data-copy="<%= taxLinkFor(a.code) %>" title="Click to copy the full Tax optimisation link (lands on /tax)" aria-label="Copy the tax link">
+                <i class="bi bi-calculator" aria-hidden="true"></i><code class="small">/t/<%= a.code %></code><i class="bi bi-clipboard copy-state" aria-hidden="true"></i>
+              </button>
             </td>
             <td class="text-end"><%= a.link_opens %></td>
             <td class="text-end"><%= a.opens_24h %></td>

@@ -87,6 +87,8 @@ describe('the Sales agents tab', () => {
   it('carries each agent\'s tax link (same code, /t/) and its opens, total and 24h', async () => {
     const html = await ejs.renderFile(path.join(views, '_sales-agents.ejs'), locals);
     expect(html).toContain('https://x.test/t/ABCDEFGH');
+    // The whole row is the copy button, so the icon and the path copy too (2026-11-13).
+    expect(html).toMatch(/<button type="button" class="d-flex agent-link-row" data-copy="https:\/\/x\.test\/t\/ABCDEFGH"/);
     expect(html).toContain('>Tax opens<');
     expect(html).toContain('>Tax opens (24h)<');
     expect(html).toMatch(/<td class="text-end">5<\/td>\s*<td class="text-end">2<\/td>/);
